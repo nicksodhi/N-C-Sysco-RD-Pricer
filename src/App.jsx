@@ -335,50 +335,50 @@ export default function App() {
     const f = e.target.files[0]; if (!f) return;
     e.target.value = "";
     setPdfProcessing(src);
-    setPdfMsg("Reading PDF...");
+    setPdfMsg("📖 Reading PDF...");
 
     try {
-      // Step 1: Extract raw text from PDF using PDF.js (no file size limit)
-      setPdfMsg("📖 Extracting text from PDF...");
-      const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      // Load PDF.js via script tag injection (works in deployed React apps)
+      await new Promise((resolve, reject) => {
+        if (window.pdfjsLib) { resolve(); return; }
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        s.onload = () => {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          resolve();
+        };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
 
-      const arrayBuffer = await f.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // Extract text page by page from the PDF
+      const buf = await f.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+      setPdfMsg(`📊 Analyzing ${pdf.numPages} pages...`);
       let rawText = "";
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(" ");
-        rawText += pageText + "\n---PAGE---\n";
+        const tc = await page.getTextContent();
+        rawText += tc.items.map(i => i.str).join(" ") + "\n---PAGE---\n";
       }
 
-      setPdfMsg(`📊 Analyzing ${pdf.numPages} pages...`);
-
-      // Step 2: Send extracted text (not the PDF binary) to Claude
+      // Send extracted text to Claude (tiny vs 2.9MB PDF binary)
       const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
-
       const rdNote = src === "rd" ? `
-NOTE: This is from the Restaurant Depot member portal saved as PDF.
-Prices appear in a weird split format in the raw text - e.g. "$ 36 24" or "36 24" means $36.24.
-For ranged prices like "$ 08 $ 55 4 - 15" it means $4.08 to $15.55 - use the LOWER value $4.08.
-For "each (est.)" prices like "$31.60 each" use $31.60 directly.
-Pages are separated by ---PAGE---. Each page has one item.
-Ignore: navigation text, "Skip Navigation", "Bin -", "Many in stock", URLs, dates.
-` : "";
+NOTE: RD portal PDF — prices split across text: "$ 36 24" = $36.24. Range "$ 08 $ 55 4 - 15" = $4.08 to $15.55 (use LOWER). "each (est.)" prices are direct. Pages split by ---PAGE---. Ignore nav/Skip Navigation/Bin/URLs.` : "";
 
-      const prompt = `This is extracted text from a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.
-${rdNote}
-Raw text:
-${rawText.slice(0, 12000)}
+      const prompt = `Extracted text from ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.${rdNote}
 
-Match each item+price you find to the closest entry in this list:
+TEXT:
+${rawText.slice(0, 14000)}
+
+Match items+prices to this list:
 ${itemList}
 
-Return ONLY valid JSON array, no markdown:
-[{"id":"ITEM_ID","description":"matched name","price":0.00,"raw":"what you saw"}]
-
-Only include items with a clear price. Use id: null if no match. Price must be a number.`;
+Return ONLY JSON array, no markdown:
+[{"id":"ITEM_ID_OR_NULL","description":"matched","price":0.00,"raw":"seen"}]
+Only items with visible price. Price = number only.`;
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -389,11 +389,10 @@ Only include items with a clear price. Use id: null if no match. Price must be a
           messages: [{ role: "user", content: prompt }]
         })
       });
-
       const data = await resp.json();
       if (data.error) throw new Error(data.error.message);
-      const text = data.content?.find(b => b.type === "text")?.text || "[]";
-      const results = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+      const results = JSON.parse(txt.replace(/```json|```/g, "").trim());
       let matched = 0;
       for (const r of results) {
         if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; }
@@ -401,7 +400,7 @@ Only include items with a clear price. Use id: null if no match. Price must be a
       setPdfMsg(`✓ ${matched} prices saved to home screen`);
     } catch (err) {
       console.error("PDF error:", err);
-      setPdfMsg("❌ Could not read PDF. Try the 📸 Photos option instead — take a photo of each price tag.");
+      setPdfMsg("❌ PDF failed — try the 📸 Photos option instead.");
     }
     setPdfProcessing(null);
   }
