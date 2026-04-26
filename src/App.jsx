@@ -211,7 +211,7 @@ async function scanImagesWithAI(files, source) {
     "Respond with ONLY a JSON array (no markdown, no text before or after):\n" +
     '[{"id":"ITEM_ID_OR_NULL","description":"matched name","price":9.99,"confidence":"high","raw":"text from image"}]\n' +
     "Use null for id if no match. Price must be a number. Only include items with a visible price.";
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const resp = await fetch("/api/claude", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -379,7 +379,7 @@ export default function App() {
         "\n\nRespond with ONLY a JSON array (no markdown):\n" +
         '[{"id":"ITEM_ID_OR_NULL","description":"matched","price":9.99,"raw":"seen"}]\n' +
         "Price = number only. id from list or null.";
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      const resp = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
