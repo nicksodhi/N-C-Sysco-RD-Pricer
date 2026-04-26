@@ -215,7 +215,7 @@ async function scanImagesWithAI(files, source) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       messages: [{ role: "user", content: [...imgs, { type: "text", text: prompt }] }]
     })
@@ -382,7 +382,7 @@ export default function App() {
       const resp = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 4000,
           messages: [{ role: "user", content: prompt }] })
       });
       const data = await resp.json();
