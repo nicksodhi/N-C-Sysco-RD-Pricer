@@ -240,6 +240,8 @@ export default function App() {
   const [histItem, setHistItem] = useState(null);
   const [histRange, setHistRange] = useState("month");
   const [showHidden, setShowHidden] = useState(false);
+  const [pdfProcessing, setPdfProcessing] = useState(null); // "rd" | "sysco" | null
+  const [pdfMsg, setPdfMsg] = useState("");
   const fileRef = useRef();
 
   function hideItem(id) {
@@ -290,6 +292,57 @@ export default function App() {
       alert(`✓ Matched ${n} of ${rows.length} items.`);
     };
     reader.readAsText(f); e.target.value = "";
+  }
+
+  async function handlePDF(e, src) {
+    const f = e.target.files[0]; if (!f) return;
+    e.target.value = "";
+    setPdfProcessing(src);
+    setPdfMsg("");
+    try {
+      const base64 = await fileToBase64(f);
+      const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
+      const prompt = `This is a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide or invoice PDF.
+
+Extract every item that has a price. Match each item to the closest entry in this list:
+${itemList}
+
+Return ONLY a valid JSON array, no markdown:
+[{"id":"ITEM_ID_OR_NULL","description":"matched item name","price":0.00,"raw":"exact text from PDF"}]
+
+Rules:
+- Only include items where you can clearly see a price
+- Use case pricing (the per-case price, not per-unit)
+- If an item doesn't match anything in the list, use id: null
+- Prices should be numbers only, no $ sign`;
+
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.find(b => b.type === "text")?.text || "[]";
+      const results = JSON.parse(text.replace(/```json|```/g, "").trim());
+      let matched = 0;
+      for (const r of results) {
+        if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; }
+      }
+      setPdfMsg(`✓ Read ${results.length} items, matched ${matched} to your list.`);
+    } catch (err) {
+      setPdfMsg("❌ Could not read PDF. Try a cleaner export or use CSV instead.");
+    }
+    setPdfProcessing(null);
   }
 
   function getBest(id) {
@@ -781,7 +834,7 @@ export default function App() {
             <div style={{ background: "#13151d", border: "1px solid #1e2130", borderRadius: 6, padding: 14, marginBottom: 14, fontSize: 12, color: "#555", lineHeight: 1.9 }}>
               Prices stay until you update them. Only upload when a price actually changes.
             </div>
-            {[["rd","Restaurant Depot","#4ade80",null],["sysco","Sysco","#60a5fa","Portal → My Account → Order Guide → Export CSV"]].map(([src,label,color,hint]) => (
+            {[["rd","Restaurant Depot","#4ade80",null],["sysco","Sysco","#60a5fa","Portal → My Account → Order Guide → Export"]].map(([src,label,color,hint]) => (
               <div key={src} style={{ background: "#13151d", border: "1px solid #1e2130", borderRadius: 6, padding: 16, marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: color }} />
@@ -796,10 +849,35 @@ export default function App() {
                     📄 CSV Export
                     <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={e => handleCSV(e, src)} />
                   </label>
+                  <label style={{
+                    background: pdfProcessing === src ? "#1a1a0a" : "#0c0e13",
+                    border: `1px solid ${pdfProcessing === src ? "#facc15" : "#2a2d3a"}`,
+                    color: pdfProcessing === src ? "#facc15" : "#888",
+                    padding: "8px 14px", cursor: pdfProcessing === src ? "default" : "pointer",
+                    fontFamily: "'DM Mono',monospace", fontSize: 11, borderRadius: 4, letterSpacing: 1,
+                    display: "flex", alignItems: "center", gap: 6
+                  }}>
+                    {pdfProcessing === src ? "⏳ READING PDF..." : "📋 PDF Order Guide"}
+                    <input type="file" accept=".pdf" style={{ display: "none" }}
+                      disabled={!!pdfProcessing}
+                      onChange={e => handlePDF(e, src)} />
+                  </label>
                 </div>
                 {hint && <div style={{ marginTop: 8, fontSize: 10, color: "#333" }}>{hint}</div>}
+                {pdfMsg && pdfProcessing === null && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: pdfMsg.startsWith("✓") ? "#4ade80" : "#f87171" }}>{pdfMsg}</div>
+                )}
               </div>
             ))}
+
+            {/* PDF tips */}
+            <div style={{ background: "#0f1117", border: "1px solid #1a1d27", borderRadius: 6, padding: 14, fontSize: 11, color: "#444", lineHeight: 1.8 }}>
+              <div style={{ color: "#555", marginBottom: 6, letterSpacing: 1, fontSize: 10 }}>PDF TIPS</div>
+              Works best with digital PDFs exported directly from the portal.<br />
+              Scanned / photographed PDFs may not extract correctly — use the 📸 scan option instead.<br />
+              Sysco: <span style={{ color: "#333" }}>Portal → Order Guide → Export → PDF</span><br />
+              Restaurant Depot: <span style={{ color: "#333" }}>Account → Order History → Print/Save as PDF</span>
+            </div>
           </div>
         )}
 
