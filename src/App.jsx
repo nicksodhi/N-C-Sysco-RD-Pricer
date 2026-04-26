@@ -338,47 +338,54 @@ export default function App() {
     setPdfMsg("📖 Reading PDF...");
 
     try {
-      // Load PDF.js via script tag injection (works in deployed React apps)
-      await new Promise((resolve, reject) => {
-        if (window.pdfjsLib) { resolve(); return; }
-        const s = document.createElement("script");
-        s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        s.onload = () => {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          resolve();
-        };
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-
-      // Extract text page by page from the PDF
+      // Read PDF as ArrayBuffer, extract readable text chunks
       const buf = await f.arrayBuffer();
-      const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
-      setPdfMsg(`📊 Analyzing ${pdf.numPages} pages...`);
-      let rawText = "";
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const tc = await page.getTextContent();
-        rawText += tc.items.map(i => i.str).join(" ") + "\n---PAGE---\n";
+      const bytes = new Uint8Array(buf);
+
+      // Decode PDF binary to string and extract readable text
+      let pdfStr = "";
+      for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if (b >= 32 && b < 127) pdfStr += String.fromCharCode(b);
+        else if (b === 10 || b === 13) pdfStr += " ";
       }
 
-      // Send extracted text to Claude (tiny vs 2.9MB PDF binary)
+      // Extract text between BT/ET markers (PDF text blocks)
+      const textBlocks = [];
+      const btReg = /BT([\s\S]*?)ET/g;
+      const tjReg = /\(([^)]{2,80})\)\s*T[jJ]/g;
+      let m;
+      while ((m = btReg.exec(pdfStr)) !== null) {
+        const block = m[1];
+        let t;
+        while ((t = tjReg.exec(block)) !== null) {
+          const s = t[1].trim();
+          if (s.length > 1) textBlocks.push(s);
+        }
+      }
+
+      // Also grab plain readable lines (fallback for text-layer PDFs)
+      const lines = pdfStr.split(/\s{3,}|\n/).map(s => s.trim()).filter(s => s.length > 3 && s.length < 200);
+      const allText = [...textBlocks, ...lines].join(" | ").slice(0, 15000);
+
+      setPdfMsg("🤖 Matching prices...");
+
       const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
       const rdNote = src === "rd" ? `
-NOTE: RD portal PDF — prices split across text: "$ 36 24" = $36.24. Range "$ 08 $ 55 4 - 15" = $4.08 to $15.55 (use LOWER). "each (est.)" prices are direct. Pages split by ---PAGE---. Ignore nav/Skip Navigation/Bin/URLs.` : "";
+This is from the Restaurant Depot member portal (saved as PDF). Prices show as split numbers e.g. "36 24" near an item = $36.24. A range like "08 55 4 15" = $4.08 to $15.55, use the lower $4.08. "each (est.)" = use that price directly. Ignore: navigation, Skip Navigation, Bin numbers, URLs, dates.` : "";
 
-      const prompt = `Extracted text from ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.${rdNote}
+      const prompt = `Raw text extracted from a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.${rdNote}
 
-TEXT:
-${rawText.slice(0, 14000)}
+RAW TEXT:
+${allText}
 
-Match items+prices to this list:
+Match every item+price you find to the closest entry in this list:
 ${itemList}
 
-Return ONLY JSON array, no markdown:
-[{"id":"ITEM_ID_OR_NULL","description":"matched","price":0.00,"raw":"seen"}]
-Only items with visible price. Price = number only.`;
+Return ONLY a JSON array, no markdown, no explanation:
+[{"id":"ITEM_ID_OR_NULL","description":"matched item","price":0.00,"raw":"text seen"}]
+
+Rules: only items with a clear price, id must come from the list or be null, price is a number.`;
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
