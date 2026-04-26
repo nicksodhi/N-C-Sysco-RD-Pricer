@@ -18,6 +18,33 @@ export default async function handler(req, res) {
       body: JSON.stringify(body),
     });
     const data = await response.json();
+
+    // Post-process: if any result has a low price that matches a known range pattern,
+    // ensure we're using case pricing by checking the raw text
+    if (data.content) {
+      const txt = data.content.find(b => b.type === "text")?.text || "";
+      // Fix price ranges in the response - always use higher price
+      // Pattern: if raw shows "X-Y" and price is X, change to Y
+      const fixedTxt = txt.replace(
+        /("price"\s*:\s*)([\d.]+)([^}]*"raw"\s*:\s*"[^"]*\$([\d.]+)-\$([\d.]+)[^"]*")/g,
+        (match, priceKey, price, rest, low, high) => {
+          const pricedVal = parseFloat(price);
+          const lowVal = parseFloat(low);
+          const highVal = parseFloat(high);
+          // If the price matches the low value, replace with high (case price)
+          if (Math.abs(pricedVal - lowVal) < 0.02) {
+            return priceKey + highVal + rest;
+          }
+          return match;
+        }
+      );
+      if (fixedTxt !== txt) {
+        data.content = data.content.map(b =>
+          b.type === "text" ? { ...b, text: fixedTxt } : b
+        );
+      }
+    }
+
     return res.status(response.status).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
