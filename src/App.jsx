@@ -82,56 +82,21 @@ const AISLE_LABELS = {
 const CATS = ["ALL","PRODUCE","DAIRY","MEAT","FROZEN","DRY GOODS","LIQUIDS","SPECIALTY","NON-FOOD"];
 
 // ── SEED DATA (sample prices) ─────────────────────────────────────────────────
-const SEED_DATE_RD = new Date(Date.now() - 5 * 86400000).toISOString();
+const SEED_DATE_RD = new Date().toISOString();
 const SEED_DATE_SC = new Date(Date.now() - 2 * 86400000).toISOString();
 const SEED_RD = {
-  "42599":10.25,   // Russet Potatoes 50 lbs
-  "44146":78.88,   // Peeled Garlic (case)
-  "42513":27.71,   // Fresh Ginger 30 lbs
-  "1440528":86.76, // Paneer 5 lbs (case)
-  "42566":15.11,   // Cilantro (case)
-  "44137":68.30,   // Serrano Peppers 38 lbs
-  "42658":15.95,   // Red Onions 25 lbs
-  "42545":18.95,   // Yellow Onions 50 lbs
-  "42504":82.92,   // Cucumbers (case)
-  "1530438":43.95, // Heavy Cream 64 oz (case)
-  "370496":15.55,  // Whole Milk 1 gal (case)
-  "14785":36.24,   // Plain Yogurt 32 lbs
-  "1440204":42.53, // Cheddar Jack Cheese 5 lbs (case)
-  "77200":57.60,   // Chicken Wings 40 lbs
-  "77670":31.60,   // Chicken Leg Quarters 40 lbs
-  "77682":89.60,   // Chicken Thighs Boneless 40 lbs
-  "1810019":78.04, // Goat Bone-in Cubed 15 lbs
-  "79042":276.58,  // Lamb Leg Boneless Halal
-  "77595":71.17,   // Chicken Thigh Meat Frozen 40 lbs
-  "77597":66.29,   // Chicken Leg Meat Frozen 40 lbs
-  "51457":29.51,   // Tilapia Fillets Frozen 10 lbs
-  "64046":36.76,   // Chopped Spinach Frozen (case)
-  "64120":23.45,   // Broccoli Florets Frozen (case)
-  "86527":31.34,   // Mixed Vegetables Frozen (case)
-  "86525":38.20,   // Green Peas Frozen (case)
-  "2910159":30.67, // Cornstarch (case)
-  "16200":29.88,   // Garbanzo Beans (case)
-  "69810":32.60,   // Kidney Beans (case)
-  "860044":27.78,  // Tomato Sauce (case)
-  "860135":26.18,  // Petite Diced Tomatoes (case)
-  "490266":57.62,  // Basmati Rice EL Grain 40 lbs
-  "490219":53.18,  // Sela Basmati Rice 40 lbs
-  "21051":19.07,   // Granulated Sugar 25 lbs
-  "1070496":9.23,  // Salt 50 lbs
-  "29268":89.43,   // Baking Powder (case)
-  "53556":39.10,   // Atta Flour (case)
-  "1020152":36.17, // Liquid Butter Alt (case)
-  "13417":39.29,   // Sambal Oelek (case)
-  "1020079":37.72, // Canola Oil 35 lbs
-  "1020075":37.35, // Soybean Oil 35 lbs
-  "1020077":36.21, // Fry Oil 35 lbs
-  "2550014":32.87, // Red Food Coloring (case)
-  "12728":18.90,   // Pan Spray (case)
-  "25267":55.25,   // Roasted Eggplant Pulp (case)
-  "21039":18.24,   // Spring Water 24-pack
-  "440039":20.22,  // Diet Coke 24-pack
-  "440040":18.64,  // Sprite 4-pack
+  "44146": 78.88,  "860044": 27.78,  "77200": 57.60,   "1810019": 78.04,
+  "21051": 19.07,  "77682": 89.60,   "14785": 36.24,   "370496": 15.55,
+  "1530438": 43.95,"77670": 31.60,   "1440528": 86.76, "1020077": 36.21,
+  "490266": 57.62, "1020075": 37.35, "1020152": 36.17, "21039": 18.24,
+  "79042": 276.58, "55519": 9.96,    "77597": 66.29,   "29268": 89.43,
+  "77595": 71.17,  "12728": 18.90,   "2550014": 32.87, "69810": 32.60,
+  "1070496": 9.23, "42545": 18.95,   "42658": 15.95,   "13417": 39.29,
+  "42504": 82.92,  "42599": 10.25,   "860135": 26.18,  "64046": 36.76,
+  "42566": 15.11,  "51457": 29.51,   "53556": 39.10,   "440040": 18.64,
+  "64120": 23.45,  "44137": 68.30,   "86527": 31.34,   "86525": 38.20,
+  "2910159": 30.67,"25267": 55.25,   "16200": 29.88,   "1440204": 42.53,
+  "42513": 27.71,  "490219": 53.18,
 };
 const SEED_SC = {
   "42599":68.99,"44146":34.99,"42513":31.99,"1440528":94.99,"42566":21.99,
@@ -207,6 +172,8 @@ async function scanImagesWithAI(files, source) {
   }));
   const list = RD_DATA.map(i => i.id + ": " + i.description).join("\n");
   const prompt = "You are scanning a " + (source === "rd" ? "Restaurant Depot" : "Sysco") + " price label, receipt, or order guide.\n" +
+    "CRITICAL PRICING RULE: Items show TWO prices like '$4.08-$15.55' or '$7.84-$43.95'. The FIRST low price is per individual unit. The SECOND higher price is the CASE price. You MUST always return the SECOND HIGHER price. So $4.08-$15.55 → return 15.55. $7.84-$43.95 → return 43.95. $24.40-$86.76 → return 86.76.\n" +
+    "For 'each (est.)' prices like $31.60 each, use that price directly.\n" +
     "Extract every item and price you can see. Match each to the closest item in this list:\n" + list + "\n\n" +
     "Respond with ONLY a JSON array (no markdown, no text before or after):\n" +
     '[{"id":"ITEM_ID_OR_NULL","description":"matched name","price":9.99,"confidence":"high","raw":"text from image"}]\n' +
