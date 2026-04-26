@@ -314,49 +314,55 @@ export default function App() {
     const f = e.target.files[0]; if (!f) return;
     e.target.value = "";
     setPdfProcessing(src);
-    setPdfMsg("📖 Reading PDF text...");
+    setPdfMsg("📖 Sending PDF to AI...");
     try {
-      // Extract readable text from PDF bytes directly in browser
-      const buf = await f.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let raw = "";
-      for (let i = 0; i < bytes.length; i++) {
-        const b = bytes[i];
-        if (b >= 32 && b < 127) raw += String.fromCharCode(b);
-        else if (b === 10 || b === 13) raw += " ";
-      }
-      // Pull text from PDF Tj/TJ operators
-      const chunks = [];
-      const re = /\(([^)]{1,120})\)\s*T[jJ]/g;
-      let m;
-      while ((m = re.exec(raw)) !== null) {
-        const s = m[1].trim();
-        if (s.length > 1 && !/^[\d\s\.]+$/.test(s)) chunks.push(s);
-      }
-      // Also pull whitespace-separated words as fallback
-      const words = raw.replace(/[^ -~]/g, " ").split(/\s{2,}/).map(s => s.trim()).filter(s => s.length > 2 && s.length < 150);
-      const allText = [...chunks, ...words].join(" | ").slice(0, 18000);
-      setPdfMsg("🤖 Matching items to prices...");
+      // Convert PDF to base64 and send directly to Claude as a document
+      const base64 = await fileToBase64(f);
       const itemList = RD_DATA.map(i => i.id + ": " + i.description).join("\n");
-      const rdNote = src === "rd" ?
-        " NOTE: RD portal format — prices split like '36 24' = $36.24, range '08 55 4 15' = $4.08–$15.55 (use lower). 'each (est.)' = direct price. Ignore nav/Bin/URLs." : "";
-      const prompt = "Extracted text from a " + (src === "rd" ? "Restaurant Depot" : "Sysco") + " order guide PDF." + rdNote +
-        "\n\nTEXT:\n" + allText +
-        "\n\nMatch every item+price to this list:\n" + itemList +
-        "\n\nRespond with ONLY a JSON array (no markdown):\n" +
-        '[{"id":"ITEM_ID_OR_NULL","description":"matched","price":9.99,"raw":"seen"}]\n' +
-        "Price = number only. id from list or null.";
+      
+      const rdNote = src === "rd" ? `
+CRITICAL: This is a Restaurant Depot order guide PDF (saved webpage format).
+Each item shows TWO prices like "$7.84-$43.95". The FIRST is per-unit, SECOND is case price.
+ALWAYS use the HIGHER/SECOND price (case price). So $7.84-$43.95 → use 43.95.
+For "each (est.)" like "$31.60 each" → use 31.60 directly.
+Ignore all navigation, "Skip Navigation", "Bin -", "Add", URLs, dates.` : 
+      "Extract all items and their prices from this Sysco order guide.";
+
+      const prompt = `You are reading a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.
+${rdNote}
+
+Match every item and price you find to the closest entry in this list:
+${itemList}
+
+Respond with ONLY a JSON array, no markdown, no explanation:
+[{"id":"ITEM_ID_OR_NULL","description":"matched item","price":0.00,"raw":"text you saw"}]
+
+Rules:
+- id must be from the list above, or null
+- price is a number only (no $ sign)  
+- For RD range prices always use the HIGHER number (case price)
+- Only include items where you can clearly see a price`;
+
       const resp = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 4000,
-          messages: [{ role: "user", content: prompt }] })
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 4000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
       });
       const data = await resp.json();
       if (data.error) throw new Error(data.error.message || "API error");
       const txt = (data.content?.find(b => b.type === "text")?.text || "").trim();
       const match = txt.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error("No data found in PDF");
+      if (!match) throw new Error("Could not parse response");
       const results = JSON.parse(match[0]);
       let matched = 0;
       for (const r of results) { if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; } }
