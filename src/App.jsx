@@ -335,40 +335,50 @@ export default function App() {
     const f = e.target.files[0]; if (!f) return;
     e.target.value = "";
     setPdfProcessing(src);
-    setPdfMsg("");
+    setPdfMsg("Reading PDF...");
+
     try {
-      const base64 = await fileToBase64(f);
+      // Step 1: Extract raw text from PDF using PDF.js (no file size limit)
+      setPdfMsg("📖 Extracting text from PDF...");
+      const pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+      const arrayBuffer = await f.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let rawText = "";
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(" ");
+        rawText += pageText + "\n---PAGE---\n";
+      }
+
+      setPdfMsg(`📊 Analyzing ${pdf.numPages} pages...`);
+
+      // Step 2: Send extracted text (not the PDF binary) to Claude
       const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
 
-      const rdInstructions = src === "rd" ? `
-IMPORTANT - Restaurant Depot PDF format note:
-This PDF is likely a saved webpage from the RD member portal. Each item appears on its own page.
-Prices appear in a split format where dollars and cents are on separate lines, like:
-  "$   36" on one line then "24" on the next = $36.24
-  "$   08   $   55" then "4   - 15" = range $4.08 to $15.55 (use the LOWER price $4.08)
-  "$31.60 each (est.)" for by-weight items = $31.60
+      const rdNote = src === "rd" ? `
+NOTE: This is from the Restaurant Depot member portal saved as PDF.
+Prices appear in a weird split format in the raw text - e.g. "$ 36 24" or "36 24" means $36.24.
+For ranged prices like "$ 08 $ 55 4 - 15" it means $4.08 to $15.55 - use the LOWER value $4.08.
+For "each (est.)" prices like "$31.60 each" use $31.60 directly.
+Pages are separated by ---PAGE---. Each page has one item.
+Ignore: navigation text, "Skip Navigation", "Bin -", "Many in stock", URLs, dates.
+` : "";
 
-Look for the item name (the product description line), and the price near it.
-Ignore: navigation menus, "Skip Navigation", "Bin -", "Many in stock", "Add", dates, URLs.
-` : `
-This is a Sysco order guide PDF. Extract item names and prices directly.
-Prices are typically shown as $XX.XX format.
-`;
+      const prompt = `This is extracted text from a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.
+${rdNote}
+Raw text:
+${rawText.slice(0, 12000)}
 
-      const prompt = `This is a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.
-${rdInstructions}
-Extract every item and its price. Match each to the closest entry in this list:
+Match each item+price you find to the closest entry in this list:
 ${itemList}
 
-Return ONLY a valid JSON array, no markdown, no explanation:
-[{"id":"ITEM_ID_OR_NULL","description":"matched item","price":0.00,"raw":"item name from PDF"}]
+Return ONLY valid JSON array, no markdown:
+[{"id":"ITEM_ID","description":"matched name","price":0.00,"raw":"what you saw"}]
 
-Rules:
-- id must be one of the IDs from the list above, or null if no match
-- price must be a number (no $ sign)
-- For ranged prices use the LOWER price
-- For per-each/estimated prices use that price
-- Only include items where a price is clearly visible`;
+Only include items with a clear price. Use id: null if no match. Price must be a number.`;
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -376,15 +386,10 @@ Rules:
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 4000,
-          messages: [{
-            role: "user",
-            content: [
-              { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
-              { type: "text", text: prompt }
-            ]
-          }]
+          messages: [{ role: "user", content: prompt }]
         })
       });
+
       const data = await resp.json();
       if (data.error) throw new Error(data.error.message);
       const text = data.content?.find(b => b.type === "text")?.text || "[]";
@@ -393,10 +398,10 @@ Rules:
       for (const r of results) {
         if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; }
       }
-      setPdfMsg(`✓ Read ${results.length} items · ${matched} matched & saved to home screen`);
+      setPdfMsg(`✓ ${matched} prices saved to home screen`);
     } catch (err) {
-      console.error(err);
-      setPdfMsg("❌ Could not read PDF. Make sure it's a digital PDF (not a photo). Try the 📸 scan option for photos.");
+      console.error("PDF error:", err);
+      setPdfMsg("❌ Could not read PDF. Try the 📸 Photos option instead — take a photo of each price tag.");
     }
     setPdfProcessing(null);
   }
