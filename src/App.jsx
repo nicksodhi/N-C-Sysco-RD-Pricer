@@ -197,14 +197,19 @@ function parseCSVText(text) {
   return results;
 }
 async function scanImagesWithAI(files, source) {
-  const imgs = await Promise.all(files.map(async f => ({
-    type: "image", source: { type: "base64", media_type: f.type || "image/jpeg", data: await fileToBase64(f) }
-  })));
+  const imgs = await Promise.all(files.map(async f => {
+    let mt = f.type;
+    if (!mt || mt === "application/octet-stream") {
+      const n = (f.name || "").toLowerCase();
+      mt = n.endsWith(".png") ? "image/png" : n.endsWith(".gif") ? "image/gif" : n.endsWith(".webp") ? "image/webp" : "image/jpeg";
+    }
+    return { type: "image", source: { type: "base64", media_type: mt, data: await fileToBase64(f) } };
+  }));
   const list = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
   const prompt = `Scan these ${source === "rd" ? "Restaurant Depot" : "Sysco"} price labels/receipts/screenshots.
 Extract ALL items with visible prices. Match each to this list:
 ${list}
-Return ONLY valid JSON array:
+Return ONLY valid JSON array, no markdown:
 [{"id":"ID_OR_NULL","description":"match","price":0.00,"confidence":"high|medium|low","raw":"text seen"}]`;
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -212,10 +217,10 @@ Return ONLY valid JSON array:
       messages: [{ role: "user", content: [...imgs, { type: "text", text: prompt }] }] })
   });
   const data = await resp.json();
+  if (data.error) throw new Error(data.error.message || data.error.type || "API error");
   const txt = data.content?.find(b => b.type === "text")?.text || "[]";
   try { return JSON.parse(txt.replace(/```json|```/g, "").trim()); } catch { return []; }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -311,7 +316,7 @@ export default function App() {
   async function runScan() {
     setScanning(true); setScanErr(""); setScanResults(null);
     try { setScanResults(await scanImagesWithAI(files, scanSrc)); }
-    catch { setScanErr("Scan failed — check connection and try again."); }
+    catch (e) { setScanErr("Scan failed: " + (e.message || "check connection and try again.")); }
     setScanning(false);
   }
   function applyAllScan() {
