@@ -85,16 +85,53 @@ const CATS = ["ALL","PRODUCE","DAIRY","MEAT","FROZEN","DRY GOODS","LIQUIDS","SPE
 const SEED_DATE_RD = new Date(Date.now() - 5 * 86400000).toISOString();
 const SEED_DATE_SC = new Date(Date.now() - 2 * 86400000).toISOString();
 const SEED_RD = {
-  "42599":62.99,"44146":38.99,"42513":28.99,"1440528":89.99,"42566":18.99,
-  "44137":24.99,"42658":32.99,"42545":29.99,"42504":22.99,
-  "1530438":69.99,"370496":34.99,"14785":62.99,"1440204":54.99,
-  "77200":89.99,"77670":74.99,"77682":109.99,"1810019":139.99,"79042":179.99,
-  "77595":119.99,"77597":124.99,"51457":79.99,"64046":38.99,"64120":32.99,
-  "86527":28.99,"86525":26.99,
-  "2910159":34.99,"16200":54.99,"69810":52.99,"860044":48.99,"860135":51.99,
-  "490266":38.99,"490219":36.99,"21051":24.99,"1070496":14.99,"29268":32.99,"53556":44.99,
-  "1020152":62.99,"13417":44.99,"1020079":89.99,"1020075":82.99,"1020077":91.99,
-  "2550014":44.99,"12728":32.99,
+  "42599":10.25,   // Russet Potatoes 50 lbs
+  "44146":78.88,   // Peeled Garlic (case)
+  "42513":27.71,   // Fresh Ginger 30 lbs
+  "1440528":86.76, // Paneer 5 lbs (case)
+  "42566":15.11,   // Cilantro (case)
+  "44137":68.30,   // Serrano Peppers 38 lbs
+  "42658":15.95,   // Red Onions 25 lbs
+  "42545":18.95,   // Yellow Onions 50 lbs
+  "42504":82.92,   // Cucumbers (case)
+  "1530438":43.95, // Heavy Cream 64 oz (case)
+  "370496":15.55,  // Whole Milk 1 gal (case)
+  "14785":36.24,   // Plain Yogurt 32 lbs
+  "1440204":42.53, // Cheddar Jack Cheese 5 lbs (case)
+  "77200":57.60,   // Chicken Wings 40 lbs
+  "77670":31.60,   // Chicken Leg Quarters 40 lbs
+  "77682":89.60,   // Chicken Thighs Boneless 40 lbs
+  "1810019":78.04, // Goat Bone-in Cubed 15 lbs
+  "79042":276.58,  // Lamb Leg Boneless Halal
+  "77595":71.17,   // Chicken Thigh Meat Frozen 40 lbs
+  "77597":66.29,   // Chicken Leg Meat Frozen 40 lbs
+  "51457":29.51,   // Tilapia Fillets Frozen 10 lbs
+  "64046":36.76,   // Chopped Spinach Frozen (case)
+  "64120":23.45,   // Broccoli Florets Frozen (case)
+  "86527":31.34,   // Mixed Vegetables Frozen (case)
+  "86525":38.20,   // Green Peas Frozen (case)
+  "2910159":30.67, // Cornstarch (case)
+  "16200":29.88,   // Garbanzo Beans (case)
+  "69810":32.60,   // Kidney Beans (case)
+  "860044":27.78,  // Tomato Sauce (case)
+  "860135":26.18,  // Petite Diced Tomatoes (case)
+  "490266":57.62,  // Basmati Rice EL Grain 40 lbs
+  "490219":53.18,  // Sela Basmati Rice 40 lbs
+  "21051":19.07,   // Granulated Sugar 25 lbs
+  "1070496":9.23,  // Salt 50 lbs
+  "29268":89.43,   // Baking Powder (case)
+  "53556":39.10,   // Atta Flour (case)
+  "1020152":36.17, // Liquid Butter Alt (case)
+  "13417":39.29,   // Sambal Oelek (case)
+  "1020079":37.72, // Canola Oil 35 lbs
+  "1020075":37.35, // Soybean Oil 35 lbs
+  "1020077":36.21, // Fry Oil 35 lbs
+  "2550014":32.87, // Red Food Coloring (case)
+  "12728":18.90,   // Pan Spray (case)
+  "25267":55.25,   // Roasted Eggplant Pulp (case)
+  "21039":18.24,   // Spring Water 24-pack
+  "440039":20.22,  // Diet Coke 24-pack
+  "440040":18.64,  // Sprite 4-pack
 };
 const SEED_SC = {
   "42599":68.99,"44146":34.99,"42513":31.99,"1440528":94.99,"42566":21.99,
@@ -302,26 +339,43 @@ export default function App() {
     try {
       const base64 = await fileToBase64(f);
       const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
-      const prompt = `This is a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide or invoice PDF.
 
-Extract every item that has a price. Match each item to the closest entry in this list:
+      const rdInstructions = src === "rd" ? `
+IMPORTANT - Restaurant Depot PDF format note:
+This PDF is likely a saved webpage from the RD member portal. Each item appears on its own page.
+Prices appear in a split format where dollars and cents are on separate lines, like:
+  "$   36" on one line then "24" on the next = $36.24
+  "$   08   $   55" then "4   - 15" = range $4.08 to $15.55 (use the LOWER price $4.08)
+  "$31.60 each (est.)" for by-weight items = $31.60
+
+Look for the item name (the product description line), and the price near it.
+Ignore: navigation menus, "Skip Navigation", "Bin -", "Many in stock", "Add", dates, URLs.
+` : `
+This is a Sysco order guide PDF. Extract item names and prices directly.
+Prices are typically shown as $XX.XX format.
+`;
+
+      const prompt = `This is a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.
+${rdInstructions}
+Extract every item and its price. Match each to the closest entry in this list:
 ${itemList}
 
-Return ONLY a valid JSON array, no markdown:
-[{"id":"ITEM_ID_OR_NULL","description":"matched item name","price":0.00,"raw":"exact text from PDF"}]
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"id":"ITEM_ID_OR_NULL","description":"matched item","price":0.00,"raw":"item name from PDF"}]
 
 Rules:
-- Only include items where you can clearly see a price
-- Use case pricing (the per-case price, not per-unit)
-- If an item doesn't match anything in the list, use id: null
-- Prices should be numbers only, no $ sign`;
+- id must be one of the IDs from the list above, or null if no match
+- price must be a number (no $ sign)
+- For ranged prices use the LOWER price
+- For per-each/estimated prices use that price
+- Only include items where a price is clearly visible`;
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
+          max_tokens: 4000,
           messages: [{
             role: "user",
             content: [
@@ -332,15 +386,17 @@ Rules:
         })
       });
       const data = await resp.json();
+      if (data.error) throw new Error(data.error.message);
       const text = data.content?.find(b => b.type === "text")?.text || "[]";
       const results = JSON.parse(text.replace(/```json|```/g, "").trim());
       let matched = 0;
       for (const r of results) {
         if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; }
       }
-      setPdfMsg(`✓ Read ${results.length} items, matched ${matched} to your list.`);
+      setPdfMsg(`✓ Read ${results.length} items · ${matched} matched & saved to home screen`);
     } catch (err) {
-      setPdfMsg("❌ Could not read PDF. Try a cleaner export or use CSV instead.");
+      console.error(err);
+      setPdfMsg("❌ Could not read PDF. Make sure it's a digital PDF (not a photo). Try the 📸 scan option for photos.");
     }
     setPdfProcessing(null);
   }
