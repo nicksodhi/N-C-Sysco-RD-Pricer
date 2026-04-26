@@ -205,21 +205,28 @@ async function scanImagesWithAI(files, source) {
     }
     return { type: "image", source: { type: "base64", media_type: mt, data: await fileToBase64(f) } };
   }));
-  const list = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
-  const prompt = `Scan these ${source === "rd" ? "Restaurant Depot" : "Sysco"} price labels/receipts/screenshots.
-Extract ALL items with visible prices. Match each to this list:
-${list}
-Return ONLY valid JSON array, no markdown:
-[{"id":"ID_OR_NULL","description":"match","price":0.00,"confidence":"high|medium|low","raw":"text seen"}]`;
+  const list = RD_DATA.map(i => i.id + ": " + i.description).join("\n");
+  const prompt = "You are scanning a " + (source === "rd" ? "Restaurant Depot" : "Sysco") + " price label, receipt, or order guide.\n" +
+    "Extract every item and price you can see. Match each to the closest item in this list:\n" + list + "\n\n" +
+    "Respond with ONLY a JSON array (no markdown, no text before or after):\n" +
+    '[{"id":"ITEM_ID_OR_NULL","description":"matched name","price":9.99,"confidence":"high","raw":"text from image"}]\n' +
+    "Use null for id if no match. Price must be a number. Only include items with a visible price.";
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
-      messages: [{ role: "user", content: [...imgs, { type: "text", text: prompt }] }] })
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: [...imgs, { type: "text", text: prompt }] }]
+    })
   });
   const data = await resp.json();
   if (data.error) throw new Error(data.error.message || data.error.type || "API error");
-  const txt = data.content?.find(b => b.type === "text")?.text || "[]";
-  try { return JSON.parse(txt.replace(/```json|```/g, "").trim()); } catch { return []; }
+  const txt = (data.content?.find(b => b.type === "text")?.text || "").trim();
+  // Extract JSON array even if there's surrounding text
+  const match = txt.match(/\[[\s\S]*\]/);
+  if (!match) throw new Error("Invalid response format");
+  return JSON.parse(match[0]);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -340,83 +347,59 @@ export default function App() {
     const f = e.target.files[0]; if (!f) return;
     e.target.value = "";
     setPdfProcessing(src);
-    setPdfMsg("📖 Reading PDF...");
-
+    setPdfMsg("📖 Reading PDF text...");
     try {
-      // Read PDF as ArrayBuffer, extract readable text chunks
+      // Extract readable text from PDF bytes directly in browser
       const buf = await f.arrayBuffer();
       const bytes = new Uint8Array(buf);
-
-      // Decode PDF binary to string and extract readable text
-      let pdfStr = "";
+      let raw = "";
       for (let i = 0; i < bytes.length; i++) {
         const b = bytes[i];
-        if (b >= 32 && b < 127) pdfStr += String.fromCharCode(b);
-        else if (b === 10 || b === 13) pdfStr += " ";
+        if (b >= 32 && b < 127) raw += String.fromCharCode(b);
+        else if (b === 10 || b === 13) raw += " ";
       }
-
-      // Extract text between BT/ET markers (PDF text blocks)
-      const textBlocks = [];
-      const btReg = /BT([\s\S]*?)ET/g;
-      const tjReg = /\(([^)]{2,80})\)\s*T[jJ]/g;
+      // Pull text from PDF Tj/TJ operators
+      const chunks = [];
+      const re = /\(([^)]{1,120})\)\s*T[jJ]/g;
       let m;
-      while ((m = btReg.exec(pdfStr)) !== null) {
-        const block = m[1];
-        let t;
-        while ((t = tjReg.exec(block)) !== null) {
-          const s = t[1].trim();
-          if (s.length > 1) textBlocks.push(s);
-        }
+      while ((m = re.exec(raw)) !== null) {
+        const s = m[1].trim();
+        if (s.length > 1 && !/^[\d\s\.]+$/.test(s)) chunks.push(s);
       }
-
-      // Also grab plain readable lines (fallback for text-layer PDFs)
-      const lines = pdfStr.split(/\s{3,}|\n/).map(s => s.trim()).filter(s => s.length > 3 && s.length < 200);
-      const allText = [...textBlocks, ...lines].join(" | ").slice(0, 15000);
-
-      setPdfMsg("🤖 Matching prices...");
-
-      const itemList = RD_DATA.map(i => `${i.id}: ${i.description}`).join("\n");
-      const rdNote = src === "rd" ? `
-This is from the Restaurant Depot member portal (saved as PDF). Prices show as split numbers e.g. "36 24" near an item = $36.24. A range like "08 55 4 15" = $4.08 to $15.55, use the lower $4.08. "each (est.)" = use that price directly. Ignore: navigation, Skip Navigation, Bin numbers, URLs, dates.` : "";
-
-      const prompt = `Raw text extracted from a ${src === "rd" ? "Restaurant Depot" : "Sysco"} order guide PDF.${rdNote}
-
-RAW TEXT:
-${allText}
-
-Match every item+price you find to the closest entry in this list:
-${itemList}
-
-Return ONLY a JSON array, no markdown, no explanation:
-[{"id":"ITEM_ID_OR_NULL","description":"matched item","price":0.00,"raw":"text seen"}]
-
-Rules: only items with a clear price, id must come from the list or be null, price is a number.`;
-
+      // Also pull whitespace-separated words as fallback
+      const words = raw.replace(/[^ -~]/g, " ").split(/\s{2,}/).map(s => s.trim()).filter(s => s.length > 2 && s.length < 150);
+      const allText = [...chunks, ...words].join(" | ").slice(0, 18000);
+      setPdfMsg("🤖 Matching items to prices...");
+      const itemList = RD_DATA.map(i => i.id + ": " + i.description).join("\n");
+      const rdNote = src === "rd" ?
+        " NOTE: RD portal format — prices split like '36 24' = $36.24, range '08 55 4 15' = $4.08–$15.55 (use lower). 'each (est.)' = direct price. Ignore nav/Bin/URLs." : "";
+      const prompt = "Extracted text from a " + (src === "rd" ? "Restaurant Depot" : "Sysco") + " order guide PDF." + rdNote +
+        "\n\nTEXT:\n" + allText +
+        "\n\nMatch every item+price to this list:\n" + itemList +
+        "\n\nRespond with ONLY a JSON array (no markdown):\n" +
+        '[{"id":"ITEM_ID_OR_NULL","description":"matched","price":9.99,"raw":"seen"}]\n' +
+        "Price = number only. id from list or null.";
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4000,
-          messages: [{ role: "user", content: prompt }]
-        })
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
+          messages: [{ role: "user", content: prompt }] })
       });
       const data = await resp.json();
-      if (data.error) throw new Error(data.error.message);
-      const txt = data.content?.find(b => b.type === "text")?.text || "[]";
-      const results = JSON.parse(txt.replace(/```json|```/g, "").trim());
+      if (data.error) throw new Error(data.error.message || "API error");
+      const txt = (data.content?.find(b => b.type === "text")?.text || "").trim();
+      const match = txt.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error("No data found in PDF");
+      const results = JSON.parse(match[0]);
       let matched = 0;
-      for (const r of results) {
-        if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; }
-      }
-      setPdfMsg(`✓ ${matched} prices saved to home screen`);
+      for (const r of results) { if (r.id && r.price > 0) { recordPrice(r.id, r.price, src); matched++; } }
+      setPdfMsg("✓ " + matched + " prices saved to home screen");
     } catch (err) {
-      console.error("PDF error:", err);
-      setPdfMsg("❌ PDF failed — try the 📸 Photos option instead.");
+      console.error("PDF:", err);
+      setPdfMsg("❌ " + (err.message || "PDF failed") + " — try 📸 Photos instead.");
     }
     setPdfProcessing(null);
   }
-
   function getBest(id) {
     const rd = rdMap[id]?.price, sc = scMap[id]?.price;
     if (!rd && !sc) return null; if (!rd) return "sysco"; if (!sc) return "rd";
@@ -629,6 +612,7 @@ Rules: only items with a clear price, id must come from the list or be null, pri
           <div>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, letterSpacing: 3, color: "#e85d2f", lineHeight: 1 }}>NAAN & CURRY</div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+              <div style={{ fontSize: 9, color: "#333", letterSpacing: 1 }}>v1.4</div>
               {syncing
                 ? <div style={{ fontSize: 9, color: "#e85d2f", letterSpacing: 1 }}>⟳ syncing...</div>
                 : lastSync
