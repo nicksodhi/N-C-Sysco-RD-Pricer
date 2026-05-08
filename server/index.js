@@ -212,53 +212,59 @@ async function scrapeRD() {
     }
     await new Promise(r => setTimeout(r, 3000));
 
-    // Step 6: Extract using innerText of full page
-    const rdFullText = await page.evaluate(() => document.body.innerText);
-    log(`RD: full text length after scroll: ${rdFullText.length}, $ count: ${(rdFullText.match(/\$/g)||[]).length}`);
+    // Step 6: Use innerText line by line - RD prices show as "$36\n24" = $36.24
+    const rdLines = await page.evaluate(() => document.body.innerText.split("\n").map(l => l.trim()).filter(l => l));
+    log(`RD: ${rdLines.length} lines, sample: ${JSON.stringify(rdLines.slice(0, 20))}`);
 
-    const items = await page.evaluate(() => {
-      const results = [];
-      const seen = new Set();
-      // Get all text nodes
-      const texts = [];
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) {
-        const t = walker.currentNode.textContent.trim();
-        if (t.length > 0) texts.push(t);
-      }
-      log2("RD text nodes: " + texts.length);
-      for (let i = 0; i < texts.length; i++) {
-        const t = texts[i];
-        // Match price patterns
-        const eachM = t.match(/\$(\d+\.\d+)\s+each\s*\(est\.\)/i);
-        const rangeM = t.match(/\$(\d+\.\d+)\s*[-–]\s*\$(\d+\.\d+)/);
-        const csM = t.match(/^\$(\d{1,4}\.\d{2})$/);
-        let price = null;
-        if (eachM) price = parseFloat(eachM[1]);
-        else if (rangeM) price = Math.max(parseFloat(rangeM[1]), parseFloat(rangeM[2]));
-        else if (csM) price = parseFloat(csM[1]);
-        if (!price || price < 2 || price > 5000) continue;
-        // Find adjacent name
-        for (let j = i - 6; j <= i + 6; j++) {
-          if (j < 0 || j === i || j >= texts.length) continue;
-          const c = texts[j];
-          if (c.length > 8 && c.length < 130 && !seen.has(c) &&
-              !/^\$/.test(c) && !/^[\d\s.\-/#x]+$/.test(c) &&
-              !/^(Bin|stock|Add|Skip|Cart|Login|Search|Buy|eligible|Pickup|Delivery|Many|About|See|lbs?|oz|gal|ct|each|items?|Back|Skip Navigation)$/i.test(c) &&
-              c.split(" ").length >= 2) {
-            results.push({ name: c, price, raw: t });
-            seen.add(c);
-            break;
-          }
+    // Find all dollar-sign lines and reconstruct prices
+    const items = [];
+    const seen = new Set();
+    for (let i = 0; i < rdLines.length; i++) {
+      const line = rdLines[i];
+      let price = null;
+      let raw = line;
+
+      // "$31.60 each (est.)" — direct price
+      const eachM = line.match(/\$([\d.]+)\s+each/i);
+      if (eachM) { price = parseFloat(eachM[1]); }
+
+      // "$7.84-$43.95" — range, use higher (case price)
+      const rangeM = line.match(/\$([\d.]+)\s*[-–]\s*\$([\d.]+)/);
+      if (rangeM) { price = Math.max(parseFloat(rangeM[1]), parseFloat(rangeM[2])); }
+
+      // "$36" on one line + "24" on next = $36.24
+      // OR "$36" alone
+      const dollarM = line.match(/^\$([\d]{1,4})$/);
+      if (dollarM && i + 1 < rdLines.length) {
+        const nextLine = rdLines[i + 1];
+        const centsM = nextLine.match(/^(\d{2})\s*$/);
+        if (centsM) {
+          price = parseFloat(dollarM[1] + "." + centsM[1]);
+          raw = line + "." + nextLine;
         }
       }
-      return results;
-      function log2(m) { try { window.__rdLog = (window.__rdLog||[]).concat(m); } catch(e) {} }
-    });
 
-    // Get any internal logs
-    const rdInternalLog = await page.evaluate(() => window.__rdLog || []);
-    rdInternalLog.forEach(m => log("RD internal: " + m));
+      // "$  36  24" combined (superscript format)
+      const superM = line.match(/\$\s*(\d+)\s+(\d{2})$/);
+      if (superM) { price = parseFloat(superM[1] + "." + superM[2]); }
+
+      if (!price || price < 2 || price > 5000) continue;
+
+      // Find product name in surrounding lines
+      for (let j = i - 8; j <= i + 8; j++) {
+        if (j < 0 || j === i || j >= rdLines.length) continue;
+        const c = rdLines[j];
+        if (c.length > 8 && c.length < 130 && !seen.has(c) &&
+            !/^\$/.test(c) && !/^[\d\s.\-/#x]+$/.test(c) &&
+            !/^(Bin|stock|Add|Skip Navigation|Cart|Login|Search|Buy|eligible|Pickup|Delivery|Many|About|See|Back|Order Guides|Products|Equipment|Receipts|Monthly Flyer|Buy It Again|Skip)$/i.test(c) &&
+            !/^\d+\s*(oz|lb|gal|ct|#|z)$/i.test(c) &&
+            c.split(" ").length >= 2) {
+          items.push({ name: c, price, raw });
+          seen.add(c);
+          break;
+        }
+      }
+    }
     log(`RD: found ${items.length} items. Sample: ${JSON.stringify(items.slice(0, 5))}`);
     return { success: true, items };
   } catch(e) {
@@ -342,82 +348,91 @@ async function scrapeSysco() {
       throw new Error(`Sysco login failed, at: ${page.url()}`);
     }
 
-    // Step 3: Nick List — go to lists page and find Nick List in sidebar
-    log("Sysco: going to lists...");
-    try {
-      await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 });
-    } catch(e) { log(`Sysco: lists goto error: ${e.message}`); }
-    await new Promise(r => setTimeout(r, 5000));
-    log(`Sysco: lists URL=${page.url()}`);
+    // Step 3: Use Sysco's GraphQL API directly to get Nick List items
+    // The browser SPA uses # anchors - intercept the API instead
+    log("Sysco: fetching lists via API...");
 
-    // Log all links on page to find Nick List
-    const allLinks = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("a")).map(a => ({ text: a.textContent.trim(), href: a.href })).filter(l => l.text.length > 0 && l.text.length < 50)
-    );
-    log(`Sysco: all links on lists page: ${JSON.stringify(allLinks.slice(0, 20))}`);
-
-    // Find Nick List link directly
-    const nickUrl = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll("a"));
-      // Exact match first
-      let nick = links.find(a => a.textContent.trim().toLowerCase() === "nick list");
-      // Partial match fallback
-      if (!nick) nick = links.find(a => a.textContent.trim().toLowerCase().includes("nick list"));
-      // Try sidebar list items
-      if (!nick) nick = links.find(a => a.textContent.trim().toLowerCase().includes("nick"));
-      return nick ? nick.href : null;
+    const syscoLists = await page.evaluate(async () => {
+      try {
+        // Sysco uses GraphQL at /graphql
+        const r = await fetch("/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            operationName: "GetOrderLists",
+            query: `query GetOrderLists { orderLists { id name items { id product { id name brand price { netPrice } } quantity } } }`
+          })
+        });
+        const data = await r.json();
+        return JSON.stringify(data);
+      } catch(e) { return "error: " + e.message; }
     });
-    log(`Sysco: Nick List URL = ${nickUrl}`);
+    log(`Sysco: GraphQL lists response: ${syscoLists.slice(0, 500)}`);
 
-    if (nickUrl) {
+    // Also try REST API
+    const syscoListsRest = await page.evaluate(async () => {
       try {
-        await page.goto(nickUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
-      } catch(e) { log(`Sysco: Nick List goto error: ${e.message}`); }
-      await new Promise(r => setTimeout(r, 5000));
-    } else {
-      log("Sysco: Nick List not found in links, trying click...");
-      const clickResult = await page.evaluate(() => {
-        const all = Array.from(document.querySelectorAll("*"));
-        const nick = all.find(el =>
-          el.children.length <= 3 &&
-          el.textContent.trim().toLowerCase().includes("nick") &&
-          el.textContent.trim().length < 40
-        );
-        if (nick) { (nick.closest("a") || nick).click(); return nick.textContent.trim(); }
-        return null;
-      });
-      log(`Sysco: click result: ${clickResult}`);
-      await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(e => log(`Sysco: Nick nav: ${e.message}`));
-      await new Promise(r => setTimeout(r, 3000));
-    }
-    log(`Sysco: Nick List page URL=${page.url()}`);
+        const r = await fetch("/api/v3/orderlists?limit=50", {
+          credentials: "include",
+          headers: { "Accept": "application/json" }
+        });
+        const data = await r.json();
+        return JSON.stringify(data).slice(0, 1000);
+      } catch(e) { return "error: " + e.message; }
+    });
+    log(`Sysco: REST lists response: ${syscoListsRest}`);
 
-    // If still on purchase-history, the list might need direct URL
-    if (page.url().includes("purchase-history")) {
-      log("Sysco: still on purchase-history, trying direct list navigation...");
-      // Try navigating to the my-lists section
-      try {
-        await page.goto("https://shop.sysco.com/app/lists/my-lists", { waitUntil: "domcontentloaded", timeout: 20000 });
-      } catch(e) { 
-        try { await page.goto("https://shop.sysco.com/app/orderlists", { waitUntil: "domcontentloaded", timeout: 20000 }); } 
-        catch(e2) { log(`Sysco: alt lists URL error: ${e2.message}`); }
+    // Navigate to the lists page and intercept network requests for the list data
+    const listDataPromise = new Promise((resolve) => {
+      const handler = async (response) => {
+        const url = response.url();
+        if ((url.includes('/graphql') || url.includes('/api/')) && response.status() === 200) {
+          try {
+            const txt = await response.text();
+            if (txt.includes('orderList') || txt.includes('OrderList') || txt.includes('nick') || txt.includes('Nick')) {
+              page.off('response', handler);
+              resolve(txt);
+            }
+          } catch(e) {}
+        }
+      };
+      page.on('response', handler);
+      setTimeout(() => { page.off('response', handler); resolve(null); }, 20000);
+    });
+
+    // Navigate to lists - the SPA will make API calls we can intercept
+    await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log(e.message));
+    await new Promise(r => setTimeout(r, 6000));
+    log(`Sysco: lists page URL=${page.url()}`);
+
+    // Check for Nick List in sidebar text content (not links)
+    const sidebarText = await page.evaluate(() => {
+      const sidebar = document.querySelector('[class*="sidebar"], [class*="nav"], [class*="list-nav"], nav, aside');
+      return sidebar ? sidebar.innerText : document.body.innerText.slice(0, 2000);
+    });
+    log(`Sysco: sidebar text: ${sidebarText.slice(0, 400)}`);
+
+    // Click Nick List by finding any element containing "Nick List" text
+    const nickClicked = await page.evaluate(() => {
+      const all = Array.from(document.querySelectorAll("*"));
+      for (const el of all) {
+        if (el.children.length > 5) continue;
+        const t = el.textContent.trim();
+        if (t.toLowerCase().includes("nick list") && t.length < 30) {
+          el.click();
+          return `clicked: ${t} (tag: ${el.tagName})`;
+        }
       }
-      await new Promise(r => setTimeout(r, 4000));
-      log(`Sysco: after alt nav URL=${page.url()}`);
-      
-      // Try clicking Nick List again
-      const nickUrl2 = await page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll("a"));
-        const nick = links.find(a => a.textContent.trim().toLowerCase().includes("nick"));
-        return nick ? nick.href : null;
-      });
-      log(`Sysco: Nick List URL attempt 2: ${nickUrl2}`);
-      if (nickUrl2) {
-        await page.goto(nickUrl2, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(e => log(e.message));
-        await new Promise(r => setTimeout(r, 4000));
-        log(`Sysco: final URL=${page.url()}`);
-      }
-    }
+      return null;
+    });
+    log(`Sysco: Nick List click: ${nickClicked}`);
+    await new Promise(r => setTimeout(r, 6000));
+    log(`Sysco: after Nick click URL=${page.url()}`);
+
+    // Check intercepted data
+    const intercepted = await Promise.race([listDataPromise, new Promise(r => setTimeout(() => r(null), 1000))]);
+    if (intercepted) log(`Sysco: intercepted list data: ${intercepted.slice(0, 300)}`);
 
     // Scroll to load all items
     for (let i = 0; i < 60; i++) {
