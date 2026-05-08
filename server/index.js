@@ -244,8 +244,7 @@ async function scrapeSysco() {
         const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name']");
         const priceEl = row.querySelector("[class*='price-col'], [class*='price']");
         if (nameEl && priceEl) {
-          const name = nameEl.textContent.trim().split("
-")[0].trim();
+          const name = nameEl.textContent.trim().split("\n")[0].trim();
           const priceText = priceEl.textContent.trim();
           const m = priceText.match(/\$([\d,]+\.[\d]{2})/);
           if (m && name.length > 3 && name.length < 150) {
@@ -260,8 +259,7 @@ async function scrapeSysco() {
         gridRows.forEach(row => {
           const cols = row.querySelectorAll("[class*='col']");
           if (cols.length >= 2) {
-            const name = cols[0].textContent.trim().split("
-")[0].trim();
+            const name = cols[0].textContent.trim().split("\n")[0].trim();
             const lastCol = cols[cols.length - 1].textContent.trim();
             const priceCol = Array.from(cols).find(c => c.textContent.match(/\$[\d,]+\.\d{2}/));
             if (priceCol) {
@@ -286,8 +284,7 @@ async function scrapeSysco() {
           const row = pc.closest("[class*='row'], tr, li");
           if (row) {
             const nameEl = row.querySelector("[class*='item-details'], [class*='description'], [class*='name'], td:first-child, div:first-child");
-            const name = nameEl ? nameEl.textContent.trim().split("
-")[0].trim() : "";
+            const name = nameEl ? nameEl.textContent.trim().split("\n")[0].trim() : "";
             if (name.length > 3 && name.length < 150) {
               results.push({ name, price, raw: pc.textContent.trim() });
             }
