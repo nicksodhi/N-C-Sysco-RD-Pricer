@@ -421,6 +421,46 @@ async function runScrape(source = "all") {
 // ── API routes ────────────────────────────────────────────────────────────────
 app.get("/api/prices", (req, res) => res.json(priceStore));
 
+app.get("/api/diagnose", async (req, res) => {
+  let browser;
+  try {
+    browser = await launchBrowser();
+    const page = await browser.newPage();
+    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+    
+    const site = req.query.site || "rd";
+    const url = site === "sysco" ? "https://shop.sysco.com/app/login" : "https://member.restaurantdepot.com/login";
+    
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    await new Promise(r => setTimeout(r, 5000));
+    
+    const info = await page.evaluate(() => ({
+      title: document.title,
+      url: window.location.href,
+      inputs: Array.from(document.querySelectorAll("input")).map(i => ({
+        type: i.type, name: i.name, id: i.id, 
+        placeholder: i.placeholder, className: i.className.slice(0, 50),
+        autocomplete: i.autocomplete, visible: i.offsetParent !== null
+      })),
+      buttons: Array.from(document.querySelectorAll("button")).map(b => ({
+        type: b.type, text: b.textContent.trim().slice(0, 30), id: b.id
+      })).slice(0, 10),
+      bodyText: document.body.innerText.slice(0, 500)
+    }));
+    
+    res.json(info);
+  } catch (err) {
+    res.json({ error: err.message });
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
+app.get("/api/trigger", (req, res) => {
+  res.json({ message: "Scrape triggered — check /api/status in 2-3 minutes" });
+  runScrape(req.query.source || "all").catch(console.error);
+});
+
 app.get("/api/status", (req, res) => res.json({
   status: "running",
   lastUpdated: priceStore.lastUpdated,
