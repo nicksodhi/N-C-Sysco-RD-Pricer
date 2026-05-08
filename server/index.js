@@ -65,35 +65,64 @@ async function scrapeRD() {
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     await page.setDefaultTimeout(30000);
 
-    // SSO login URL - redirects to identity provider with real login form
-    console.log("RD: going to SSO...");
-    await page.goto(
-      "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
-      { waitUntil: "domcontentloaded", timeout: 60000 }
-    );
-    await new Promise(r => setTimeout(r, 5000));
+    // RD login via SSO init URL
+    console.log("RD: navigating to SSO init...");
+    try {
+      await page.goto(
+        "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
+        { waitUntil: "domcontentloaded", timeout: 60000 }
+      );
+    } catch(navErr) {
+      console.log("RD SSO nav error (continuing):", navErr.message);
+    }
+    await new Promise(r => setTimeout(r, 6000));
     console.log("RD SSO landed:", page.url());
 
-    // Fill login form
-    await page.waitForSelector('#email, input[type="email"]', { timeout: 20000 });
-    await page.click('#email, input[type="email"]');
-    await page.keyboard.type(process.env.RD_EMAIL, { delay: 50 });
-    await page.click('input[type="password"]');
-    await page.keyboard.type(process.env.RD_PASSWORD, { delay: 50 });
-    await page.click('button[type="submit"]');
-    console.log("RD: credentials submitted");
+    // Check if we need to log in or already redirected
+    const currentUrl = page.url();
+    if (currentUrl.includes("restaurantdepot.com/store") || currentUrl.includes("restaurantdepot.com/home")) {
+      console.log("RD: already logged in!");
+    } else {
+      // Look for login form
+      const hasEmail = await page.$('#email, input[type="email"]').catch(() => null);
+      if (!hasEmail) {
+        // Try clicking the SSO button on the login page
+        await page.goto("https://member.restaurantdepot.com/login", { waitUntil: "domcontentloaded", timeout: 30000 });
+        await new Promise(r => setTimeout(r, 4000));
+        console.log("RD login page:", page.url());
+        await page.evaluate(() => {
+          const btn = document.querySelector("button");
+          if (btn) btn.click();
+        });
+        await new Promise(r => setTimeout(r, 5000));
+        console.log("RD after button click:", page.url());
+      }
 
-    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 4000));
-    console.log("RD after login:", page.url());
+      // Now fill credentials
+      await page.waitForSelector('#email, input[type="email"]', { timeout: 20000 });
+      await page.click('#email, input[type="email"]');
+      await page.keyboard.type(process.env.RD_EMAIL, { delay: 50 });
+      await page.click('input[type="password"]');
+      await page.keyboard.type(process.env.RD_PASSWORD, { delay: 50 });
+      await page.click('button[type="submit"]');
+      console.log("RD: credentials submitted, URL:", page.url());
+
+      await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 4000));
+      console.log("RD after login:", page.url());
+    }
 
     // Go to order guide
     console.log("RD: loading order guide...");
-    await page.goto(
-      "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
-      { waitUntil: "domcontentloaded", timeout: 60000 }
-    );
-    await new Promise(r => setTimeout(r, 6000));
+    try {
+      await page.goto(
+        "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
+        { waitUntil: "domcontentloaded", timeout: 60000 }
+      );
+    } catch(navErr) {
+      console.log("RD order guide nav error (continuing):", navErr.message);
+    }
+    await new Promise(r => setTimeout(r, 8000));
     console.log("RD order guide:", page.url());
 
     // Scroll to load all items
@@ -227,42 +256,80 @@ async function scrapeSysco() {
     await new Promise(r => setTimeout(r, 4000));
     console.log("Nick List:", page.url());
 
-    // Scroll to load all
-    for (let i = 0; i < 30; i++) {
-      await page.evaluate(() => window.scrollBy(0, 600));
-      await new Promise(r => setTimeout(r, 300));
+    // Scroll aggressively to load all items
+    for (let i = 0; i < 50; i++) {
+      await page.evaluate(() => window.scrollBy(0, 500));
+      await new Promise(r => setTimeout(r, 250));
     }
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3000));
+    // Scroll back to top then down again to ensure all loaded
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await new Promise(r => setTimeout(r, 1000));
+    for (let i = 0; i < 50; i++) {
+      await page.evaluate(() => window.scrollBy(0, 500));
+      await new Promise(r => setTimeout(r, 200));
+    }
+    await new Promise(r => setTimeout(r, 3000));
 
-    // Extract using Sysco's exact CSS classes
+    // Log page info for debugging
+    const pageInfo = await page.evaluate(() => ({
+      url: window.location.href,
+      rowCount: document.querySelectorAll("[class*='product-item-row']").length,
+      priceColCount: document.querySelectorAll("[class*='price-col']").length,
+      bodyLength: document.body.innerText.length,
+      sampleText: document.body.innerText.slice(0, 500),
+    }));
+    console.log("Sysco page info:", JSON.stringify(pageInfo));
+
     const items = await page.evaluate(() => {
       const results = [];
-      // Primary: use .product-item-row-group rows
-      document.querySelectorAll(".product-item-row-group, .product-item-row-grouped, [class*='product-item-row']").forEach(row => {
-        const nameEl = row.querySelector("[class*='item-details-col']");
-        const priceEl = row.querySelector("[class*='price-col']");
-        if (nameEl && priceEl) {
-          const name = nameEl.textContent.trim().split("\n")[0].trim();
-          const m = priceEl.textContent.match(/\$([\d,]+\.[\d]{2})/);
-          if (m && name.length > 3) {
-            results.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceEl.textContent.trim() });
-          }
+      const seen = new Set();
+
+      // Strategy 1: product-item-row rows with item-details-col and price-col
+      const rows = document.querySelectorAll("[class*='product-item-row']");
+      rows.forEach(row => {
+        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name']");
+        const priceEl = row.querySelector("[class*='price-col'], [class*='price']");
+        if (!nameEl || !priceEl) return;
+        const name = nameEl.textContent.trim().split("\n")[0].trim();
+        const m = priceEl.textContent.match(/\$([\d,]+\.[\d]{2})/);
+        if (!m || name.length < 3 || seen.has(name)) return;
+        const price = parseFloat(m[1].replace(",", ""));
+        if (price > 0 && price < 10000) {
+          results.push({ name, price, raw: priceEl.textContent.trim() });
+          seen.add(name);
         }
       });
-      // Fallback: any price-col
-      if (results.length === 0) {
-        document.querySelectorAll("[class*='price-col']").forEach(pc => {
-          const m = pc.textContent.match(/\$([\d,]+\.[\d]{2})/);
-          if (!m) return;
+
+      // Strategy 2: any CS price pattern in the page text
+      if (results.length < 3) {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        const texts = [];
+        while (walker.nextNode()) {
+          const t = walker.currentNode.textContent.trim();
+          if (t) texts.push(t);
+        }
+        for (let i = 0; i < texts.length; i++) {
+          const t = texts[i];
+          // Sysco shows "$76.30 CS" or "$11.31 CS" 
+          const m = t.match(/^\$([\d,]+\.[\d]{2})\s*(?:CS|CA|Case)?$/) || t.match(/\$([\d,]+\.[\d]{2})\s+CS/);
+          if (!m) continue;
           const price = parseFloat(m[1].replace(",", ""));
-          if (price < 1 || price > 10000) return;
-          const row = pc.closest("[class*='row'], tr");
-          if (row) {
-            const nameEl = row.querySelector("[class*='item-details'], [class*='description']");
-            const name = nameEl ? nameEl.textContent.trim().split("\n")[0].trim() : "";
-            if (name.length > 3) results.push({ name, price, raw: pc.textContent.trim() });
+          if (price < 1 || price > 10000) continue;
+          // Find name nearby
+          for (let j = Math.max(0, i-6); j < Math.min(texts.length, i+3); j++) {
+            if (j === i) continue;
+            const c = texts[j];
+            if (c.length > 5 && c.length < 120 && !seen.has(c) &&
+                !c.match(/^\$/) && !c.match(/^[\d\s.,\/]+$/) &&
+                !c.match(/add|remove|cart|login|search|out of stock|find similar|N\/A|Order Qty|Last Order|Item Details|Price/i) &&
+                c.split(" ").length >= 2) {
+              results.push({ name: c, price, raw: t });
+              seen.add(c);
+              break;
+            }
           }
-        });
+        }
       }
       return results;
     });
