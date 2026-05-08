@@ -141,49 +141,46 @@ async function scrapeSysco() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-    // Login
-    await page.goto("https://shop.sysco.com/app/login", { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 5000));
-    console.log("Sysco login page:", page.url(), "title:", await page.title());
+    // Sysco uses 2-step login: email → Next → password → Sign In
+    await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "networkidle2", timeout: 30000 });
+    await new Promise(r => setTimeout(r, 4000));
+    console.log("Sysco login:", page.url(), "title:", await page.title());
 
-    // Wait for any input
-    await page.waitForSelector("input", { timeout: 15000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Log all inputs for debugging
-    const allInputs = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("input")).map(i => ({
-        type: i.type, name: i.name, id: i.id, placeholder: i.placeholder, autocomplete: i.autocomplete
-      }))
-    );
-    console.log("Sysco inputs found:", JSON.stringify(allInputs));
-
-    let emailInput = null, passInput = null;
-    const emailSels = ['input[type="email"]', 'input[name="username"]', 'input[name="email"]', '#username', '#email', 'input[id*="email" i]', 'input[id*="user" i]', 'input[placeholder*="email" i]', 'input[placeholder*="user" i]', 'input[autocomplete="username"]', 'input[autocomplete="email"]'];
-    const passSels = ['input[type="password"]', 'input[name="password"]', '#password', 'input[id*="pass" i]', 'input[placeholder*="pass" i]', 'input[autocomplete="current-password"]'];
-
-    for (const sel of emailSels) {
-      emailInput = await page.$(sel).catch(() => null);
-      if (emailInput) { console.log("Sysco email selector:", sel); break; }
-    }
-    for (const sel of passSels) {
-      passInput = await page.$(sel).catch(() => null);
-      if (passInput) { console.log("Sysco pass selector:", sel); break; }
-    }
-
-    if (!emailInput || !passInput) {
-      await page.screenshot({ path: "/tmp/sysco-login-debug.png" });
-      throw new Error(`Sysco login form not found. Inputs: ${JSON.stringify(allInputs)}`);
-    }
+    // Step 1: Enter email
+    await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 15000 });
+    const emailInput = await page.$('input[type="email"]') || await page.$('input[name="email"]');
+    if (!emailInput) throw new Error("Sysco: email input not found");
 
     await emailInput.click();
     await emailInput.type(process.env.SYSCO_EMAIL, { delay: 80 });
+    console.log("Sysco: email entered");
+
+    // Click Next button
+    const nextBtn = await page.$('button[type="submit"]');
+    if (nextBtn) await nextBtn.click();
+    else await page.keyboard.press("Enter");
+
+    await new Promise(r => setTimeout(r, 3000));
+    console.log("Sysco after Next:", page.url());
+
+    // Step 2: Enter password
+    await page.waitForSelector('input[type="password"]', { timeout: 15000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 2000));
+
+    const passInput = await page.$('input[type="password"]');
+    if (!passInput) {
+      const inputs2 = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, name: i.name, id: i.id }))
+      );
+      throw new Error(`Sysco: password input not found after Next. URL: ${page.url()} Inputs: ${JSON.stringify(inputs2)}`);
+    }
+
     await passInput.click();
     await passInput.type(process.env.SYSCO_PASSWORD, { delay: 80 });
+    console.log("Sysco: password entered");
 
-    const submitBtn = await page.$('button[type="submit"]').catch(() => null) ||
-                      await page.$('input[type="submit"]').catch(() => null);
-    if (submitBtn) await submitBtn.click();
+    const signInBtn = await page.$('button[type="submit"]');
+    if (signInBtn) await signInBtn.click();
     else await page.keyboard.press("Enter");
 
     await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
