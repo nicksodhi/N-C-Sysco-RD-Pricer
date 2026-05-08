@@ -48,40 +48,40 @@ async function scrapeRD() {
   try {
     browser = await launchBrowser();
     const page = await browser.newPage();
-    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-    // Login
-    await page.goto("https://member.restaurantdepot.com/login", { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 2000));
+    // Use exact SSO init URL from working app
+    await page.goto(
+      "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
+      { waitUntil: "domcontentloaded", timeout: 30000 }
+    );
+    await new Promise(r => setTimeout(r, 5000));
+    console.log("RD SSO URL:", page.url());
 
-    const emailInput = await page.$('input[type="email"]') || await page.$('#email') || await page.$('input[name="email"]');
-    const passInput = await page.$('input[type="password"]') || await page.$('#password');
-
-    if (!emailInput || !passInput) throw new Error("RD login form not found");
-
-    await emailInput.type(process.env.RD_EMAIL, { delay: 50 });
-    await passInput.type(process.env.RD_PASSWORD, { delay: 50 });
-    await page.keyboard.press("Enter");
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 2000));
-
-    console.log("RD logged in, URL:", page.url());
+    // Identity provider has #email and input[type="password"]
+    await page.waitForSelector("#email", { timeout: 15000 });
+    await page.locator("#email").fill(process.env.RD_EMAIL);
+    await page.locator('input[type="password"]').fill(process.env.RD_PASSWORD);
+    await page.locator('button[type="submit"]').click();
+    await new Promise(r => setTimeout(r, 6000));
+    console.log("RD after login:", page.url());
 
     // Go directly to Naan & Curry order guide
     await page.goto(
       "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
-      { waitUntil: "networkidle2", timeout: 30000 }
+      { waitUntil: "networkidle2", timeout: 45000 }
     );
-    await new Promise(r => setTimeout(r, 4000));
+    await new Promise(r => setTimeout(r, 5000));
+    console.log("RD order guide loaded");
 
     // Scroll to load all items
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
       await page.evaluate(() => window.scrollBy(0, 600));
       await new Promise(r => setTimeout(r, 400));
     }
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3000));
 
-    // Extract all text and find price patterns
+    // Extract items using text walker - find price patterns near product names
     const items = await page.evaluate(() => {
       const results = [];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -93,10 +93,10 @@ async function scrapeRD() {
 
       for (let i = 0; i < texts.length; i++) {
         const t = texts[i];
-        // Match price range like "$7.84-$43.95" or "$36.24" or "$31.60 each (est.)"
-        const rangeMatch = t.match(/\$\s*(\d+\.?\d*)\s*[-–]\s*\$\s*(\d+\.?\d*)/);
-        const singleMatch = t.match(/^\$\s*(\d+\.?\d+)\s*(?:each)?/);
+        // Match: "$57.60 each (est.)" or "$7.84-$43.95" (range → use higher = case price)
         const eachMatch = t.match(/\$(\d+\.?\d+)\s+each\s+\(est\.\)/);
+        const rangeMatch = t.match(/\$\s*(\d+\.?\d*)\s*[-–]\s*\$\s*(\d+\.?\d*)/);
+        const singleMatch = !eachMatch && !rangeMatch && t.match(/^\$(\d{1,4}\.\d{2})$/);
 
         let price = null;
         if (eachMatch) price = parseFloat(eachMatch[1]);
@@ -105,15 +105,15 @@ async function scrapeRD() {
 
         if (price && price > 1 && price < 5000) {
           // Find nearby product name
-          for (let j = Math.max(0, i - 3); j <= Math.min(texts.length - 1, i + 3); j++) {
-            const candidate = texts[j];
-            if (candidate !== t &&
-                candidate.length > 5 &&
-                candidate.length < 120 &&
-                !candidate.match(/^\$/) &&
-                !candidate.match(/^[\d\s]+$/) &&
-                !candidate.match(/Bin|stock|Add|Skip|Cart|Login|Search/i)) {
-              results.push({ name: candidate, price, raw: t });
+          for (let j = Math.max(0, i - 4); j <= Math.min(texts.length - 1, i + 4); j++) {
+            if (j === i) continue;
+            const c = texts[j];
+            if (c.length > 8 && c.length < 120 &&
+                !c.match(/^\$/) &&
+                !c.match(/^[\d\s\.\/\#]+$/) &&
+                !c.match(/Bin|stock|Add|Skip|Cart|Login|Search|Buy|more|eligible|Pickup|Delivery/i) &&
+                c.split(" ").length >= 2) {
+              results.push({ name: c, price, raw: t });
               break;
             }
           }
@@ -122,7 +122,8 @@ async function scrapeRD() {
       return results;
     });
 
-    console.log(`RD: extracted ${items.length} items`);
+    console.log(`RD: extracted ${items.length} raw items`);
+    if (items.length > 0) console.log("RD sample:", JSON.stringify(items.slice(0, 3)));
     return { success: true, items, timestamp: new Date().toISOString() };
   } catch (err) {
     console.error("RD error:", err.message);
@@ -132,6 +133,7 @@ async function scrapeRD() {
   }
 }
 
+
 // ── Sysco Scraper ─────────────────────────────────────────────────────────────
 async function scrapeSysco() {
   console.log("🔵 Sysco scrape starting...");
@@ -139,160 +141,148 @@ async function scrapeSysco() {
   try {
     browser = await launchBrowser();
     const page = await browser.newPage();
-    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-    // Sysco login: shop.sysco.com/auth/login → secure.sysco.com (Okta)
-    // Step 1: Enter email at shop.sysco.com
+    // ── Step 1: Enter email at shop.sysco.com ─────────────────────────────
     await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 4000));
+    await new Promise(r => setTimeout(r, 3000));
     console.log("Sysco step1:", page.url());
 
-    await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 15000 });
-    await page.click('input[type="email"], input[name="email"]');
-    await page.type('input[type="email"], input[name="email"]', process.env.SYSCO_EMAIL, { delay: 80 });
-    console.log("Sysco: email typed");
-    await new Promise(r => setTimeout(r, 500));
+    // Type email
+    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+    await page.evaluate((email) => {
+      const el = document.querySelector('input[type="email"]');
+      if (el) { el.focus(); el.value = email; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
+    }, process.env.SYSCO_EMAIL);
+    await new Promise(r => setTimeout(r, 1000));
+    console.log("Sysco: email filled");
 
-    // Click "Next" - first submit button
-    const nextBtns = await page.$$('button[type="submit"]');
-    if (nextBtns.length > 0) await nextBtns[0].click();
-    else await page.keyboard.press("Enter");
+    // Click Next (first submit button)
+    await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button[type="submit"]'));
+      const next = btns.find(b => b.textContent.trim() === "Next");
+      if (next) next.click();
+      else if (btns[0]) btns[0].click();
+    });
+    console.log("Sysco: clicked Next");
 
     // Wait for redirect to secure.sysco.com (Okta)
     await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 4000));
     console.log("Sysco step2:", page.url());
 
-    // Step 2: Now on secure.sysco.com - Okta login
-    // Password field ID is "okta-signin-password" from dev tools
-    await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 15000 });
-    await new Promise(r => setTimeout(r, 1000));
-
-    const pwField = await page.$('#okta-signin-password') || await page.$('input[type="password"]');
-    if (!pwField) throw new Error("Sysco: Okta password field not found. URL: " + page.url());
-
-    await pwField.click();
-    await pwField.type(process.env.SYSCO_PASSWORD, { delay: 80 });
-    console.log("Sysco: password typed");
-    await new Promise(r => setTimeout(r, 500));
-
-    // Click Log In button
-    const loginBtn = await page.$('input[type="submit"]') ||
-                     await page.$('button[type="submit"]') ||
-                     await page.$('#okta-signin-submit');
-    if (loginBtn) await loginBtn.click();
-    else await page.keyboard.press("Enter");
-
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 4000));
-    console.log("Sysco logged in:", page.url());
-
-    // Should be on shop.sysco.com/app/discover now
-    if (!page.url().includes("shop.sysco.com")) {
-      throw new Error("Sysco login failed, stuck at: " + page.url());
+    // ── Step 2: Enter password at secure.sysco.com (Okta) ────────────────
+    // If still on shop.sysco.com, try again
+    if (page.url().includes("shop.sysco.com/auth/login")) {
+      console.log("Still on login page, trying keyboard submit...");
+      await page.focus('input[type="email"]');
+      await page.keyboard.press("Enter");
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+      await new Promise(r => setTimeout(r, 3000));
+      console.log("After keyboard enter:", page.url());
     }
 
-    // Go to lists page
+    // Now on secure.sysco.com - find password field
+    await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1000));
+    console.log("Sysco: password page ready, URL:", page.url());
+
+    // Fill password using Okta's exact field id
+    await page.evaluate((pw) => {
+      const el = document.querySelector('#okta-signin-password') || document.querySelector('input[type="password"]');
+      if (el) { el.focus(); el.value = pw; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
+    }, process.env.SYSCO_PASSWORD);
+    await new Promise(r => setTimeout(r, 500));
+    console.log("Sysco: password filled");
+
+    // Click Log In - Okta uses input[type="submit"] with id="okta-signin-submit"
+    await page.evaluate(() => {
+      const btn = document.querySelector('#okta-signin-submit') ||
+                  document.querySelector('input[type="submit"]') ||
+                  document.querySelector('button[type="submit"]');
+      if (btn) btn.click();
+    });
+
+    // Wait for redirect back to shop.sysco.com
+    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 5000));
+    console.log("Sysco logged in:", page.url());
+
+    if (!page.url().includes("shop.sysco.com")) {
+      throw new Error("Sysco login failed - still at: " + page.url());
+    }
+
+    // ── Step 3: Go to Nick List ───────────────────────────────────────────
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "networkidle2", timeout: 30000 });
     await new Promise(r => setTimeout(r, 4000));
-    console.log("Sysco lists URL:", page.url());
+    console.log("Sysco lists:", page.url());
 
-    // Log what lists are available
-    const listsText = await page.evaluate(() => document.body.innerText.slice(0, 1000));
-    console.log("Sysco lists page text:", listsText);
-
-    // Find and click Nick List (shown as "Nick List" in Sysco)
-    const nickClicked = await page.evaluate(() => {
-      // Try to find by text content containing "nick"
-      const all = Array.from(document.querySelectorAll("a, button, li, div, span, td, h2, h3, h4, p, [class*='list-name'], [class*='list-title']"));
-      const nick = all.find(el =>
-        el.textContent.trim().toLowerCase().includes("nick") &&
-        el.textContent.trim().length < 60 &&
-        el.children.length <= 3
-      );
-      if (nick) {
-        // Try to find the closest anchor or clickable
-        const link = nick.tagName === "A" ? nick : nick.closest("a") || nick.querySelector("a");
-        if (link) {
-          link.click();
-          return { clicked: link.textContent.trim(), href: link.href };
-        }
-        nick.click();
-        return { clicked: nick.textContent.trim(), href: null };
-      }
-      return null;
+    // Find Nick List URL from sidebar links
+    const nickUrl = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll("a"));
+      const nick = links.find(a => a.textContent.trim().toLowerCase().includes("nick list") ||
+                                   a.textContent.trim().toLowerCase() === "nick list");
+      return nick ? nick.href : null;
     });
-    console.log("Nick List clicked:", JSON.stringify(nickClicked));
+    console.log("Nick List URL:", nickUrl);
 
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
-    console.log("Nick List URL:", page.url());
+    if (nickUrl) {
+      await page.goto(nickUrl, { waitUntil: "networkidle2", timeout: 30000 });
+    } else {
+      // Click on Nick List in the sidebar
+      await page.evaluate(() => {
+        const links = Array.from(document.querySelectorAll("a, span, div, li"));
+        const nick = links.find(el =>
+          el.textContent.trim().toLowerCase().includes("nick list") &&
+          el.textContent.trim().length < 30
+        );
+        if (nick) (nick.closest("a") || nick).click();
+      });
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
+    }
+    await new Promise(r => setTimeout(r, 4000));
+    console.log("Nick List page:", page.url());
 
-    // Scroll to load all items
+    // ── Step 4: Scroll and extract items ────────────────────────────────
     for (let i = 0; i < 40; i++) {
       await page.evaluate(() => window.scrollBy(0, 600));
       await new Promise(r => setTimeout(r, 300));
     }
     await new Promise(r => setTimeout(r, 3000));
 
-    // Extract using exact Sysco CSS classes from dev tools
-    // Row: div.row.product-item-row-group
-    // Name: div.col.item-details-col
-    // Price: div.col.price-col
+    // Extract using Sysco's exact CSS classes from dev tools
     const items = await page.evaluate(() => {
       const results = [];
 
-      // Strategy 1: Use exact Sysco classes seen in dev tools
+      // Use exact classes: .product-item-row-group, .item-details-col, .price-col
       const rows = document.querySelectorAll(".product-item-row-group, .product-item-row-grouped, [class*='product-item-row']");
-      console.log("Found rows:", rows.length);
+      console.log("Sysco rows found:", rows.length);
+
       rows.forEach(row => {
-        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name']");
-        const priceEl = row.querySelector("[class*='price-col'], [class*='price']");
+        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc']");
+        const priceEl = row.querySelector("[class*='price-col']");
         if (nameEl && priceEl) {
           const name = nameEl.textContent.trim().split("\n")[0].trim();
           const priceText = priceEl.textContent.trim();
           const m = priceText.match(/\$([\d,]+\.[\d]{2})/);
-          if (m && name.length > 3 && name.length < 150) {
+          if (m && name.length > 3) {
             results.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText });
           }
         }
       });
 
-      // Strategy 2: Look for data-grid rows (Sysco uses .fd.lists-product-grid)
+      // Fallback: grab all price-col elements
       if (results.length === 0) {
-        const gridRows = document.querySelectorAll(".data-grid .row, [class*='lists-product-grid'] .row, .fd .row");
-        gridRows.forEach(row => {
-          const cols = row.querySelectorAll("[class*='col']");
-          if (cols.length >= 2) {
-            const name = cols[0].textContent.trim().split("\n")[0].trim();
-            const lastCol = cols[cols.length - 1].textContent.trim();
-            const priceCol = Array.from(cols).find(c => c.textContent.match(/\$[\d,]+\.\d{2}/));
-            if (priceCol) {
-              const m = priceCol.textContent.match(/\$([\d,]+\.[\d]{2})/);
-              if (m && name.length > 3 && !name.match(/^\$|\d+\/\d+/)) {
-                results.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceCol.textContent.trim() });
-              }
-            }
-          }
-        });
-      }
-
-      // Strategy 3: Any element with price-col class
-      if (results.length === 0) {
-        const priceCols = document.querySelectorAll("[class*='price-col']");
-        priceCols.forEach(pc => {
+        document.querySelectorAll("[class*='price-col']").forEach(pc => {
           const m = pc.textContent.match(/\$([\d,]+\.[\d]{2})/);
           if (!m) return;
           const price = parseFloat(m[1].replace(",", ""));
           if (price < 1 || price > 10000) return;
-          // Walk up to find the row, then find the name
           const row = pc.closest("[class*='row'], tr, li");
           if (row) {
-            const nameEl = row.querySelector("[class*='item-details'], [class*='description'], [class*='name'], td:first-child, div:first-child");
+            const nameEl = row.querySelector("[class*='item-details'], [class*='description']");
             const name = nameEl ? nameEl.textContent.trim().split("\n")[0].trim() : "";
-            if (name.length > 3 && name.length < 150) {
-              results.push({ name, price, raw: pc.textContent.trim() });
-            }
+            if (name.length > 3) results.push({ name, price, raw: pc.textContent.trim() });
           }
         });
       }
@@ -300,9 +290,10 @@ async function scrapeSysco() {
       return results;
     });
 
-    console.log("Sysco extracted:", items.length, "items");
+    console.log(`Sysco: ${items.length} items extracted`);
     if (items.length > 0) console.log("Sample:", JSON.stringify(items.slice(0, 3)));
     return { success: true, items, timestamp: new Date().toISOString() };
+
   } catch (err) {
     console.error("Sysco error:", err.message);
     return { success: false, error: err.message, items: [] };
@@ -310,6 +301,7 @@ async function scrapeSysco() {
     if (browser) await browser.close();
   }
 }
+
 
 // ── Item master list ──────────────────────────────────────────────────────────
 const RD_ITEMS = [
