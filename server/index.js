@@ -189,87 +189,117 @@ async function scrapeSysco() {
 
     // Go to lists page
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 3000));
-    console.log("Sysco lists page:", page.url());
+    await new Promise(r => setTimeout(r, 4000));
+    console.log("Sysco lists URL:", page.url());
 
-    // Find Nick's List link
-    const nickHref = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll("a, button, [role='button'], li, div"));
-      const nick = links.find(el =>
-        el.textContent.toLowerCase().includes("nick") &&
-        el.textContent.length < 50
+    // Log what lists are available
+    const listsText = await page.evaluate(() => document.body.innerText.slice(0, 1000));
+    console.log("Sysco lists page text:", listsText);
+
+    // Find and click Nick List (shown as "Nick List" in Sysco)
+    const nickClicked = await page.evaluate(() => {
+      // Try to find by text content containing "nick"
+      const all = Array.from(document.querySelectorAll("a, button, li, div, span, td, h2, h3, h4, p, [class*='list-name'], [class*='list-title']"));
+      const nick = all.find(el =>
+        el.textContent.trim().toLowerCase().includes("nick") &&
+        el.textContent.trim().length < 60 &&
+        el.children.length <= 3
       );
-      if (!nick) return null;
-      return nick.href || nick.getAttribute("data-href") || null;
+      if (nick) {
+        // Try to find the closest anchor or clickable
+        const link = nick.tagName === "A" ? nick : nick.closest("a") || nick.querySelector("a");
+        if (link) {
+          link.click();
+          return { clicked: link.textContent.trim(), href: link.href };
+        }
+        nick.click();
+        return { clicked: nick.textContent.trim(), href: null };
+      }
+      return null;
     });
+    console.log("Nick List clicked:", JSON.stringify(nickClicked));
 
-    console.log("Nick's List href:", nickHref);
-
-    if (nickHref) {
-      await page.goto(nickHref, { waitUntil: "networkidle2", timeout: 30000 });
-    } else {
-      // Click on it
-      await page.evaluate(() => {
-        const els = Array.from(document.querySelectorAll("*"));
-        const nick = els.find(el =>
-          el.children.length <= 2 &&
-          el.textContent.toLowerCase().includes("nick") &&
-          el.textContent.length < 50
-        );
-        if (nick) nick.click();
-      });
-      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
-    }
-
+    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
-    console.log("Nick's List page:", page.url());
+    console.log("Nick List URL:", page.url());
 
     // Scroll to load all items
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       await page.evaluate(() => window.scrollBy(0, 600));
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
     }
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 3000));
 
-    // Extract items and prices
+    // Extract using exact Sysco CSS classes from dev tools
+    // Row: div.row.product-item-row-group
+    // Name: div.col.item-details-col
+    // Price: div.col.price-col
     const items = await page.evaluate(() => {
       const results = [];
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      const texts = [];
-      while (walker.nextNode()) {
-        const t = walker.currentNode.textContent.trim();
-        if (t.length > 0) texts.push(t);
-      }
 
-      for (let i = 0; i < texts.length; i++) {
-        const t = texts[i];
-        // Sysco price formats: "$XX.XX", "XX.XX/CS", "XX.XX / CS", "$XX.XX / Case"
-        const priceMatch = t.match(/\$\s*([\d,]+\.[\d]{2})/) ||
-                          t.match(/([\d,]+\.[\d]{2})\s*\/\s*(?:CS|CA|Case)/i);
-        if (priceMatch) {
-          const price = parseFloat(priceMatch[1].replace(",", ""));
-          if (price > 1 && price < 10000) {
-            // Find product name nearby
-            for (let j = Math.max(0, i - 4); j <= Math.min(texts.length - 1, i + 2); j++) {
-              const candidate = texts[j];
-              if (candidate !== t &&
-                  candidate.length > 5 &&
-                  candidate.length < 120 &&
-                  !candidate.match(/^\$/) &&
-                  !candidate.match(/^[\d\s,\.]+$/) &&
-                  !candidate.match(/add|remove|qty|quantity|cart|delete/i)) {
-                results.push({ name: candidate, price, raw: t });
-                break;
+      // Strategy 1: Use exact Sysco classes seen in dev tools
+      const rows = document.querySelectorAll(".product-item-row-group, .product-item-row-grouped, [class*='product-item-row']");
+      console.log("Found rows:", rows.length);
+      rows.forEach(row => {
+        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name']");
+        const priceEl = row.querySelector("[class*='price-col'], [class*='price']");
+        if (nameEl && priceEl) {
+          const name = nameEl.textContent.trim().split("
+")[0].trim();
+          const priceText = priceEl.textContent.trim();
+          const m = priceText.match(/\$([\d,]+\.[\d]{2})/);
+          if (m && name.length > 3 && name.length < 150) {
+            results.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText });
+          }
+        }
+      });
+
+      // Strategy 2: Look for data-grid rows (Sysco uses .fd.lists-product-grid)
+      if (results.length === 0) {
+        const gridRows = document.querySelectorAll(".data-grid .row, [class*='lists-product-grid'] .row, .fd .row");
+        gridRows.forEach(row => {
+          const cols = row.querySelectorAll("[class*='col']");
+          if (cols.length >= 2) {
+            const name = cols[0].textContent.trim().split("
+")[0].trim();
+            const lastCol = cols[cols.length - 1].textContent.trim();
+            const priceCol = Array.from(cols).find(c => c.textContent.match(/\$[\d,]+\.\d{2}/));
+            if (priceCol) {
+              const m = priceCol.textContent.match(/\$([\d,]+\.[\d]{2})/);
+              if (m && name.length > 3 && !name.match(/^\$|\d+\/\d+/)) {
+                results.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceCol.textContent.trim() });
               }
             }
           }
-        }
+        });
       }
+
+      // Strategy 3: Any element with price-col class
+      if (results.length === 0) {
+        const priceCols = document.querySelectorAll("[class*='price-col']");
+        priceCols.forEach(pc => {
+          const m = pc.textContent.match(/\$([\d,]+\.[\d]{2})/);
+          if (!m) return;
+          const price = parseFloat(m[1].replace(",", ""));
+          if (price < 1 || price > 10000) return;
+          // Walk up to find the row, then find the name
+          const row = pc.closest("[class*='row'], tr, li");
+          if (row) {
+            const nameEl = row.querySelector("[class*='item-details'], [class*='description'], [class*='name'], td:first-child, div:first-child");
+            const name = nameEl ? nameEl.textContent.trim().split("
+")[0].trim() : "";
+            if (name.length > 3 && name.length < 150) {
+              results.push({ name, price, raw: pc.textContent.trim() });
+            }
+          }
+        });
+      }
+
       return results;
     });
 
-    console.log(`Sysco: extracted ${items.length} items`);
-    await page.screenshot({ path: "/tmp/sysco-list-debug.png" });
+    console.log("Sysco extracted:", items.length, "items");
+    if (items.length > 0) console.log("Sample:", JSON.stringify(items.slice(0, 3)));
     return { success: true, items, timestamp: new Date().toISOString() };
   } catch (err) {
     console.error("Sysco error:", err.message);
