@@ -29,13 +29,13 @@ app.post("/api/claude", async (req, res) => {
   }
 });
 
-// ── Launch Puppeteer ──────────────────────────────────────────────────────────
+// ── Launch browser ────────────────────────────────────────────────────────────
 async function launchBrowser() {
   const chromium = require("@sparticuz/chromium");
   const puppeteer = require("puppeteer-core");
   return puppeteer.launch({
-    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
-    defaultViewport: { width: 1280, height: 800 },
+    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    defaultViewport: { width: 1280, height: 900 },
     executablePath: await chromium.executablePath(),
     headless: true,
   });
@@ -49,80 +49,83 @@ async function scrapeRD() {
     browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-    await page.setExtraHTTPHeaders({ "Accept-Language": "en-US,en;q=0.9" });
 
-    // Go to RD login
+    // Login
     await page.goto("https://member.restaurantdepot.com/login", { waitUntil: "networkidle2", timeout: 30000 });
     await new Promise(r => setTimeout(r, 2000));
 
-    // Fill login form
-    const emailInput = await page.$('input[type="email"]') || await page.$('input[name="email"]') || await page.$("#email");
-    const passInput = await page.$('input[type="password"]') || await page.$('input[name="password"]') || await page.$("#password");
-    
-    if (!emailInput || !passInput) {
-      const html = await page.content();
-      console.log("RD login page HTML snippet:", html.substring(0, 500));
-      throw new Error("Could not find RD login form fields");
-    }
+    const emailInput = await page.$('input[type="email"]') || await page.$('#email') || await page.$('input[name="email"]');
+    const passInput = await page.$('input[type="password"]') || await page.$('#password');
+
+    if (!emailInput || !passInput) throw new Error("RD login form not found");
 
     await emailInput.type(process.env.RD_EMAIL, { delay: 50 });
     await passInput.type(process.env.RD_PASSWORD, { delay: 50 });
     await page.keyboard.press("Enter");
     await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
-
-    console.log("RD logged in, going to order guide...");
-
-    // Go directly to the order guide
-    await page.goto(
-      "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568?tab=items",
-      { waitUntil: "networkidle2", timeout: 30000 }
-    );
-    await new Promise(r => setTimeout(r, 5000));
-
-    // Scroll to load all items
-    await page.evaluate(async () => {
-      for (let i = 0; i < 20; i++) {
-        window.scrollBy(0, 800);
-        await new Promise(r => setTimeout(r, 300));
-      }
-    });
     await new Promise(r => setTimeout(r, 2000));
 
-    // Extract items - try multiple selector strategies
+    console.log("RD logged in, URL:", page.url());
+
+    // Go directly to Naan & Curry order guide
+    await page.goto(
+      "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
+      { waitUntil: "networkidle2", timeout: 30000 }
+    );
+    await new Promise(r => setTimeout(r, 4000));
+
+    // Scroll to load all items
+    for (let i = 0; i < 25; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await new Promise(r => setTimeout(r, 400));
+    }
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Extract all text and find price patterns
     const items = await page.evaluate(() => {
       const results = [];
-      
-      // Strategy 1: Look for price + description pairs
-      const allText = document.body.innerText;
-      const lines = allText.split("\n").map(l => l.trim()).filter(l => l);
-      
-      let i = 0;
-      while (i < lines.length) {
-        const line = lines[i];
-        // Price pattern: $XX.XX or $XX.XX-$XX.XX or $XX each (est.)
-        const priceMatch = line.match(/\$(\d+\.?\d*)\s*(?:[-–]\s*\$(\d+\.?\d*))?(?:\s*each)?/);
-        if (priceMatch) {
-          // Use higher price (case price) when range
-          const price1 = parseFloat(priceMatch[1]);
-          const price2 = priceMatch[2] ? parseFloat(priceMatch[2]) : null;
-          const casePrice = price2 ? Math.max(price1, price2) : price1;
-          
-          // Look for item name in nearby lines
-          const nameLine = lines[i + 1] || lines[i - 1] || "";
-          if (nameLine.length > 3 && !nameLine.match(/^\$/) && casePrice > 0) {
-            results.push({ name: nameLine, price: casePrice, raw: line });
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const texts = [];
+      while (walker.nextNode()) {
+        const t = walker.currentNode.textContent.trim();
+        if (t.length > 0) texts.push(t);
+      }
+
+      for (let i = 0; i < texts.length; i++) {
+        const t = texts[i];
+        // Match price range like "$7.84-$43.95" or "$36.24" or "$31.60 each (est.)"
+        const rangeMatch = t.match(/\$\s*(\d+\.?\d*)\s*[-–]\s*\$\s*(\d+\.?\d*)/);
+        const singleMatch = t.match(/^\$\s*(\d+\.?\d+)\s*(?:each)?/);
+        const eachMatch = t.match(/\$(\d+\.?\d+)\s+each\s+\(est\.\)/);
+
+        let price = null;
+        if (eachMatch) price = parseFloat(eachMatch[1]);
+        else if (rangeMatch) price = Math.max(parseFloat(rangeMatch[1]), parseFloat(rangeMatch[2]));
+        else if (singleMatch) price = parseFloat(singleMatch[1]);
+
+        if (price && price > 1 && price < 5000) {
+          // Find nearby product name
+          for (let j = Math.max(0, i - 3); j <= Math.min(texts.length - 1, i + 3); j++) {
+            const candidate = texts[j];
+            if (candidate !== t &&
+                candidate.length > 5 &&
+                candidate.length < 120 &&
+                !candidate.match(/^\$/) &&
+                !candidate.match(/^[\d\s]+$/) &&
+                !candidate.match(/Bin|stock|Add|Skip|Cart|Login|Search/i)) {
+              results.push({ name: candidate, price, raw: t });
+              break;
+            }
           }
         }
-        i++;
       }
       return results;
     });
 
-    console.log(`RD: found ${items.length} items`);
+    console.log(`RD: extracted ${items.length} items`);
     return { success: true, items, timestamp: new Date().toISOString() };
   } catch (err) {
-    console.error("RD scrape error:", err.message);
+    console.error("RD error:", err.message);
     return { success: false, error: err.message, items: [] };
   } finally {
     if (browser) await browser.close();
@@ -137,124 +140,130 @@ async function scrapeSysco() {
     browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-    await page.setExtraHTTPHeaders({ "Accept-Language": "en-US,en;q=0.9" });
 
-    // Go to Sysco login
-    console.log("Going to Sysco login...");
+    // Login
     await page.goto("https://shop.sysco.com/app/login", { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 5000));
+    console.log("Sysco login page:", page.url(), "title:", await page.title());
 
-    // Find and fill login fields
-    const pageContent = await page.content();
-    console.log("Sysco login page loaded, length:", pageContent.length);
+    // Wait for any input
+    await page.waitForSelector("input", { timeout: 15000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 2000));
 
-    // Try multiple selectors for Sysco login
-    const emailSelectors = ['input[type="email"]', 'input[name="username"]', 'input[id*="email"]', 'input[id*="user"]', 'input[placeholder*="email" i]', 'input[placeholder*="user" i]'];
-    const passSelectors = ['input[type="password"]', 'input[name="password"]', 'input[id*="pass"]', 'input[placeholder*="pass" i]'];
+    // Log all inputs for debugging
+    const allInputs = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("input")).map(i => ({
+        type: i.type, name: i.name, id: i.id, placeholder: i.placeholder, autocomplete: i.autocomplete
+      }))
+    );
+    console.log("Sysco inputs found:", JSON.stringify(allInputs));
 
-    let emailInput = null;
-    for (const sel of emailSelectors) {
-      emailInput = await page.$(sel);
-      if (emailInput) { console.log("Found email input:", sel); break; }
+    let emailInput = null, passInput = null;
+    const emailSels = ['input[type="email"]', 'input[name="username"]', 'input[name="email"]', '#username', '#email', 'input[id*="email" i]', 'input[id*="user" i]', 'input[placeholder*="email" i]', 'input[placeholder*="user" i]', 'input[autocomplete="username"]', 'input[autocomplete="email"]'];
+    const passSels = ['input[type="password"]', 'input[name="password"]', '#password', 'input[id*="pass" i]', 'input[placeholder*="pass" i]', 'input[autocomplete="current-password"]'];
+
+    for (const sel of emailSels) {
+      emailInput = await page.$(sel).catch(() => null);
+      if (emailInput) { console.log("Sysco email selector:", sel); break; }
     }
-
-    let passInput = null;
-    for (const sel of passSelectors) {
-      passInput = await page.$(sel);
-      if (passInput) { console.log("Found pass input:", sel); break; }
+    for (const sel of passSels) {
+      passInput = await page.$(sel).catch(() => null);
+      if (passInput) { console.log("Sysco pass selector:", sel); break; }
     }
 
     if (!emailInput || !passInput) {
-      console.log("Could not find Sysco login fields, page title:", await page.title());
-      throw new Error("Could not find Sysco login form");
+      await page.screenshot({ path: "/tmp/sysco-login-debug.png" });
+      throw new Error(`Sysco login form not found. Inputs: ${JSON.stringify(allInputs)}`);
     }
 
-    await emailInput.type(process.env.SYSCO_EMAIL, { delay: 50 });
-    await passInput.type(process.env.SYSCO_PASSWORD, { delay: 50 });
-    
-    // Submit
-    const submitBtn = await page.$('button[type="submit"]') || await page.$('button:contains("Sign In")') || await page.$('input[type="submit"]');
-    if (submitBtn) {
-      await submitBtn.click();
-    } else {
-      await page.keyboard.press("Enter");
-    }
+    await emailInput.click();
+    await emailInput.type(process.env.SYSCO_EMAIL, { delay: 80 });
+    await passInput.click();
+    await passInput.type(process.env.SYSCO_PASSWORD, { delay: 80 });
 
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
+    const submitBtn = await page.$('button[type="submit"]').catch(() => null) ||
+                      await page.$('input[type="submit"]').catch(() => null);
+    if (submitBtn) await submitBtn.click();
+    else await page.keyboard.press("Enter");
+
+    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
-    console.log("Sysco logged in, URL:", page.url());
+    console.log("Sysco after login:", page.url());
 
     // Go to lists page
-    console.log("Going to Sysco lists...");
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "networkidle2", timeout: 30000 });
     await new Promise(r => setTimeout(r, 3000));
+    console.log("Sysco lists page:", page.url());
 
-    console.log("Lists page URL:", page.url());
-
-    // Find Nick's List - look for it by text
-    const listUrl = await page.evaluate(() => {
-      const links = Array.from(document.querySelectorAll("a"));
-      const nickLink = links.find(l => l.textContent.toLowerCase().includes("nick"));
-      return nickLink ? nickLink.href : null;
+    // Find Nick's List link
+    const nickHref = await page.evaluate(() => {
+      const links = Array.from(document.querySelectorAll("a, button, [role='button'], li, div"));
+      const nick = links.find(el =>
+        el.textContent.toLowerCase().includes("nick") &&
+        el.textContent.length < 50
+      );
+      if (!nick) return null;
+      return nick.href || nick.getAttribute("data-href") || null;
     });
 
-    console.log("Nick's List URL:", listUrl);
+    console.log("Nick's List href:", nickHref);
 
-    if (listUrl) {
-      await page.goto(listUrl, { waitUntil: "networkidle2", timeout: 30000 });
+    if (nickHref) {
+      await page.goto(nickHref, { waitUntil: "networkidle2", timeout: 30000 });
     } else {
-      // Try clicking on Nick's List
-      const clicked = await page.evaluate(() => {
+      // Click on it
+      await page.evaluate(() => {
         const els = Array.from(document.querySelectorAll("*"));
-        const nickEl = els.find(el =>
-          el.children.length === 0 &&
+        const nick = els.find(el =>
+          el.children.length <= 2 &&
           el.textContent.toLowerCase().includes("nick") &&
-          el.textContent.length < 30
+          el.textContent.length < 50
         );
-        if (nickEl) { nickEl.click(); return true; }
-        return false;
+        if (nick) nick.click();
       });
-      if (clicked) {
-        await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 2000));
-      }
+      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => {});
     }
 
-    console.log("On list page:", page.url());
+    await new Promise(r => setTimeout(r, 3000));
+    console.log("Nick's List page:", page.url());
 
     // Scroll to load all items
-    await page.evaluate(async () => {
-      for (let i = 0; i < 30; i++) {
-        window.scrollBy(0, 800);
-        await new Promise(r => setTimeout(r, 400));
-      }
-    });
+    for (let i = 0; i < 30; i++) {
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await new Promise(r => setTimeout(r, 400));
+    }
     await new Promise(r => setTimeout(r, 2000));
 
-    // Extract items and prices from Sysco list
+    // Extract items and prices
     const items = await page.evaluate(() => {
       const results = [];
-      const allText = document.body.innerText;
-      const lines = allText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const texts = [];
+      while (walker.nextNode()) {
+        const t = walker.currentNode.textContent.trim();
+        if (t.length > 0) texts.push(t);
+      }
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        // Sysco shows prices like "$XX.XX" or "XX.XX / CS" (per case)
-        const priceMatch = line.match(/\$\s*([\d,]+\.[\d]{2})/) ||
-                          line.match(/([\d,]+\.[\d]{2})\s*\/\s*(?:CS|EA|CA)/i);
+      for (let i = 0; i < texts.length; i++) {
+        const t = texts[i];
+        // Sysco price formats: "$XX.XX", "XX.XX/CS", "XX.XX / CS", "$XX.XX / Case"
+        const priceMatch = t.match(/\$\s*([\d,]+\.[\d]{2})/) ||
+                          t.match(/([\d,]+\.[\d]{2})\s*\/\s*(?:CS|CA|Case)/i);
         if (priceMatch) {
           const price = parseFloat(priceMatch[1].replace(",", ""));
-          if (price > 0 && price < 10000) {
-            // Look for product name nearby
-            const nearby = [lines[i-2], lines[i-1], lines[i+1], lines[i+2]].filter(Boolean);
-            const name = nearby.find(l =>
-              l.length > 5 && l.length < 100 &&
-              !l.match(/^\$/) &&
-              !l.match(/^[\d\s,\.]+$/) &&
-              !l.match(/add to cart|add item|remove|qty|quantity/i)
-            );
-            if (name) {
-              results.push({ name, price, raw: line });
+          if (price > 1 && price < 10000) {
+            // Find product name nearby
+            for (let j = Math.max(0, i - 4); j <= Math.min(texts.length - 1, i + 2); j++) {
+              const candidate = texts[j];
+              if (candidate !== t &&
+                  candidate.length > 5 &&
+                  candidate.length < 120 &&
+                  !candidate.match(/^\$/) &&
+                  !candidate.match(/^[\d\s,\.]+$/) &&
+                  !candidate.match(/add|remove|qty|quantity|cart|delete/i)) {
+                results.push({ name: candidate, price, raw: t });
+                break;
+              }
             }
           }
         }
@@ -262,14 +271,11 @@ async function scrapeSysco() {
       return results;
     });
 
-    console.log(`Sysco: found ${items.length} items`);
-
-    // Take a screenshot for debugging
-    await page.screenshot({ path: "/tmp/sysco-debug.png" });
-
+    console.log(`Sysco: extracted ${items.length} items`);
+    await page.screenshot({ path: "/tmp/sysco-list-debug.png" });
     return { success: true, items, timestamp: new Date().toISOString() };
   } catch (err) {
-    console.error("Sysco scrape error:", err.message);
+    console.error("Sysco error:", err.message);
     return { success: false, error: err.message, items: [] };
   } finally {
     if (browser) await browser.close();
@@ -341,18 +347,16 @@ async function matchItemsWithAI(scrapedItems, source) {
   const itemList = RD_ITEMS.map(i => `${i.id}: ${i.description}`).join("\n");
   const scrapedText = scrapedItems.slice(0, 80).map(i => `${i.name}: $${i.price}`).join("\n");
 
-  const prompt = `Match these scraped ${source} grocery items to our product list. Only match if you are confident it's the same product.
+  const prompt = `Match these ${source} grocery items to our product list. Only match if confident it's the same product.
 
-SCRAPED ITEMS:
+SCRAPED:
 ${scrapedText}
 
-OUR PRODUCT LIST (id: name):
+OUR LIST:
 ${itemList}
 
-Return ONLY a JSON array, no markdown:
-[{"id":"ITEM_ID","price":0.00}]
-
-Use exact IDs from the list. Skip if no confident match.`;
+Return ONLY JSON array, no markdown:
+[{"id":"ITEM_ID","price":0.00}]`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -380,32 +384,32 @@ async function runScrape(source = "all") {
   const log = (msg) => {
     console.log(msg);
     priceStore.scrapeLog.unshift({ time: new Date().toISOString(), msg });
-    if (priceStore.scrapeLog.length > 50) priceStore.scrapeLog.pop();
+    if (priceStore.scrapeLog.length > 100) priceStore.scrapeLog.pop();
   };
 
   if (source === "rd" || source === "all") {
-    log("🟢 Starting RD scrape...");
+    log("🟢 Scraping Restaurant Depot...");
     const result = await scrapeRD();
     if (result.success && result.items.length > 0) {
       const matched = await matchItemsWithAI(result.items, "Restaurant Depot");
       matched.forEach(({ id, price }) => {
         priceStore.rd[id] = { price, date: new Date().toISOString() };
       });
-      log(`✅ RD: ${matched.length} prices updated from ${result.items.length} found`);
+      log(`✅ RD: ${matched.length} prices updated (${result.items.length} raw items found)`);
     } else {
       log(`❌ RD failed: ${result.error}`);
     }
   }
 
   if (source === "sysco" || source === "all") {
-    log("🔵 Starting Sysco scrape...");
+    log("🔵 Scraping Sysco...");
     const result = await scrapeSysco();
     if (result.success && result.items.length > 0) {
       const matched = await matchItemsWithAI(result.items, "Sysco");
       matched.forEach(({ id, price }) => {
         priceStore.sysco[id] = { price, date: new Date().toISOString() };
       });
-      log(`✅ Sysco: ${matched.length} prices updated from ${result.items.length} found`);
+      log(`✅ Sysco: ${matched.length} prices updated (${result.items.length} raw items found)`);
     } else {
       log(`❌ Sysco failed: ${result.error}`);
     }
@@ -414,26 +418,27 @@ async function runScrape(source = "all") {
   priceStore.lastUpdated = new Date().toISOString();
 }
 
-// ── API Routes ────────────────────────────────────────────────────────────────
+// ── API routes ────────────────────────────────────────────────────────────────
 app.get("/api/prices", (req, res) => res.json(priceStore));
 
 app.get("/api/status", (req, res) => res.json({
+  status: "running",
   lastUpdated: priceStore.lastUpdated,
   rdItems: Object.keys(priceStore.rd).length,
   syscoItems: Object.keys(priceStore.sysco).length,
-  log: priceStore.scrapeLog.slice(0, 10),
+  log: priceStore.scrapeLog.slice(0, 20),
 }));
 
 app.post("/api/scrape", async (req, res) => {
   const { source } = req.body;
-  res.json({ message: `Scrape started for ${source || "all"}. Check /api/status for progress.` });
-  runScrape(source || "all").catch(console.error);
+  const src = source || "all";
+  res.json({ message: `Started scraping ${src}. Check /api/status for progress.` });
+  runScrape(src).catch(err => console.error("Scrape error:", err));
 });
 
 app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list provided" });
-
   try {
     const itemsWithPrices = RD_ITEMS.map(item => {
       const rd = priceStore.rd[item.id];
@@ -455,29 +460,24 @@ app.post("/api/grocery", async (req, res) => {
 
     const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
 
-Current pricing data:
-${context}
+Current pricing:
+${context || "No prices loaded yet — using best guess based on typical pricing"}
 
 Chef's order list:
 ${list}
 
-Break this list down by vendor. Be practical and concise.
-
-Format your response exactly like this:
+Break this down by vendor. Be concise and practical.
 
 🟢 ORDER FROM RESTAURANT DEPOT:
 - [item] — $[price]/case
-- ...
 
 🔵 ORDER FROM SYSCO:
 - [item] — $[price]/case
-- ...
 
-⚠️ CHECK MANUALLY (not in our system):
+⚠️ NOT IN OUR SYSTEM (check manually):
 - [item]
-- ...
 
-💰 Total estimated order: RD $[amount] + Sysco $[amount] = $[total]`;
+💰 Estimated totals: RD $[X] + Sysco $[Y] = $[total]`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -500,23 +500,25 @@ Format your response exactly like this:
   }
 });
 
-// ── Daily scrape at 6am Las Vegas time (1pm UTC) ──────────────────────────────
+// ── Daily scrape 6am Las Vegas time (UTC-7 = 13:00 UTC) ──────────────────────
 cron.schedule("0 13 * * *", () => {
-  console.log("⏰ Daily auto-scrape...");
+  console.log("⏰ Daily scrape starting...");
   runScrape("all").catch(console.error);
 });
 
-// ── Catch-all ─────────────────────────────────────────────────────────────────
+// ── Serve React app ───────────────────────────────────────────────────────────
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../build/index.html"));
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`🚀 Server on port ${PORT}`);
-  // Auto-scrape on startup if no prices yet
-  if (!priceStore.lastUpdated) {
-    console.log("No prices yet — running initial scrape in 30s...");
-    setTimeout(() => runScrape("all").catch(console.error), 30000);
-  }
+  console.log(`🚀 Naan & Curry server on port ${PORT}`);
+  console.log(`🔗 RD order guide: https://member.restaurantdepot.com/store/business/order-guide/19933806363004568`);
+  console.log(`🔗 Sysco lists: https://shop.sysco.com/app/lists`);
+  // Initial scrape 60s after startup
+  setTimeout(() => {
+    console.log("⏳ Running initial scrape...");
+    runScrape("all").catch(console.error);
+  }, 60000);
 });
