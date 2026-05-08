@@ -50,29 +50,50 @@ async function scrapeRD() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-    // Use exact SSO init URL from working app
+    // Use exact SSO init URL - go to login page first to establish session
     await page.goto(
       "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
-      { waitUntil: "domcontentloaded", timeout: 30000 }
+      { waitUntil: "domcontentloaded", timeout: 60000 }
     );
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise(r => setTimeout(r, 6000));
     console.log("RD SSO URL:", page.url());
 
-    // Identity provider has #email and input[type="password"]
-    await page.waitForSelector("#email", { timeout: 15000 });
-    await page.locator("#email").fill(process.env.RD_EMAIL);
-    await page.locator('input[type="password"]').fill(process.env.RD_PASSWORD);
-    await page.locator('button[type="submit"]').click();
-    await new Promise(r => setTimeout(r, 6000));
+    // Wait for identity provider login form
+    await page.waitForSelector('#email, input[type="email"], input[name="email"]', { timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Fill credentials
+    const rdEmailSel = await page.$('#email') ? '#email' : 'input[type="email"]';
+    await page.evaluate((sel, val) => {
+      const el = document.querySelector(sel);
+      if (el) { el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); }
+    }, rdEmailSel, process.env.RD_EMAIL);
+    await new Promise(r => setTimeout(r, 500));
+
+    await page.evaluate((val) => {
+      const el = document.querySelector('input[type="password"]');
+      if (el) { el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); }
+    }, process.env.RD_PASSWORD);
+    await new Promise(r => setTimeout(r, 500));
+
+    // Submit
+    await page.evaluate(() => {
+      const btn = document.querySelector('button[type="submit"], input[type="submit"]');
+      if (btn) btn.click();
+    });
+
+    // Wait for redirect back to restaurantdepot.com
+    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 5000));
     console.log("RD after login:", page.url());
 
-    // Go directly to Naan & Curry order guide
+    // Go to order guide
     await page.goto(
       "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
-      { waitUntil: "networkidle2", timeout: 45000 }
+      { waitUntil: "domcontentloaded", timeout: 60000 }
     );
-    await new Promise(r => setTimeout(r, 5000));
-    console.log("RD order guide loaded");
+    await new Promise(r => setTimeout(r, 8000));
+    console.log("RD order guide loaded:", page.url());
 
     // Scroll to load all items
     for (let i = 0; i < 30; i++) {
@@ -148,54 +169,55 @@ async function scrapeSysco() {
     await new Promise(r => setTimeout(r, 3000));
     console.log("Sysco step1:", page.url());
 
-    // Type email
+    // Type email using real keyboard (React forms need actual key events)
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
-    await page.evaluate((email) => {
-      const el = document.querySelector('input[type="email"]');
-      if (el) { el.focus(); el.value = email; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
-    }, process.env.SYSCO_EMAIL);
-    await new Promise(r => setTimeout(r, 1000));
-    console.log("Sysco: email filled");
+    await page.click('input[type="email"]');
+    await page.keyboard.type(process.env.SYSCO_EMAIL, { delay: 60 });
+    await new Promise(r => setTimeout(r, 800));
+    console.log("Sysco: email typed");
 
-    // Click Next (first submit button)
+    // Click Next button specifically (not "Become a Customer")
     await page.evaluate(() => {
       const btns = Array.from(document.querySelectorAll('button[type="submit"]'));
       const next = btns.find(b => b.textContent.trim() === "Next");
-      if (next) next.click();
-      else if (btns[0]) btns[0].click();
+      if (next) { next.click(); return; }
+      if (btns[0]) btns[0].click();
     });
-    console.log("Sysco: clicked Next");
+    console.log("Sysco: Next clicked");
 
-    // Wait for redirect to secure.sysco.com (Okta)
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 4000));
-    console.log("Sysco step2:", page.url());
+    // Wait for page change - either navigation or URL change
+    await Promise.race([
+      page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }),
+      page.waitForURL(url => !url.includes("shop.sysco.com/auth/login"), { timeout: 15000 }),
+      new Promise(r => setTimeout(r, 12000))
+    ]).catch(() => {});
+    await new Promise(r => setTimeout(r, 3000));
+    console.log("Sysco after Next:", page.url());
 
-    // ── Step 2: Enter password at secure.sysco.com (Okta) ────────────────
-    // If still on shop.sysco.com, try again
+    // Should now be on secure.sysco.com (Okta) with password field
+    // If still on login, the email might not have submitted - try Enter
     if (page.url().includes("shop.sysco.com/auth/login")) {
-      console.log("Still on login page, trying keyboard submit...");
-      await page.focus('input[type="email"]');
+      console.log("Still on login, trying Enter key...");
       await page.keyboard.press("Enter");
-      await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }).catch(() => {});
+      await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => {});
       await new Promise(r => setTimeout(r, 3000));
-      console.log("After keyboard enter:", page.url());
+      console.log("After Enter:", page.url());
     }
 
-    // Now on secure.sysco.com - find password field
-    await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 20000 });
+    console.log("Sysco password page:", page.url());
+
+    // Wait for Okta password field
+    await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 25000 });
     await new Promise(r => setTimeout(r, 1000));
-    console.log("Sysco: password page ready, URL:", page.url());
 
-    // Fill password using Okta's exact field id
-    await page.evaluate((pw) => {
-      const el = document.querySelector('#okta-signin-password') || document.querySelector('input[type="password"]');
-      if (el) { el.focus(); el.value = pw; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
-    }, process.env.SYSCO_PASSWORD);
+    // Type password with real keyboard
+    const pwSel = await page.$('#okta-signin-password') ? '#okta-signin-password' : 'input[type="password"]';
+    await page.click(pwSel);
+    await page.keyboard.type(process.env.SYSCO_PASSWORD, { delay: 60 });
     await new Promise(r => setTimeout(r, 500));
-    console.log("Sysco: password filled");
+    console.log("Sysco: password typed");
 
-    // Click Log In - Okta uses input[type="submit"] with id="okta-signin-submit"
+    // Click Log In (Okta submit button)
     await page.evaluate(() => {
       const btn = document.querySelector('#okta-signin-submit') ||
                   document.querySelector('input[type="submit"]') ||
@@ -203,13 +225,12 @@ async function scrapeSysco() {
       if (btn) btn.click();
     });
 
-    // Wait for redirect back to shop.sysco.com
-    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 30000 }).catch(() => {});
+    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 5000));
     console.log("Sysco logged in:", page.url());
 
     if (!page.url().includes("shop.sysco.com")) {
-      throw new Error("Sysco login failed - still at: " + page.url());
+      throw new Error("Sysco login failed - at: " + page.url());
     }
 
     // ── Step 3: Go to Nick List ───────────────────────────────────────────
