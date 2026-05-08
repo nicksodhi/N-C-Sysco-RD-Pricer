@@ -33,8 +33,12 @@ app.post("/api/claude", async (req, res) => {
 async function launchBrowser() {
   const chromium = require("@sparticuz/chromium");
   const puppeteer = require("puppeteer-core");
+  // executablePath() extracts chromium to /tmp on first call
+  const execPath = await chromium.executablePath();
+  console.log("Chromium path:", execPath);
   return puppeteer.launch({
     args: [
+      ...chromium.args,
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
@@ -45,8 +49,8 @@ async function launchBrowser() {
       "--disable-extensions",
     ],
     defaultViewport: { width: 1280, height: 900 },
-    executablePath: "/tmp/chromium",
-    headless: true,
+    executablePath: execPath,
+    headless: chromium.headless,
     timeout: 30000,
   });
 }
