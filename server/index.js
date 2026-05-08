@@ -141,51 +141,56 @@ async function scrapeSysco() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
 
-    // Sysco uses 2-step login: email → Next → password → Sign In
+    // Sysco login: shop.sysco.com/auth/login → secure.sysco.com (Okta)
+    // Step 1: Enter email at shop.sysco.com
     await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "networkidle2", timeout: 30000 });
     await new Promise(r => setTimeout(r, 4000));
-    console.log("Sysco login:", page.url(), "title:", await page.title());
+    console.log("Sysco step1:", page.url());
 
-    // Step 1: Enter email
     await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 15000 });
-    const emailInput = await page.$('input[type="email"]') || await page.$('input[name="email"]');
-    if (!emailInput) throw new Error("Sysco: email input not found");
+    await page.click('input[type="email"], input[name="email"]');
+    await page.type('input[type="email"], input[name="email"]', process.env.SYSCO_EMAIL, { delay: 80 });
+    console.log("Sysco: email typed");
+    await new Promise(r => setTimeout(r, 500));
 
-    await emailInput.click();
-    await emailInput.type(process.env.SYSCO_EMAIL, { delay: 80 });
-    console.log("Sysco: email entered");
-
-    // Click Next button
-    const nextBtn = await page.$('button[type="submit"]');
-    if (nextBtn) await nextBtn.click();
+    // Click "Next" - first submit button
+    const nextBtns = await page.$$('button[type="submit"]');
+    if (nextBtns.length > 0) await nextBtns[0].click();
     else await page.keyboard.press("Enter");
 
-    await new Promise(r => setTimeout(r, 3000));
-    console.log("Sysco after Next:", page.url());
+    // Wait for redirect to secure.sysco.com (Okta)
+    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 4000));
+    console.log("Sysco step2:", page.url());
 
-    // Step 2: Enter password
-    await page.waitForSelector('input[type="password"]', { timeout: 15000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 2000));
+    // Step 2: Now on secure.sysco.com - Okta login
+    // Password field ID is "okta-signin-password" from dev tools
+    await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 15000 });
+    await new Promise(r => setTimeout(r, 1000));
 
-    const passInput = await page.$('input[type="password"]');
-    if (!passInput) {
-      const inputs2 = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, name: i.name, id: i.id }))
-      );
-      throw new Error(`Sysco: password input not found after Next. URL: ${page.url()} Inputs: ${JSON.stringify(inputs2)}`);
-    }
+    const pwField = await page.$('#okta-signin-password') || await page.$('input[type="password"]');
+    if (!pwField) throw new Error("Sysco: Okta password field not found. URL: " + page.url());
 
-    await passInput.click();
-    await passInput.type(process.env.SYSCO_PASSWORD, { delay: 80 });
-    console.log("Sysco: password entered");
+    await pwField.click();
+    await pwField.type(process.env.SYSCO_PASSWORD, { delay: 80 });
+    console.log("Sysco: password typed");
+    await new Promise(r => setTimeout(r, 500));
 
-    const signInBtn = await page.$('button[type="submit"]');
-    if (signInBtn) await signInBtn.click();
+    // Click Log In button
+    const loginBtn = await page.$('input[type="submit"]') ||
+                     await page.$('button[type="submit"]') ||
+                     await page.$('#okta-signin-submit');
+    if (loginBtn) await loginBtn.click();
     else await page.keyboard.press("Enter");
 
     await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
-    console.log("Sysco after login:", page.url());
+    await new Promise(r => setTimeout(r, 4000));
+    console.log("Sysco logged in:", page.url());
+
+    // Should be on shop.sysco.com/app/discover now
+    if (!page.url().includes("shop.sysco.com")) {
+      throw new Error("Sysco login failed, stuck at: " + page.url());
+    }
 
     // Go to lists page
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "networkidle2", timeout: 30000 });
