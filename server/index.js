@@ -33,11 +33,33 @@ app.post("/api/claude", async (req, res) => {
 async function launchBrowser() {
   const chromium = require("@sparticuz/chromium");
   const puppeteer = require("puppeteer-core");
+  
+  // Try @sparticuz/chromium first, fall back to system chromium
+  let execPath;
+  try {
+    execPath = await chromium.executablePath();
+    console.log("Chromium path:", execPath);
+  } catch(e) {
+    // Railway installs system chromium via nixpacks
+    execPath = "/usr/bin/chromium" || "/usr/bin/chromium-browser" || "/snap/bin/chromium";
+    console.log("Using system chromium:", execPath);
+  }
+  
   return puppeteer.launch({
-    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox", 
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-extensions",
+    ],
     defaultViewport: { width: 1280, height: 900 },
-    executablePath: await chromium.executablePath(),
+    executablePath: execPath,
     headless: true,
+    timeout: 30000,
   });
 }
 
@@ -147,10 +169,10 @@ async function scrapeRD() {
     if (items.length > 0) console.log("RD sample:", JSON.stringify(items.slice(0, 3)));
     return { success: true, items, timestamp: new Date().toISOString() };
   } catch (err) {
-    console.error("RD error:", err.message);
-    return { success: false, error: err.message, items: [] };
+    console.error("RD error:", err.message || err);
+    return { success: false, error: err.message || String(err), items: [] };
   } finally {
-    if (browser) await browser.close();
+    if (browser) { try { await browser.close(); } catch(e) {} }
   }
 }
 
@@ -316,10 +338,10 @@ async function scrapeSysco() {
     return { success: true, items, timestamp: new Date().toISOString() };
 
   } catch (err) {
-    console.error("Sysco error:", err.message);
-    return { success: false, error: err.message, items: [] };
+    console.error("Sysco error:", err.message || err);
+    return { success: false, error: err.message || String(err), items: [] };
   } finally {
-    if (browser) await browser.close();
+    if (browser) { try { await browser.close(); } catch(e) {} }
   }
 }
 
@@ -462,6 +484,31 @@ async function runScrape(source = "all") {
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.get("/api/prices", (req, res) => res.json(priceStore));
+
+app.get("/api/browser-test", async (req, res) => {
+  try {
+    const chromium = require("@sparticuz/chromium");
+    const puppeteer = require("puppeteer-core");
+    let execPath;
+    try { execPath = await chromium.executablePath(); } 
+    catch(e) { execPath = "/usr/bin/chromium"; }
+    
+    console.log("Browser test - execPath:", execPath);
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--single-process"],
+      executablePath: execPath,
+      headless: true,
+      timeout: 20000,
+    });
+    const page = await browser.newPage();
+    await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 15000 });
+    const title = await page.title();
+    await browser.close();
+    res.json({ success: true, title, execPath });
+  } catch(err) {
+    res.json({ success: false, error: err.message, stack: err.stack?.slice(0,500) });
+  }
+});
 
 app.get("/api/diagnose", async (req, res) => {
   let browser;
