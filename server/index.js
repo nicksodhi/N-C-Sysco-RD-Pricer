@@ -163,22 +163,69 @@ app.post("/api/claude", async (req, res) => {
 });
 
 // ── AI price matching ─────────────────────────────────────────────────────────
+// Word-overlap scorer — no AI, fully deterministic
+function wordScore(a, b) {
+  const stopWords = new Set(["the","and","for","with","from","lbs","lb","oz","gal","ct","pk","pack","case","fresh","frozen","boneless","skinless"]);
+  const aw = a.toLowerCase().split(/[\s\-,\/]+/).filter(w => w.length > 2 && !stopWords.has(w));
+  const bw = b.toLowerCase().split(/[\s\-,\/]+/).filter(w => w.length > 2 && !stopWords.has(w));
+  let score = 0;
+  aw.forEach(w => { if (bw.some(bx => bx.includes(w) || w.includes(bx))) score += w.length; });
+  bw.forEach(w => { if (aw.some(ax => ax.includes(w) || w.includes(ax))) score += w.length; });
+  return score;
+}
+
 async function matchWithAI(scrapedItems, itemList, source) {
   if (!scrapedItems.length) return [];
-  const list = itemList.map(i => i.id + ": " + i.name).join("\n");
-  const scraped = scrapedItems.slice(0, 100).map(i => i.name + ": $" + i.price).join("\n");
-  const prompt = "Match these " + source + " grocery items to our product list.\n\nSCRAPED:\n" + scraped + "\n\nOUR LIST:\n" + list + "\n\nReturn ONLY JSON array:\n[{\"id\":\"ITEM_ID\",\"price\":0.00}]\nOnly confident matches. Exact IDs from list.";
-  try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
-    });
-    const data = await r.json();
-    const txt = data.content?.find(b => b.type === "text")?.text || "[]";
-    const m = txt.match(/\[[\s\S]*\]/);
-    return m ? JSON.parse(m[0]) : [];
-  } catch(e) { log("AI error: " + e.message); return []; }
+  const results = [];
+  const usedIds = new Set();
+
+  for (const scraped of scrapedItems) {
+    let bestId = null, bestScore = 0;
+    for (const item of itemList) {
+      if (usedIds.has(item.id)) continue;
+      const score = wordScore(scraped.name, item.name);
+      if (score > bestScore) { bestScore = score; bestId = item.id; }
+    }
+    if (bestId && bestScore >= 6) {
+      results.push({ id: bestId, price: scraped.price });
+      usedIds.add(bestId);
+      log(source + " match: \"" + scraped.name + "\" → " + bestId + " (score=" + bestScore + ")");
+    } else {
+      log(source + " NO MATCH: \"" + scraped.name + "\" (best score=" + bestScore + ")");
+    }
+  }
+
+  // AI fallback for any item list entries that got no match
+  const unmatchedItems = itemList.filter(i => !usedIds.has(i.id));
+  const unmatchedScraped = scrapedItems.filter(s => !results.find(r => r.price === s.price && scrapedItems.find(sc => sc.name === s.name)));
+  if (unmatchedItems.length > 0 && unmatchedScraped.length > 0) {
+    log(source + ": " + unmatchedScraped.length + " unmatched scraped items, trying AI for remaining " + unmatchedItems.length + " list items");
+    try {
+      const prompt = "Match scraped grocery items to product list IDs.\nSCRAPED:\n" +
+        unmatchedScraped.map(i => i.name + ": $" + i.price).join("\n") +
+        "\nOUR LIST:\n" + unmatchedItems.map(i => i.id + ": " + i.name).join("\n") +
+        "\nReturn ONLY JSON: [{\"id\":\"ID\",\"price\":0.00}] Only confident matches.";
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      });
+      const data = await r.json();
+      const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+      const m = txt.match(/\[[\s\S]*\]/);
+      if (m) {
+        JSON.parse(m[0]).forEach(({ id, price }) => {
+          if (id && price > 0 && !usedIds.has(id)) {
+            results.push({ id, price });
+            usedIds.add(id);
+            log(source + " AI fallback match: " + id + " $" + price);
+          }
+        });
+      }
+    } catch(e) { log("AI fallback error: " + e.message); }
+  }
+
+  return results;
 }
 
 // ── Browser launch ────────────────────────────────────────────────────────────
