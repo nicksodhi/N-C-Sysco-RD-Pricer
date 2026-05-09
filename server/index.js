@@ -42,15 +42,72 @@ let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] 
 const CACHE_FILE = "/tmp/nc_match_cache.json";
 let matchCache = { rd: {}, sysco: {} }; // { "scraped name": "item_id" }
 
+// Seed cache — known scraped-name → item-id mappings, never lost on restart
+const CACHE_SEED = {
+  rd: {
+    "Fresh Boneless Skinless Chicken Leg Meat": "77658",
+    "Fresh Chicken Leg Quarters - 40 lbs": "77670",
+    "Boneless Skinless Chicken Breasts": "77232",
+    "Herb - Mint - 1 lb": "42647",
+    "Jumbo Chicken Party Wings 6-8 ct": "77200",
+    "Thomas Farms - Bone in Goat Cube - #15": "1810019",
+    "Frozen Halal Boneless Lamb Leg, Australia": "79042",
+    "Frozen Halal Boneless Lamb Leg Australia": "79042",
+    "James Farm - Plain Yogurt - 32 lbs": "14785",
+    "MILK WHL GAL GS/AN": "370496",
+    "James Farm - Heavy Cream, 40% - 64 oz": "1530438",
+    "James Farm - Heavy Cream 40% - 64 oz": "1530438",
+    "Royal Mahout - Paneer Loaf - 5 lbs": "1440528",
+    "Chef's Quality - Clear Liquid Fry Oil, zero trans fats - 35 lbs": "1020077",
+    "Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs": "490266",
+    "Chef's Quality - Liquid Butter Alternative - gallon": "1020152",
+    "Evian - Natural Spring Water, 24 Ct, 500 mL": "21039",
+    "Peeled Garlic": "44146",
+    "Taylor Farms - Bagged Cilantro": "42566",
+    "Jumbo Spanish Onions - 50 lbs": "42545",
+    "Jumbo Red Onions - 25 lbs": "42658",
+    "Russet Potato - 50 lb": "42725",
+    "Carrots - 10 lb": "79152",
+    "Jumbo Chicken Party Wings 6-8 ct": "77200",
+  },
+  sysco: {
+    "Onion Yellow Jumbo Bag": "1048222",
+    "Chicken Cvp Thighs Boneless Skinless Frozen": "8053456",
+    "Chicken Legs Quarters Jumbo Controlled Vacuum": "4418117",
+    "Chicken Cvp Leg Quarter Small Halal": "1803287",
+    "Chicken Cvp Leg Meat Boneless Skinless": "0868459",
+    "Flour All Purpose Hotel Restaurant Bleached": "8379251",
+    "Tomato Puree 1.06 Fancy California": "4002325",
+    "Cream Heavy 40% Extended Shelf Life": "6935464",
+    "Milk Whole Gallon": "4676306",
+    "Oil Soybean Vegetable Pure": "4119079",
+    "Sugar Granulated Extra Fine Cane": "5087572",
+    "Shortening Fry Liquid Clear Zero Trans Fat": "4518403",
+    "Butter-it Alternative Liquid Zero Trans Fat": "3355757",
+    "Juice Lemon Pasteurized Ultra Premium": "4063095",
+    "Potato Baking Russet 40 Count Fresh": "1543164",
+  }
+};
+
 function loadCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
-      matchCache = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
-      const rdCount = Object.keys(matchCache.rd || {}).length;
-      const scCount = Object.keys(matchCache.sysco || {}).length;
-      console.log("✅ Match cache loaded: RD=" + rdCount + " Sysco=" + scCount + " known mappings");
+      const saved = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+      // Merge: seed first, then saved (saved overrides seed if conflict)
+      matchCache = {
+        rd: { ...CACHE_SEED.rd, ...(saved.rd || {}) },
+        sysco: { ...CACHE_SEED.sysco, ...(saved.sysco || {}) },
+      };
+    } else {
+      matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
     }
-  } catch(e) { console.log("Cache load error:", e.message); }
+    const rdCount = Object.keys(matchCache.rd).length;
+    const scCount = Object.keys(matchCache.sysco).length;
+    console.log("✅ Match cache ready: RD=" + rdCount + " Sysco=" + scCount + " mappings");
+  } catch(e) {
+    console.log("Cache load error:", e.message);
+    matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
+  }
 }
 
 function saveCache() {
