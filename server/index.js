@@ -14,7 +14,7 @@ let priceStore = { rd: {}, sysco: {}, lastUpdated: null, log: [] };
 const log = (msg) => {
   console.log(msg);
   priceStore.log.unshift({ time: new Date().toISOString(), msg });
-  if (priceStore.log.length > 200) priceStore.log.pop();
+  if (priceStore.log.length > 500) priceStore.log.pop();
 };
 
 // ── Item master list ──────────────────────────────────────────────────────────
@@ -67,6 +67,12 @@ const ITEMS = [
   { id: "440040",   name: "Sprite" },
   { id: "440039",   name: "Diet Coke" },
   { id: "55519",    name: "Micro Orchid Flowers" },
+  // Sysco-specific items from Nick List
+  { id: "SC-ONION-Y",  name: "Onion Yellow Jumbo Bag" },
+  { id: "77682",       name: "Chicken Thighs Boneless Skinless Frozen" },
+  { id: "77670",       name: "Chicken Legs Quarters Jumbo" },
+  { id: "SC-LEG-H",   name: "Chicken Leg Quarter Small Halal" },
+  { id: "77597",       name: "Chicken Leg Meat Boneless Skinless" },
 ];
 
 // ── Claude API proxy ──────────────────────────────────────────────────────────
@@ -259,18 +265,26 @@ async function scrapeRD() {
 
       // Find product name — look in surrounding lines
       let found = false;
-      for (let j = i - 10; j <= i + 10 && !found; j++) {
+      for (let j = i - 12; j <= i + 12 && !found; j++) {
         if (j < 0 || j >= rdLines.length) continue;
         const c = rdLines[j];
-        if (seen.has(c) || skipWords.has(c)) continue;
+        if (seen.has(c)) continue;
+        if (skipWords.has(c)) continue;
         if (c.length < 8 || c.length > 130) continue;
+        // Skip lines starting with $ or that are pure numbers
         if (/^\$/.test(c)) continue;
         if (/^[\d\s.\-/#x]+$/.test(c)) continue;
-        if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs)\s*$/i.test(c)) continue;
-        if (/^(Bin|stock|Bin -|Many|About|See|eligible|Skip|Back|Pickup|Delivery|Show similar|Current price)$/i.test(c)) continue;
+        // Skip unit-only lines
+        if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|x\s*\d)\s*$/i.test(c)) continue;
+        // Skip navigation/UI text
+        if (/^(Bin|Bin -|Many in stock|About|See eligible|Show similar|Current price|Pickup ready|Buy \d|Order history|Account settings|Addresses|Payment|Credits|Notification|Your saved|Explore popular|Once you press)/.test(c)) continue;
+        // Skip lines that are just numbers with dots (prices disguised)
+        if (/^\$?[\d,]+\.[\d]{2}/.test(c)) continue;
+        // Must have actual product-like words
         if (c.split(" ").length < 2) continue;
-        // Must look like a product name (has letters, reasonable length)
         if (!/[a-zA-Z]{3,}/.test(c)) continue;
+        // Avoid lines that look like UI descriptions
+        if (/arrow keys|search field|suggestions|navigate to|Enter key|press Enter|app will offer/i.test(c)) continue;
         items.push({ name: c, price, raw });
         seen.add(c);
         found = true;
@@ -557,7 +571,7 @@ app.get("/api/status", (req, res) => res.json({
   lastUpdated: priceStore.lastUpdated,
   rdItems: Object.keys(priceStore.rd).length,
   syscoItems: Object.keys(priceStore.sysco).length,
-  log: priceStore.log.slice(0, 30),
+  log: priceStore.log.slice(0, 200),
 }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
