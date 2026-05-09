@@ -102,6 +102,26 @@ const SYSCO_ITEMS = [
   { id: "1543164", name: "Potato Baking Russet 40 Count Fresh",          pack: "1/50LB"  },
 ];
 
+// ── Sysco UPC → RD Item ID mapping (for cross-vendor comparison) ─────────────
+// Maps Sysco Nick List items to their equivalent RD Item IDs
+const SYSCO_TO_RD = {
+  "1048222": "42545",   // Onion Yellow Jumbo → Jumbo Spanish Onions
+  "8053456": "77682",   // Chicken Thighs Boneless Frozen → Chicken Thighs
+  "4418117": "77670",   // Chicken Leg Quarters → Chicken Leg Quarters
+  "1803287": "77670",   // Chicken Leg Quarter Halal → Chicken Leg Quarters  
+  "0868459": "77658",   // Chicken Leg Meat Boneless → Chicken Leg Meat
+  "8379251": "2061212", // Flour All Purpose → All Purpose Flour
+  "4002325": "860044",  // Tomato Puree → Tomato Sauce/Puree
+  "6935464": "1530438", // Cream Heavy 40% → Heavy Cream
+  "4676306": "370496",  // Milk Whole Gallon → Whole Milk
+  "4119079": "1020075", // Oil Soybean → Soybean Oil
+  "5087572": "21051",   // Sugar Granulated → Granulated Sugar
+  "4518403": "1020077", // Shortening Fry → Fry Oil
+  "3355757": "1020152", // Butter-it Alternative → Liquid Butter Alternative
+  "4063095": "55523",   // Juice Lemon → Lemon Juice
+  "1543164": "42725",   // Potato Baking Russet → Russet Potato
+};
+
 // ── Claude API proxy ──────────────────────────────────────────────────────────
 app.post("/api/claude", async (req, res) => {
   try {
@@ -217,36 +237,64 @@ async function scrapeRD() {
     log("RD: found " + priceLines.length + " price lines");
     log("RD: contexts: " + JSON.stringify(priceLines.slice(0, 5)));
 
-    // Build items: match each price to nearest product name from context
-    // Skip navigation noise
-    const noiseWords = new Set(["Skip Navigation","Buy It Again","Order Guides","Products","Equipment",
-      "Receipts","Monthly Flyer","Back to Home","Many in stock","Add","Skip","Show similar","Back",
-      "Las Vegas","Pickup","Delivery","Order history","Account settings","Addresses","Payment methods",
-      "Credits and promos","Your saved lists","Notification settings","Out of stock","Buy It Again",
-      "See eligible items","Explore popular"]);
+    // From context logs: product name comes AFTER the price line
+    // Pattern: "Current price: $38.06 | $3806 | James Farm - Plain Yogurt - 32 lbs"
+    // Search FORWARD from price position first, then backward as fallback
+
+    const noise = new Set([
+      "Skip Navigation","Buy It Again","Order Guides","Products","Equipment","Receipts",
+      "Monthly Flyer","Back to Home","Many in stock","Add","Skip","Show similar","Back",
+      "Las Vegas","Pickup","Delivery","Order history","Account settings","Addresses",
+      "Payment methods","Credits and promos","Your saved lists","Notification settings",
+      "Out of stock","See eligible items","Explore popular","Whole","Dairy free",
+      "Order approvals","Business settings","Log out","Restaurant Depot","Items","Members",
+      "Settings","Delivery available","each (est.)","each (estimated)",
+    ]);
+
+    function isProductName(c) {
+      if (!c || c.length < 8 || c.length > 130) return false;
+      if (/^\$/.test(c)) return false;
+      if (/^[\d\s.\-/#x$]+$/.test(c)) return false;
+      if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|fl)\s*$/i.test(c)) return false;
+      if (/^(Current price|Buy \d|Pickup ready|Out of stock|Show similar|See eligible|Buy It Again|Add \d+|Naan|Edit items|Order approvals|Business|Log out|Delivery avail|12\.|About \d|Pickup ready)/.test(c)) return false;
+      if (/arrow keys|search field|Once you|navigate to|Enter key|members$/i.test(c)) return false;
+      if (noise.has(c)) return false;
+      if (!/[a-zA-Z]{3,}/.test(c)) return false;
+      if (c.split(" ").length < 2) return false;
+      return true;
+    }
 
     const items = [];
     const seen = new Set();
 
-    for (const pl of priceLines) {
+    for (let pi = 0; pi < priceLines.length; pi++) {
+      const pl = priceLines[pi];
       const ctxLines = pl.ctx.split(" | ").map(l => l.trim()).filter(l => l);
-      // Find the best candidate name: longest line that looks like a product
+      // Find index of the price line in context
+      const priceIdx = ctxLines.findIndex(l => l === pl.raw || l.includes(pl.raw));
       let bestName = null;
-      for (const c of ctxLines) {
-        if (noiseWords.has(c)) continue;
-        if (c.length < 8 || c.length > 120) continue;
-        if (/^\$/.test(c)) continue;
-        if (/^[\d\s.\-/#x]+$/.test(c)) continue;
-        if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs)\s*$/i.test(c)) continue;
-        if (/^(Current price|Buy \d|Pickup ready|Out of stock|Show similar|See eligible|Buy It Again)/.test(c)) continue;
-        if (/arrow keys|search field|Once you press|navigate to|Enter key/i.test(c)) continue;
-        if (!/[a-zA-Z]{3,}/.test(c)) continue;
-        if (c.split(" ").length < 2) continue;
-        if (!seen.has(c)) { bestName = c; break; }
+
+      // SEARCH FORWARD first (name comes after price on RD)
+      const startFwd = priceIdx >= 0 ? priceIdx + 1 : ctxLines.length / 2;
+      for (let j = startFwd; j < Math.min(ctxLines.length, startFwd + 8); j++) {
+        const c = ctxLines[j];
+        if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
       }
+
+      // FALLBACK: search backward if forward found nothing
+      if (!bestName) {
+        const startBwd = priceIdx >= 0 ? priceIdx - 1 : ctxLines.length / 2;
+        for (let j = startBwd; j >= Math.max(0, startBwd - 8); j--) {
+          const c = ctxLines[j];
+          if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
+        }
+      }
+
       if (bestName && pl.price > 0) {
         items.push({ name: bestName, price: pl.price, raw: pl.raw });
         seen.add(bestName);
+      } else {
+        log("RD: no name for price " + pl.price + " ctx=" + ctxLines.slice(0,6).join(" | "));
       }
     }
 
@@ -307,73 +355,88 @@ async function scrapeSysco() {
     await new Promise(r => setTimeout(r, 5000));
     log("Sysco: lists page=" + page.url());
 
-    // Click Nick List
-    const nickClicked = await page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll("*"));
-      for (const el of all) {
-        if (el.children.length > 5) continue;
-        const t = el.textContent.trim();
-        if (t.toLowerCase().includes("nick list") && t.length < 30) {
-          el.click();
-          return el.tagName + ": " + t;
+    // Wait for Nick List to appear in sidebar (SPA needs time)
+    let nickClicked = null;
+    for (let attempt = 0; attempt < 15; attempt++) {
+      await new Promise(r => setTimeout(r, 1000));
+      nickClicked = await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll("li, a, button, div, span"));
+        for (const el of all) {
+          if (el.children.length > 5) continue;
+          const t = el.textContent.trim();
+          if (t.toLowerCase().includes("nick list") && t.length < 30) {
+            el.click();
+            return el.tagName + ": " + t;
+          }
         }
-      }
-      return null;
-    });
-    log("Sysco: Nick List click=" + nickClicked);
+        return null;
+      });
+      if (nickClicked) { log("Sysco: Nick List click=" + nickClicked + " attempt=" + attempt); break; }
+    }
+    if (!nickClicked) log("Sysco: Nick List not found after 15s");
 
-    // Wait for content to load — watch row count
+    // Wait for SPA to load Nick List content
     let rows = 0;
     for (let w = 0; w < 20; w++) {
       await new Promise(r => setTimeout(r, 1000));
       rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
-      if (rows > 0) { log("Sysco: rows loaded=" + rows + " after " + w + "s"); break; }
+      log("Sysco: wait " + w + "s rows=" + rows);
+      if (rows >= 5) break;
     }
 
-    // CRITICAL: Scroll to TOP first (list may be pre-scrolled to bottom)
+    // Virtual scroll: only ~5 rows rendered at a time
+    // Must scroll through entire list collecting items at each position
     await page.evaluate(() => window.scrollTo(0, 0));
     await new Promise(r => setTimeout(r, 2000));
 
-    // Now scroll down slowly to load all items via infinite scroll
-    let prevRows = 0;
-    for (let s = 0; s < 30; s++) {
-      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
-      log("Sysco: scroll " + s + " rows=" + rows);
-      if (rows === prevRows && s > 5) break;
-      prevRows = rows;
-      await page.evaluate(() => window.scrollBy(0, 800));
-      await new Promise(r => setTimeout(r, 800));
-    }
-    log("Sysco: final rows=" + rows + " url=" + page.url());
+    const allItems = new Map(); // name -> {name, price, raw}
 
-    // Extract using exact Sysco CSS classes: item-details-col + price-col
-    const items = await page.evaluate(() => {
-      const results = [];
-      const seen = new Set();
-      document.querySelectorAll("[class*='product-item-row']").forEach(row => {
-        // Get name from item-details-col (first line only)
-        const nameEl = row.querySelector("[class*='item-details-col']");
-        // Get price from price-col — format is "$29.99 CS" or "$34.27 CS"
-        const priceEl = row.querySelector("[class*='price-col']");
-        if (!nameEl || !priceEl) return;
-        const name = nameEl.innerText.trim().split("\n")[0].trim();
-        const priceText = priceEl.innerText.trim();
-        // Match "$29.99 CS" — take the CS (case) price, not EA price
-        const csMatch = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-        // If no CS price, take first price
-        const anyMatch = priceText.match(/\$([\d,]+\.[\d]{2})/);
-        const m = csMatch || anyMatch;
-        if (!m || name.length < 3 || seen.has(name)) return;
-        const price = parseFloat(m[1].replace(",", ""));
-        if (price > 0 && price < 10000) {
-          results.push({ name, price, raw: priceText });
-          seen.add(name);
-        }
+    async function extractVisible() {
+      const visible = await page.evaluate(() => {
+        const results = [];
+        document.querySelectorAll("[class*='product-item-row']").forEach(row => {
+          const nameEl = row.querySelector("[class*='item-details-col']");
+          const priceEl = row.querySelector("[class*='price-col']");
+          if (!nameEl || !priceEl) return;
+          const name = nameEl.innerText.trim().split("\n")[0].trim();
+          const priceText = priceEl.innerText.trim();
+          const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+          const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
+          const m = csM || anyM;
+          if (!m || name.length < 3) return;
+          const price = parseFloat(m[1].replace(",", ""));
+          if (price > 0 && price < 10000) results.push({ name, price, raw: priceText });
+        });
+        return results;
       });
-      return results;
-    });
+      visible.forEach(item => { if (!allItems.has(item.name)) allItems.set(item.name, item); });
+      return visible.length;
+    }
 
-    log("Sysco: " + items.length + " items: " + JSON.stringify(items));
+    // Scroll from top to bottom in small steps, extracting at each step
+    const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
+    const viewHeight = await page.evaluate(() => window.innerHeight);
+    log("Sysco: scrollHeight=" + scrollHeight + " viewHeight=" + viewHeight);
+
+    let scrollPos = 0;
+    let stepCount = 0;
+    while (scrollPos <= scrollHeight + viewHeight) {
+      await page.evaluate((pos) => window.scrollTo(0, pos), scrollPos);
+      await new Promise(r => setTimeout(r, 800));
+      const found = await extractVisible();
+      log("Sysco: pos=" + scrollPos + " visible=" + found + " total=" + allItems.size);
+      scrollPos += Math.max(200, viewHeight * 0.6);
+      stepCount++;
+      if (stepCount > 50) break;
+    }
+
+    // Scroll back to top and extract once more to catch any missed items
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await new Promise(r => setTimeout(r, 1000));
+    await extractVisible();
+
+    const items = Array.from(allItems.values());
+    log("Sysco: " + items.length + " total items: " + JSON.stringify(items));
     return { success: true, items };
   } catch(e) {
     log("Sysco FATAL: " + e.message);
@@ -408,10 +471,20 @@ async function runScrape(source = "all") {
       const result = await withTimeout(scrapeSysco(), 180000, "Sysco");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
+        let savedCount = 0;
         matched.forEach(({ id, price }) => {
-          if (id && price > 0) priceStore.sysco[id] = { price, date: new Date().toISOString() };
+          if (!id || price <= 0) return;
+          // Save under Sysco UPC for reference
+          priceStore.sysco[id] = { price, date: new Date().toISOString() };
+          // ALSO save under RD equivalent ID for cross-vendor comparison
+          const rdId = SYSCO_TO_RD[id];
+          if (rdId) {
+            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id };
+          }
+          savedCount++;
         });
-        log("✅ Sysco: " + matched.length + " prices saved (" + result.items.length + " raw)");
+        log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " + 
+          matched.filter(m => SYSCO_TO_RD[m.id]).map(m => m.id + "→" + SYSCO_TO_RD[m.id]).join(", "));
       } else { log("❌ Sysco: " + (result.error || "no items")); }
     } catch(e) { log("❌ Sysco: " + e.message); }
   }
