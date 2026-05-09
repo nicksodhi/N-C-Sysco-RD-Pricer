@@ -389,96 +389,90 @@ ${rows.map(r => `<tr>
       {pricesView === "history" && (
         <div style={{ padding: "16px 12px 0" }}>
           <input value={historySearch} onChange={e => { setHistorySearch(e.target.value); setSelectedItem(null); }}
-            placeholder="Search item history…"
+            placeholder="Search item…"
             style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#111", outline: "none", marginBottom: 12 }} />
 
-          {/* Search results */}
           {historySearch.length > 1 && historyResults.length === 0 && (
-            <div style={{ textAlign: "center", padding: "30px 20px", color: "#999", fontSize: 13 }}>No history found for that item</div>
+            <div style={{ textAlign: "center", padding: "30px 20px", color: "#999", fontSize: 13 }}>No history found</div>
           )}
 
-          {historyResults.map(item => (
-            <div key={item.id}>
-              <button onClick={() => setSelectedItem(selectedItem?.id === item.id ? null : item)}
-                style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left" }}>
-                <span style={{ fontSize: 20 }}>{item.emoji}</span>
-                <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                <div style={{ fontSize: 11, color: "#999" }}>{history[item.id]?.length || 0} days ›</div>
-              </button>
+          {/* Render list — search results or all items */}
+          {(historySearch.length > 1 ? historyResults : ITEMS.filter(i => history[i.id]?.length > 0)).map(item => {
+            const entries = history[item.id] || [];
+            const last7  = entries.slice(-7).reverse();
+            const last30 = entries.slice(-30).reverse();
+            const latest = entries[entries.length - 1];
+            const prev   = entries[entries.length - 2];
+            const rdChange = prev?.rd && latest?.rd ? latest.rd - prev.rd : null;
+            const isOpen = selectedItem?.id === item.id;
+            const [view7, setView7] = [selectedItem?.view7, (v) => setSelectedItem(s => ({ ...s, view7: v }))];
 
-              {selectedItem?.id === item.id && (
-                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 12 }}>
-                  {/* Header */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
+            return (
+              <div key={item.id} style={{ marginBottom: 8 }}>
+                {/* Row button */}
+                <button onClick={() => setSelectedItem(isOpen ? null : { ...item, view7: true })}
+                  style={{ width: "100%", background: "#fff", border: isOpen ? "1px solid #111" : "1px solid #EEEEE9", borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: isOpen ? "none" : undefined }}>
+                  <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: "#999", marginTop: 1 }}>{entries.length} day{entries.length !== 1 ? "s" : ""} of data</div>
                   </div>
-                  {[...( history[item.id] || [])].reverse().map((entry, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < history[item.id].length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center" }}>
-                      <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.rd ? "#111" : "#CCC", textAlign: "right" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.sc ? "#111" : "#CCC", textAlign: "right" }}>{entry.sc ? "$" + entry.sc.toFixed(2) : "—"}</div>
+                  {rdChange !== null && (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: rdChange > 0.005 ? "#DC2626" : rdChange < -0.005 ? "#16A34A" : "#999" }}>
+                      {rdChange > 0.005 ? "↑" : rdChange < -0.005 ? "↓" : "="} ${Math.abs(rdChange).toFixed(2)}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                  )}
+                  <div style={{ fontSize: 13, color: "#999", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</div>
+                </button>
 
-          {/* Show all items with history if no search */}
-          {historySearch.length <= 1 && (
-            <>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 10, paddingLeft: 2 }}>
-                ITEMS WITH PRICE HISTORY ({ITEMS.filter(i => history[i.id]?.length > 0).length})
-              </div>
-              {ITEMS.filter(i => history[i.id]?.length > 0).map(item => {
-                const entries = history[item.id] || [];
-                const latest = entries[entries.length - 1];
-                const prev = entries[entries.length - 2];
-                const rdChange = prev?.rd && latest?.rd ? latest.rd - prev.rd : null;
-                const scChange = prev?.sc && latest?.sc ? latest.sc - prev.sc : null;
-                return (
-                  <button key={item.id} onClick={() => setSelectedItem(selectedItem?.id === item.id ? null : item)}
-                    style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left" }}>
-                    <span style={{ fontSize: 18 }}>{item.emoji}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                      <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{entries.length} day{entries.length !== 1 ? "s" : ""} of data</div>
+                {/* Expanded panel */}
+                {isOpen && (
+                  <div style={{ background: "#fff", border: "1px solid #111", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden", marginBottom: 2 }}>
+                    {/* 7d / 30d toggle */}
+                    <div style={{ display: "flex", borderBottom: "1px solid #EEEEE9", padding: "8px 14px", gap: 8 }}>
+                      {[["7d","Last 7 Days"], ["30d","Last 30 Days"]].map(([key, lbl]) => (
+                        <button key={key} onClick={() => setSelectedItem(s => ({ ...s, view7: key === "7d" }))}
+                          style={{ padding: "4px 12px", borderRadius: 99, border: "none", background: (selectedItem?.view7 !== false) === (key === "7d") ? "#111" : "#F0F0EC", color: (selectedItem?.view7 !== false) === (key === "7d") ? "#fff" : "#555", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                          {lbl}
+                        </button>
+                      ))}
                     </div>
-                    {rdChange !== null && (
-                      <div style={{ fontSize: 11, fontWeight: 700, color: rdChange > 0 ? "#DC2626" : rdChange < 0 ? "#16A34A" : "#999" }}>
-                        RD {rdChange > 0 ? "↑" : rdChange < 0 ? "↓" : "="} ${Math.abs(rdChange).toFixed(2)}
-                      </div>
+                    {/* Column headers */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "7px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
+                    </div>
+                    {(selectedItem?.view7 !== false ? last7 : last30).map((entry, i, arr) => {
+                      const nextEntry = arr[i + 1];
+                      const rdDiff = nextEntry?.rd && entry.rd ? entry.rd - nextEntry.rd : null;
+                      return (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < arr.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center" }}>
+                          <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: entry.rd ? "#111" : "#CCC" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
+                            {rdDiff !== null && Math.abs(rdDiff) > 0.005 && (
+                              <div style={{ fontSize: 10, color: rdDiff > 0 ? "#DC2626" : "#16A34A" }}>{rdDiff > 0 ? "↑" : "↓"}${Math.abs(rdDiff).toFixed(2)}</div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: entry.sc ? "#111" : "#CCC", textAlign: "right" }}>{entry.sc ? "$" + entry.sc.toFixed(2) : "—"}</div>
+                        </div>
+                      );
+                    })}
+                    {(selectedItem?.view7 !== false ? last7 : last30).length === 0 && (
+                      <div style={{ padding: "14px", textAlign: "center", fontSize: 12, color: "#BBB" }}>No data for this period</div>
                     )}
-                    <div style={{ fontSize: 11, color: "#999" }}>›</div>
-                  </button>
-                );
-              })}
-              {ITEMS.filter(i => history[i.id]?.length > 0).length === 0 && (
-                <div style={{ textAlign: "center", padding: "40px 20px", color: "#999" }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>No history yet</div>
-                  <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>Prices are recorded daily after the 6am scrape</div>
-                </div>
-              )}
-              {/* Expanded detail for selected item from full list */}
-              {selectedItem && !historySearch && (
-                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 12, marginTop: -4 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
                   </div>
-                  {[...(history[selectedItem.id] || [])].reverse().map((entry, i, arr) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < arr.length - 1 ? "1px solid #F3F3EF" : "none" }}>
-                      <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.rd ? "#111" : "#CCC", textAlign: "right" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.sc ? "#111" : "#CCC", textAlign: "right" }}>{entry.sc ? "$" + entry.sc.toFixed(2) : "—"}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            );
+          })}
+
+          {historySearch.length <= 1 && ITEMS.filter(i => history[i.id]?.length > 0).length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 20px", color: "#999" }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>No history yet</div>
+              <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>Prices are recorded daily after the 6am scrape</div>
+            </div>
           )}
         </div>
       )}
