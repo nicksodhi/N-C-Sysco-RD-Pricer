@@ -53,17 +53,17 @@ async function backupToGitHub() {
       crossVendor: SYSCO_TO_RD,
     };
 
-    const content = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
-    const path = "backup/prices.json";
-
-    // Also backup history separately
-    backupHistoryToGitHub(token, repo, headers).catch(e => log("History backup error: " + e.message));
-    const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + path;
+    const encoded = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
+    const filePath = "backup/prices.json";
+    const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + filePath;
     const headers = {
       "Authorization": "token " + token,
       "Content-Type": "application/json",
       "User-Agent": "naan-curry-price-tracker",
     };
+
+    // Also backup history separately (headers now defined)
+    backupHistoryToGitHub(token, repo, headers).catch(e => log("History backup error: " + e.message));
 
     // Get current file SHA (needed to update existing file)
     let sha = null;
@@ -75,7 +75,7 @@ async function backupToGitHub() {
     // Commit the file
     const body = {
       message: "Price backup " + new Date().toISOString().slice(0, 10),
-      content,
+      content: encoded,
       ...(sha ? { sha } : {}),
     };
 
@@ -153,6 +153,12 @@ async function restoreFromGitHub() {
 
 const _loaded = loadPrices();
 let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
+
+const log = (msg) => {
+  console.log(msg);
+  priceStore.log.unshift({ time: new Date().toISOString(), msg });
+  if (priceStore.log.length > 500) priceStore.log.pop();
+};
 
 // ── Match cache — persists learned name→ID mappings forever ──────────────────
 const CACHE_FILE = "/data/nc_match_cache.json";
@@ -249,12 +255,6 @@ function learnMatch(source, scrapedName, itemId) {
 
 loadCache();
 
-const log = (msg) => {
-  console.log(msg);
-  priceStore.log.unshift({ time: new Date().toISOString(), msg });
-  if (priceStore.log.length > 500) priceStore.log.pop();
-};
-
 // ── RD Items: exact Item IDs from order guide PDF ─────────────────────────────
 const RD_ITEMS = [
   { id: "860135",  name: "Isabella - Petite Diced Tomatoes -#10 cans" },
@@ -345,8 +345,6 @@ const SYSCO_ITEMS = [
   { id: "7078475", name: "Cilantro Fresh",                                  pack: "1 CS"     },
 ];
 
-// ── Sysco UPC → RD Item ID mapping (for cross-vendor comparison) ─────────────
-// Maps Sysco Nick List items to their equivalent RD Item IDs
 // ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
 // Seeded with known mappings, then auto-expanded by AI after each scrape
 const SYSCO_TO_RD_SEED = {
@@ -383,7 +381,7 @@ function saveCrossVendor() {
 loadCrossVendor();
 
 // ── Price history store — persisted to disk + GitHub ─────────────────────────
-const HISTORY_FILE = "/tmp/nc_history.json";
+const HISTORY_FILE = "/data/nc_history.json";
 let priceHistory = {}; // { itemId: [{date, rd, sc}] }
 
 function loadHistory() {
@@ -1223,8 +1221,10 @@ app.post("/api/grocery", async (req, res) => {
       return p ? i.name + ": $" + p.price + " (RD)" : null;
     }).filter(Boolean).join("\n");
     const scCtx = SYSCO_ITEMS.map(i => {
-      const p = priceStore.sysco[i.id];
-      return p ? i.name + " " + i.pack + ": $" + p.price + " (Sysco)" : null;
+      // Try RD-mapped ID first (how Sysco prices are stored for comparison)
+      const rdId = SYSCO_TO_RD[i.id];
+      const p = (rdId && priceStore.sysco[rdId]) ? priceStore.sysco[rdId] : priceStore.sysco[i.id];
+      return p ? i.name + " " + i.pack + ": $" + p.price + "/case (Sysco)" : null;
     }).filter(Boolean).join("\n");
     const prompt = `You are the purchasing assistant for Naan & Curry Las Vegas.
 
@@ -1292,5 +1292,12 @@ app.listen(PORT, () => {
   // Restore from GitHub backup first if local data is empty, then scrape
   restoreFromGitHub()
     .catch(e => log("Restore error: " + e.message))
-    .finally(() => setTimeout(() => runScrape("all").catch(console.error), 5000));
+    .finally(() => {
+      // Record current prices into history immediately (populates history tab right away)
+      if (Object.keys(priceStore.rd).length > 0 || Object.keys(priceStore.sysco).length > 0) {
+        recordHistory();
+        log("📅 History seeded from current prices on startup");
+      }
+      setTimeout(() => runScrape("all").catch(console.error), 5000);
+    });
 });
