@@ -56,25 +56,23 @@ const ITEMS = [
 ];
 
 const CATS = ["All","Produce","Dairy","Meat","Frozen","Dry","Oils","Other"];
-const SEED_RD = {"14785":36.24,"370496":16.12,"1530438":43.95,"1440528":86.76,"1020077":36.68,"490266":57.62,"1020152":36.17,"21039":16.99,"79042":272.39,"44146":90.50,"77200":57.20,"1810019":77.47,"21051":19.07,"440039":17.94,"1020079":37.72,"42545":18.95,"42658":13.25,"42725":43.02,"42570":29.28,"79152":56.30,"55523":66.78,"2061212":32.81,"53556":39.10,"51457":32.23,"77670":86.76,"77658":32.81,"860044":31.51,"860135":26.18,"16200":41.47,"69810":36.05,"2910159":30.67,"29268":89.43,"25267":55.25,"64046":23.45,"64120":31.34,"86525":38.20,"86527":31.34,"44211":47.86,"12728":32.87,"2550014":17.32,"13417":39.29,"42566":15.11,"42513":29.75,"42504":40.25,"44137":39.29,"860043":41.47,"490219":39.10,"1440203":29.14,"2620442":64.32,"45900":88.37,"440038":17.32,"440040":23.45,"1070496":56.30,"2550012":47.86};
-const SEED_SC = {"42545":11.31,"77682":76.30,"77670":26.05,"77658":61.67,"2061212":8.38,"860044":29.99,"1530438":43.87,"370496":16.48,"1020075":37.25,"21051":17.71,"1020077":35.51,"1020152":29.99,"55523":34.27,"42725":10.48};
-const NOW = new Date().toISOString();
-
-const seed = s => { const m={}; for(const [k,v] of Object.entries(s)) m[k]={price:v,date:NOW}; return m; };
+// No seed data — only show live scraped prices
 const fmt = n => n!=null ? "$"+n.toFixed(2) : "—";
 const ago = d => { if(!d) return ""; const h=(Date.now()-new Date(d))/3.6e6; if(h<1) return "just now"; if(h<24) return Math.floor(h)+"h ago"; return Math.floor(h/24)+"d ago"; };
 
 export default function App() {
-  const [rd, setRd] = useState(seed(SEED_RD));
-  const [sc, setSc] = useState(seed(SEED_SC));
+  const [rd, setRd] = useState({});
+  const [sc, setSc] = useState({});
   const [view, setView] = useState("prices");
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
   const [synced, setSynced] = useState(null);
   const [syncing, setSyncing] = useState(false);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    pull();
+    pull().finally(() => setLoading(false));
     const t = setInterval(pull, 5 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
@@ -101,8 +99,9 @@ export default function App() {
       (!q || i.name.toLowerCase().includes(q.toLowerCase()))
     ), [cat, q]);
 
-  const both = filtered.filter(i => rd[i.id] && sc[i.id]);
+  const both   = filtered.filter(i => rd[i.id] && sc[i.id]);
   const rdOnly = filtered.filter(i => rd[i.id] && !sc[i.id]);
+  const noPrice = filtered.filter(i => !rd[i.id] && !sc[i.id]);
 
   return (
     <div style={{ background: "#F7F7F5", minHeight: "100vh", maxWidth: 430, margin: "0 auto", fontFamily: "'Inter', system-ui, sans-serif", paddingBottom: 80 }}>
@@ -156,8 +155,14 @@ export default function App() {
 
           <div style={{ padding: "16px 12px 0" }}>
 
+            {loading && (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>Loading prices…</div>
+              </div>
+            )}
+
             {/* Compared items */}
-            {both.length > 0 && (
+            {!loading && both.length > 0 && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>
                   COMPARING BOTH VENDORS
@@ -198,7 +203,7 @@ export default function App() {
             )}
 
             {/* RD only */}
-            {rdOnly.length > 0 && (
+            {!loading && rdOnly.length > 0 && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>
                   RESTAURANT DEPOT ONLY
@@ -214,7 +219,23 @@ export default function App() {
               </>
             )}
 
-            {both.length === 0 && rdOnly.length === 0 && (
+            {/* Items with no current pricing */}
+            {!loading && noPrice.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>⚠️</span> NO CURRENT PRICING
+                </div>
+                {noPrice.map((item, i) => (
+                  <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
+                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: "#BBB", fontWeight: 500 }}>Not scraped yet</div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {!loading && both.length === 0 && rdOnly.length === 0 && noPrice.length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#555" }}>Nothing found</div>
