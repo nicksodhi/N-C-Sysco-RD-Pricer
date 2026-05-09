@@ -214,6 +214,8 @@ const CACHE_SEED = {
     "Jumbo Chicken Party Wings 6-8 ct": "77200",
     "Boneless Skinless Chicken Breasts": "77232",
     "Boneless, Skinless Chicken Breasts, Tenders Out, Dry": "77232",
+    "White Cauliflower - 1 ct": "42606",
+    "White Cauliflower": "42606",
     "Morton - Purex Salt - 50lb": "1070496",
     "Morton Purex Salt 50lb": "1070496",
     "Purex Salt - 50lb": "1070496",
@@ -330,6 +332,7 @@ const RD_ITEMS = [
   { id: "42606",   name: "White Cauliflower" },
   { id: "43431",   name: "Green Bell Peppers - 9 ct" },
   { id: "42566",   name: "Taylor Farms - Bagged Cilantro" },
+  { id: "42606",   name: "White Cauliflower - 1 ct" },
   { id: "42647",   name: "Herb - Mint - 1 lb" },
   { id: "55519",   name: "Micro Orchid Flowers - 4 oz" },
   { id: "42725",   name: "Russet Potato - 50 lb" },
@@ -762,10 +765,13 @@ async function scrapeRD() {
         for (let k = i + 1; k <= Math.min(i + 2, lines.length - 1); k++) {
           const rangeLine = lines[k];
           const rangeM = rangeLine.match(/^\$([\d]+)-([\d]+)$/) ||
-                         rangeLine.match(/^\$([\d]+)-\$([\d]+)$/);
+                         rangeLine.match(/^\$([\d]+)-\$([\d]+)$/) ||
+                         rangeLine.match(/^\$([\d,]+\.\d{2})\s*-\s*\$([\d,]+\.\d{2})$/); // decimal format
           if (rangeM) {
-            const lo = parseInt(rangeM[1]) / 100;
-            const hi = parseInt(rangeM[2]) / 100;
+            const raw1 = rangeM[1].replace(",",""), raw2 = rangeM[2].replace(",","");
+            // Detect format: if values contain decimal point they're already dollars, else cents
+            const lo = raw1.includes(".") ? parseFloat(raw1) : parseInt(raw1) / 100;
+            const hi = raw2.includes(".") ? parseFloat(raw2) : parseInt(raw2) / 100;
             casePrice = Math.max(lo, hi);
             raw = line + " → case=" + casePrice;
             break;
