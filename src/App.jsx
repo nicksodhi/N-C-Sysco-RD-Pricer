@@ -86,7 +86,9 @@ export default function App() {
     try {
       const r = await fetch("/api/history");
       if (!r.ok) return;
-      const data = await r.json();
+      const json = await r.json();
+      // Handle both old format (plain object) and new format ({data, lastRecorded})
+      const data = json.data || json;
       if (data && Object.keys(data).length > 0) setHistory(data);
     } catch {}
   }
@@ -99,6 +101,8 @@ export default function App() {
       if (d.sysco && Object.keys(d.sysco).length) setSc(p => ({ ...p, ...d.sysco }));
       if (d.oos) setOos(d.oos);
       setSynced(new Date().toISOString());
+      // Always re-fetch history after prices update so today shows immediately
+      fetchHistory();
     } catch {}
   }
 
@@ -319,6 +323,7 @@ ${rows.map(r => `<tr>
                         <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdBest ? "#F7FEF9" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdBest ? "✓ " : ""}Restaurant Depot</div>
                           <div style={{ fontSize: 17, fontWeight: 700, color: rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
+                          <div style={{ fontSize: 9, color: "#AAA", marginTop: 2 }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
                         </div>
                         <div style={{ padding: "10px 14px", background: !rdBest ? "#F0F6FF" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{!rdBest ? "✓ " : ""}Sysco</div>
