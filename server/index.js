@@ -320,6 +320,10 @@ const RD_ITEMS = [
   { id: "21039",   name: "Evian - Natural Spring Water 24 Ct" },
 ];
 
+// Items sold individually at RD (not by case) — price shown is per-unit
+const RD_SINGLE_UNIT = new Set(["42647","55519","42566","44137","42570","42504","42606","43431","42647","42513"]);
+// Note: produce items (mint, lemons, peppers, ginger etc) are typically per-unit or per-bunch
+
 // ── Sysco Nick List: exact Sysco UPCs from Nick List PDF ─────────────────────
 // Prices from Sysco PDF: CS = case price
 const SYSCO_ITEMS = [
@@ -1107,7 +1111,11 @@ async function runScrape(source = "all") {
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
         matched.forEach(({ id, price }) => {
-          if (id && price > 0) priceStore.rd[id] = { price, date: new Date().toISOString() };
+          if (id && price > 0) priceStore.rd[id] = {
+            price,
+            date: new Date().toISOString(),
+            unit: RD_SINGLE_UNIT.has(id) ? "each" : "case"
+          };
         });
         // Match OOS scraped names to RD item IDs using simple word-overlap scoring
         const oosIds = [];
@@ -1185,7 +1193,10 @@ async function runScrape(source = "all") {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
-app.get("/api/history", (req, res) => res.json(priceHistory));
+app.get("/api/history", (req, res) => res.json({
+  data: priceHistory,
+  lastRecorded: priceStore.lastUpdated || null,
+}));
 
 app.get("/api/prices", (req, res) => res.json({
   rd: priceStore.rd,
