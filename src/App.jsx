@@ -129,7 +129,7 @@ export default function App() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 0, marginBottom: 0 }}>
-          {[["prices", "Prices"], ["compare", "Compare"], ["order", "Order Help"]].map(([id, lbl]) => (
+          {[["prices", "Prices"], ["compare", "Compare"], ["order", "Breakdown"]].map(([id, lbl]) => (
             <button key={id} onClick={() => setView(id)} style={{ flex: 1, padding: "10px 0", border: "none", background: "none", fontSize: 12, fontWeight: 600, color: view === id ? "#111" : "#999", borderBottom: view === id ? "2px solid #111" : "2px solid transparent", cursor: "pointer", transition: "all .15s", letterSpacing: -0.1 }}>
               {lbl}
             </button>
@@ -253,7 +253,7 @@ export default function App() {
 
       {/* BOTTOM NAV */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", zIndex: 100 }}>
-        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Order"]].map(([id, icon, lbl]) => (
+        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Breakdown"]].map(([id, icon, lbl]) => (
           <button key={id} onClick={() => setView(id)} style={{ padding: "12px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
             <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: .3 }}>{lbl}</div>
@@ -280,12 +280,12 @@ function CompareView({ rd, sc }) {
       // Strip emojis, quantities, colons, bullets from line to get clean item name
       let clean = line
         .replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "")
-        .replace(/^[\d\s\-•*\.x:]+/i, "")
+        .replace(/^[\d\s\-*\.x:\u2022]+/i, "")
         .replace(/[\d:]+\s*$/i, "")
         .toLowerCase().trim();
       if (!clean || clean.length < 2) return;
 
-      // Fuzzy match — lower threshold so short names like "Mint" still match
+      // Fuzzy match - lower threshold so short names like "Mint" still match
       let best = null, bestScore = 0;
       ITEMS.forEach(item => {
         const iName = item.name.toLowerCase();
@@ -456,10 +456,42 @@ function OrderView({ rd, sc }) {
   const [list, setList] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const [matched, setMatched] = useState([]);
+
+  function matchList(text) {
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 1);
+    const found = [];
+    const seen = new Set();
+    lines.forEach(line => {
+      let clean = line
+        .replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "")
+        .replace(/^[\d\s\-*\.x:\u2022]+/i, "")
+        .replace(/[\d:]+\s*$/i, "")
+        .toLowerCase().trim();
+      if (!clean || clean.length < 2) return;
+      let best = null, bestScore = 0;
+      ITEMS.forEach(item => {
+        const iName = item.name.toLowerCase();
+        let score = 0;
+        iName.split(" ").forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length * 2; });
+        clean.split(" ").forEach(w => { if (w.length > 2 && iName.includes(w)) score += w.length; });
+        if (iName.includes(clean) || clean.includes(iName.split(" ")[0])) score += 8;
+        if (score > bestScore) { bestScore = score; best = item; }
+      });
+      if (best && bestScore >= 3 && !seen.has(best.id)) {
+        seen.add(best.id);
+        const rdP = rd[best.id]?.price;
+        const scP = sc[best.id]?.price;
+        if (rdP || scP) found.push({ ...best, rdPrice: rdP || null, scPrice: scP || null });
+      }
+    });
+    return found;
+  }
 
   async function go() {
     if (!list.trim()) return;
-    setLoading(true); setResult("");
+    setLoading(true); setResult(""); setMatched([]);
+    setMatched(matchList(list));
     try {
       const r = await fetch("/api/grocery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ list }) });
       const d = await r.json();
@@ -468,46 +500,139 @@ function OrderView({ rd, sc }) {
     setLoading(false);
   }
 
-  const top = ITEMS.filter(i => rd[i.id] && sc[i.id]).sort((a, b) =>
-    Math.abs(rd[b.id].price - sc[b.id].price) - Math.abs(rd[a.id].price - sc[a.id].price)
-  ).slice(0, 8);
+  // Parse the AI result into structured sections
+  function parseResult(text) {
+    if (!text) return null;
+    const sections = { rd: [], sysco: [], manual: [], rdTotal: null, syscoTotal: null, orderTotal: null };
+    let current = null;
+    text.split("\n").forEach(line => {
+      const l = line.trim();
+      if (!l) return;
+      if (l.startsWith("🟢")) { current = "rd"; return; }
+      if (l.startsWith("🔵")) { current = "sysco"; return; }
+      if (l.startsWith("⚠️")) { current = "manual"; return; }
+      if (l.match(/RD Cart Total/i)) { sections.rdTotal = l.replace(/.*:\s*/, "").trim(); return; }
+      if (l.match(/Sysco Cart Total/i)) { sections.syscoTotal = l.replace(/.*:\s*/, "").trim(); return; }
+      if (l.match(/TOTAL ORDER/i)) { sections.orderTotal = l.replace(/.*:\s*/, "").trim(); return; }
+      if (l.startsWith("-") && current) sections[current].push(l.replace(/^-\s*/, ""));
+    });
+    return sections;
+  }
+
+  const parsed = parseResult(result);
 
   return (
     <div style={{ padding: "16px 12px 0" }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: "14px", border: "1px solid #EEEEE9", marginBottom: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>Order Breakdown</div>
-        <div style={{ fontSize: 13, color: "#777", lineHeight: 1.6 }}>Paste your shopping list and we'll tell you exactly which vendor to use for each item.</div>
-      </div>
-
       <textarea value={list} onChange={e => setList(e.target.value)}
-        placeholder="Type your order... e.g. chicken leg quarters, yellow onions, heavy cream"
-        style={{ width: "100%", minHeight: 140, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
+        placeholder="Paste your order list, one item per line..."
+        style={{ width: "100%", minHeight: 130, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
 
       <button onClick={go} disabled={loading || !list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: loading || !list.trim() ? "#F0F0EC" : "#111", color: loading || !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: loading || !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
-        {loading ? "Analyzing…" : "Get Breakdown →"}
+        {loading ? "Analyzing your order…" : "Get Order Breakdown →"}
       </button>
 
-      {result && (
+      {parsed && (
+        <div style={{ marginTop: 14 }}>
+
+          {/* RD section */}
+          {parsed.rd.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>🏪</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>Restaurant Depot</div>
+              </div>
+              {parsed.rd.map((line, i) => (
+                <div key={i} style={{ padding: "10px 14px", borderBottom: i < parsed.rd.length - 1 ? "1px solid #F3F3EF" : "none", fontSize: 13, color: "#333", lineHeight: 1.4 }}>
+                  {line}
+                </div>
+              ))}
+              {parsed.rdTotal && (
+                <div style={{ padding: "11px 14px", background: "#F7FEF9", borderTop: "2px solid #D1FAE5", display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#16A34A" }}>RD Total</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#16A34A" }}>{parsed.rdTotal}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sysco section */}
+          {parsed.sysco.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>🚚</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>Sysco</div>
+              </div>
+              {parsed.sysco.map((line, i) => (
+                <div key={i} style={{ padding: "10px 14px", borderBottom: i < parsed.sysco.length - 1 ? "1px solid #F3F3EF" : "none", fontSize: 13, color: "#333", lineHeight: 1.4 }}>
+                  {line}
+                </div>
+              ))}
+              {parsed.syscoTotal && (
+                <div style={{ padding: "11px 14px", background: "#EFF6FF", borderTop: "2px solid #BFDBFE", display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>Sysco Total</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#2563EB" }}>{parsed.syscoTotal}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Manual / not in system */}
+          {parsed.manual.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14 }}>⚠️</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#888" }}>Order Manually</div>
+              </div>
+              {parsed.manual.map((line, i) => (
+                <div key={i} style={{ padding: "10px 14px", borderBottom: i < parsed.manual.length - 1 ? "1px solid #F3F3EF" : "none", fontSize: 13, color: "#888", lineHeight: 1.4 }}>
+                  {line}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Grand total */}
+          {parsed.orderTotal && (
+            <div style={{ background: "#111", borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>💰 Total Order Cost</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{parsed.orderTotal}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Raw fallback if parsing failed but result exists */}
+      {result && !parsed?.rd.length && !parsed?.sysco.length && (
         <div style={{ marginTop: 10, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "14px" }}>
           <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap", color: "#111" }}>{result}</div>
         </div>
       )}
 
-      {top.length > 0 && (
-        <>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "20px 0 8px", paddingLeft: 4 }}>QUICK REFERENCE</div>
-          {top.map(item => {
-            const r = rd[item.id].price, s = sc[item.id].price, rdBest = r <= s;
-            return (
-              <div key={item.id} style={{ background: "#fff", borderRadius: 12, padding: "11px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10, border: "1px solid #EEEEE9" }}>
-                <span style={{ fontSize: 18 }}>{item.emoji}</span>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: rdBest ? "#16A34A" : "#2563EB" }}>{fmt(Math.min(r, s))}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: rdBest ? "#F0FDF4" : "#EFF6FF", color: rdBest ? "#16A34A" : "#2563EB" }}>{rdBest ? "RD" : "Sysco"}</div>
-              </div>
-            );
-          })}
-        </>
+      {/* Quick reference — items from pasted list */}
+      {matched.length > 0 && (
+        <div style={{ marginTop: 16, paddingBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>QUICK REFERENCE</div>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden" }}>
+            {matched.map((item, i) => {
+              const rdP = item.rdPrice, scP = item.scPrice;
+              const hasBoth = rdP && scP;
+              const rdBest = hasBoth ? rdP <= scP : !!rdP;
+              const bestPrice = rdP && scP ? Math.min(rdP, scP) : rdP || scP;
+              const vendor = rdP && scP ? (rdBest ? "RD" : "Sysco") : rdP ? "RD" : "Sysco";
+              const color = vendor === "RD" ? "#16A34A" : "#2563EB";
+              const bg = vendor === "RD" ? "#F0FDF4" : "#EFF6FF";
+              return (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < matched.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
+                  <span style={{ fontSize: 17 }}>{item.emoji}</span>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                  {rdP && <div style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>RD {fmt(rdP)}</div>}
+                  {scP && <div style={{ fontSize: 12, color: "#2563EB", fontWeight: 600 }}>SC {fmt(scP)}</div>}
+                  <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: bg, color }}>{vendor}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
