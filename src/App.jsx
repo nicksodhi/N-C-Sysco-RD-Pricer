@@ -331,16 +331,9 @@ function CompareView({ rd, sc }) {
 
   return (
     <div style={{ padding: "16px 12px 0" }}>
-      {/* Explainer */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: "14px", border: "1px solid #EEEEE9", marginBottom: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>⚖️ Vendor Cost Comparison</div>
-        <div style={{ fontSize: 13, color: "#777", lineHeight: 1.6 }}>
-          Paste your order list. We'll calculate the <strong>total cost</strong> if you bought everything from Restaurant Depot vs everything from Sysco — so you can see which vendor wins for your full order.
-        </div>
-      </div>
-
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>⚖️ Vendor Cost Comparison</div>
       <textarea value={list} onChange={e => setList(e.target.value)}
-        placeholder="Paste your order list: Chicken leg quarters, Yellow onions, Heavy cream, Russet potato, Liquid butter, Sugar..."
+        placeholder="Paste list here..."
         style={{ width: "100%", minHeight: 160, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
 
       <button onClick={analyze} disabled={!list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: !list.trim() ? "#F0F0EC" : "#111", color: !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
@@ -523,6 +516,7 @@ function OrderView({ rd, sc }) {
 
   return (
     <div style={{ padding: "16px 12px 0" }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>🛒 Vendor Cost Breakdown</div>
       <textarea value={list} onChange={e => setList(e.target.value)}
         placeholder="Paste your order list, one item per line..."
         style={{ width: "100%", minHeight: 130, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
