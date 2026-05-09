@@ -1257,6 +1257,19 @@ app.get("/api/trigger", (req, res) => {
   runScrape(src).catch(e => log("Trigger: " + e.message));
 });
 
+// Debug endpoint: scrape RD and dump every price line + assigned name
+app.get("/api/debug-rd", async (req, res) => {
+  res.json({ message: "Debugging RD scrape — check /api/status in 3 minutes" });
+  try {
+    const result = await scrapeRD();
+    // Log every single price+name pair
+    result.items.forEach(item => {
+      log("DEBUG: $" + item.price + " → " + item.name + " | raw=" + item.raw);
+    });
+    log("DEBUG: " + result.items.length + " total items scraped");
+  } catch(e) { log("DEBUG error: " + e.message); }
+});
+
 // Force an immediate clean backup to GitHub (no scrape needed)
 app.get("/api/force-backup", async (req, res) => {
   try {
