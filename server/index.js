@@ -321,8 +321,10 @@ const RD_ITEMS = [
 ];
 
 // Items sold individually at RD (not by case) — price shown is per-unit
-const RD_SINGLE_UNIT = new Set(["42647","55519","42566","44137","42570","42504","42606","43431","42647","42513"]);
-// Note: produce items (mint, lemons, peppers, ginger etc) are typically per-unit or per-bunch
+const RD_SINGLE_UNIT = new Set([
+  "42647",  // Herb - Mint - 1 lb
+  "55519",  // Micro Orchid Flowers - 4 oz
+]);
 
 // ── Sysco Nick List: exact Sysco UPCs from Nick List PDF ─────────────────────
 // Prices from Sysco PDF: CS = case price
