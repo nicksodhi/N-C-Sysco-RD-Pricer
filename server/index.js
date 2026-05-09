@@ -21,6 +21,7 @@ const RD_PRICE_MAX = {
   "1070496": 20, // Morton Salt 50lb (~$8-12)
 };
 
+
 function loadPrices() {
   try {
     if (fs.existsSync(PRICES_FILE)) {
@@ -859,8 +860,18 @@ async function scrapeRD() {
       }
 
       if (bestName && pl.price > 0) {
-        items.push({ name: bestName, price: pl.price, raw: pl.raw });
-        seen.add(bestName);
+        // Before accepting this name+price combo, check if the name belongs
+        // to a known single-unit item and the price exceeds its max
+        // If so, don't assign — let a later price line with correct value claim the name
+        const tentativeId = Object.entries(matchCache.rd || {}).find(([k]) => k === bestName)?.[1];
+        const priceMax = tentativeId ? RD_PRICE_MAX[tentativeId] : null;
+        if (priceMax && pl.price > priceMax) {
+          log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item) — will try to match name to correct price");
+          // Don't add to seen — allow the correct lower price line to claim this name
+        } else {
+          items.push({ name: bestName, price: pl.price, raw: pl.raw });
+          seen.add(bestName);
+        }
       } else {
         log("RD: no name for $" + pl.price + " | " + ctxLines.filter(isProductName).join(" / "));
       }
