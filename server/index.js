@@ -523,6 +523,7 @@ async function runScrape(source = "all") {
           if (id && price > 0) priceStore.rd[id] = { price, date: new Date().toISOString() };
         });
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
+        savePrices();
       } else { log("❌ RD: " + (result.error || "no items")); }
     } catch(e) { log("❌ RD: " + e.message); }
   }
