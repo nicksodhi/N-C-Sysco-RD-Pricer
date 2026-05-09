@@ -116,6 +116,8 @@ async function restoreFromGitHub() {
     if (data.matchCache) { matchCache = data.matchCache; }
     if (data.crossVendor) { Object.assign(SYSCO_TO_RD, data.crossVendor); }
 
+    // Clean bad prices BEFORE saving (don't persist known-wrong prices)
+    cleanBadPrices();
     savePrices();
     saveCache();
     saveCrossVendor();
@@ -1249,6 +1251,48 @@ app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Trigger: " + e.message));
+});
+
+// Clear a specific item price and push clean backup to GitHub
+// e.g. /api/clear?id=42647&vendor=rd
+app.get("/api/clear", async (req, res) => {
+  const { id, vendor } = req.query;
+  if (!id) return res.status(400).json({ error: "id required" });
+  const v = vendor || "rd";
+  const cleared = [];
+
+  // Clear from rd
+  if ((v === "rd" || v === "all") && priceStore.rd[id]) {
+    const old = priceStore.rd[id].price;
+    delete priceStore.rd[id];
+    cleared.push({ vendor: "rd", was: old });
+    log("🧹 Cleared RD price for " + id + " (was $" + old + ")");
+  }
+  // Clear from sysco
+  if ((v === "sysco" || v === "all") && priceStore.sysco[id]) {
+    const old = priceStore.sysco[id].price;
+    delete priceStore.sysco[id];
+    cleared.push({ vendor: "sysco", was: old });
+    log("🧹 Cleared Sysco price for " + id + " (was $" + old + ")");
+  }
+  // Also clear from history for this item
+  if (priceHistory[id]) {
+    priceHistory[id] = priceHistory[id].map(e => ({
+      ...e,
+      rd: (v === "rd" || v === "all") ? null : e.rd,
+      sc: (v === "sysco" || v === "all") ? null : e.sc,
+    }));
+    saveHistory();
+  }
+
+  if (cleared.length > 0) {
+    savePrices();
+    // Push clean backup to GitHub immediately so restart doesn't restore bad price
+    backupToGitHub().catch(e => log("Backup after clear: " + e.message));
+    res.json({ cleared: true, id, details: cleared });
+  } else {
+    res.json({ cleared: false, message: "No price found for " + id + " at " + v });
+  }
 });
 app.post("/api/scrape", (req, res) => {
   const src = req.body?.source || "all";
