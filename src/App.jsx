@@ -271,77 +271,52 @@ function CompareView({ rd, sc }) {
   function analyze() {
     if (!list.trim()) return;
 
-    // Parse the list into item names
     const lines = list.split("\n").map(l => l.trim()).filter(l => l.length > 2);
-
-    // Match each line to our known items (fuzzy match on name)
-    const matched = [];
-    const unmatched = [];
+    const unmatched = []; // not recognized at all
+    const skipped = [];   // recognized but missing one vendor price
+    const bothItems = []; // recognized AND has prices from BOTH vendors
 
     lines.forEach(line => {
-      // Strip leading numbers/bullets/dashes
       const clean = line.replace(/^[\d\-•*\.x]+\s*/i, "").toLowerCase().trim();
       if (!clean) return;
 
-      // Find best matching item
+      // Fuzzy match to known items
       let best = null, bestScore = 0;
       ITEMS.forEach(item => {
-        const itemWords = item.name.toLowerCase().split(" ");
-        const lineWords = clean.split(" ");
         let score = 0;
-        itemWords.forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length; });
-        lineWords.forEach(w => { if (w.length > 2 && item.name.toLowerCase().includes(w)) score += w.length; });
+        item.name.toLowerCase().split(" ").forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length; });
+        clean.split(" ").forEach(w => { if (w.length > 2 && item.name.toLowerCase().includes(w)) score += w.length; });
         if (score > bestScore) { bestScore = score; best = item; }
       });
 
-      if (best && bestScore >= 4) {
-        matched.push({ line, item: best });
-      } else {
+      if (!best || bestScore < 4) {
         unmatched.push(line);
+        return;
       }
-    });
 
-    // Calculate totals
-    let rdTotal = 0, scTotal = 0;
-    const rdRows = [], scRows = [], rdOnlyRows = [], scOnlyRows = [], neitherRows = [];
-
-    matched.forEach(({ line, item }) => {
-      const rdP = rd[item.id]?.price;
-      const scP = sc[item.id]?.price;
-
-      if (rdP) rdTotal += rdP;
-      if (scP) scTotal += scP;
+      const rdP = rd[best.id]?.price;
+      const scP = sc[best.id]?.price;
 
       if (rdP && scP) {
-        rdRows.push({ name: item.name, emoji: item.emoji, price: rdP });
-        scRows.push({ name: item.name, emoji: item.emoji, price: scP });
-      } else if (rdP) {
-        rdTotal += 0; // already added
-        rdOnlyRows.push({ name: item.name, emoji: item.emoji, price: rdP });
-        scTotal += rdP; // hypothetical: assume same price if buying from RD
-      } else if (scP) {
-        scOnlyRows.push({ name: item.name, emoji: item.emoji, price: scP });
-        rdTotal += scP; // hypothetical
+        // Both vendors have pricing — include in comparison
+        bothItems.push({ ...best, rdPrice: rdP, scPrice: scP });
       } else {
-        neitherRows.push({ name: item.name, emoji: item.emoji });
+        // Missing one or both vendor prices — skip from comparison
+        skipped.push({
+          ...best,
+          rdPrice: rdP || null,
+          scPrice: scP || null,
+          reason: !rdP && !scP ? "No pricing from either vendor"
+                : !rdP ? "No RD pricing"
+                : "No Sysco pricing"
+        });
       }
     });
 
-    // Recalculate properly - pure totals for each vendor
-    let purRD = 0, purSC = 0;
-    const rdItems = [], scItems = [], noDataItems = [];
+    const purRD = bothItems.reduce((s, i) => s + i.rdPrice, 0);
+    const purSC = bothItems.reduce((s, i) => s + i.scPrice, 0);
 
-    matched.forEach(({ line, item }) => {
-      const rdP = rd[item.id]?.price;
-      const scP = sc[item.id]?.price;
-      if (rdP) { purRD += rdP; rdItems.push({ ...item, price: rdP }); }
-      else rdItems.push({ ...item, price: null });
-      if (scP) { purSC += scP; scItems.push({ ...item, price: scP }); }
-      else scItems.push({ ...item, price: null });
-      if (!rdP && !scP) noDataItems.push(item);
-    });
-
-    setResult({ rdItems, scItems, purRD, purSC, unmatched, noDataItems });
+    setResult({ bothItems, purRD, purSC, skipped, unmatched });
   }
 
   const fmt2 = n => n != null ? "$" + n.toFixed(2) : "—";
@@ -366,73 +341,96 @@ function CompareView({ rd, sc }) {
 
       {result && (
         <div style={{ marginTop: 14 }}>
-          {/* BIG TOTALS */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div style={{ background: result.purRD <= result.purSC ? "#F0FDF4" : "#fff", border: result.purRD <= result.purSC ? "2px solid #16A34A" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
-              {result.purRD <= result.purSC && <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🏪 Restaurant Depot</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: result.purRD <= result.purSC ? "#16A34A" : "#111", lineHeight: 1 }}>{fmt2(result.purRD)}</div>
-              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>all items total</div>
-            </div>
-            <div style={{ background: result.purSC < result.purRD ? "#EFF6FF" : "#fff", border: result.purSC < result.purRD ? "2px solid #2563EB" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
-              {result.purSC < result.purRD && <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🚚 Sysco</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: result.purSC < result.purRD ? "#2563EB" : "#111", lineHeight: 1 }}>{fmt2(result.purSC)}</div>
-              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>all items total</div>
-            </div>
-          </div>
 
-          {/* Savings callout */}
-          {result.purRD > 0 && result.purSC > 0 && (
-            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
-                {result.purRD <= result.purSC
-                  ? `Buy from Restaurant Depot and save $${(result.purSC - result.purRD).toFixed(2)}`
-                  : `Buy from Sysco and save $${(result.purRD - result.purSC).toFixed(2)}`
-                }
-              </div>
+          {result.bothItems.length === 0 && (
+            <div style={{ textAlign: "center", padding: "24px", color: "#999", background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>No items with pricing from both vendors</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>Check skipped items below</div>
             </div>
           )}
 
-          {/* RD itemized */}
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>🏪 RESTAURANT DEPOT — ITEM PRICES</div>
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
-            {result.rdItems.map((item, i) => (
-              <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.rdItems.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
-                <span style={{ fontSize: 16 }}>{item.emoji}</span>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: item.price ? "#111" : "#CCC" }}>{fmt2(item.price)}</div>
+          {result.bothItems.length > 0 && (<>
+            {/* Totals */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div style={{ background: result.purRD <= result.purSC ? "#F0FDF4" : "#fff", border: result.purRD <= result.purSC ? "2px solid #16A34A" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
+                {result.purRD <= result.purSC && <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🏪 Restaurant Depot</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: result.purRD <= result.purSC ? "#16A34A" : "#111", lineHeight: 1 }}>{fmt2(result.purRD)}</div>
+                <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>{result.bothItems.length} items compared</div>
               </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", background: "#F7FEF9", borderTop: "2px solid #D1FAE5" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#16A34A" }}>RD Total</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#16A34A" }}>{fmt2(result.purRD)}</div>
-            </div>
-          </div>
-
-          {/* Sysco itemized */}
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>🚚 SYSCO — ITEM PRICES</div>
-          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
-            {result.scItems.map((item, i) => (
-              <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.scItems.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
-                <span style={{ fontSize: 16 }}>{item.emoji}</span>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: item.price ? "#111" : "#CCC" }}>{fmt2(item.price)}</div>
+              <div style={{ background: result.purSC < result.purRD ? "#EFF6FF" : "#fff", border: result.purSC < result.purRD ? "2px solid #2563EB" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
+                {result.purSC < result.purRD && <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🚚 Sysco</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: result.purSC < result.purRD ? "#2563EB" : "#111", lineHeight: 1 }}>{fmt2(result.purSC)}</div>
+                <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>{result.bothItems.length} items compared</div>
               </div>
-            ))}
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", background: "#EFF6FF", borderTop: "2px solid #BFDBFE" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>Sysco Total</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#2563EB" }}>{fmt2(result.purSC)}</div>
             </div>
-          </div>
 
-          {/* Unmatched */}
+            {/* Savings */}
+            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "11px 14px", marginBottom: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
+                {result.purRD <= result.purSC
+                  ? `Restaurant Depot saves you $${(result.purSC - result.purRD).toFixed(2)}`
+                  : `Sysco saves you $${(result.purRD - result.purSC).toFixed(2)}`}
+              </div>
+            </div>
+
+            {/* Item breakdown table */}
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>ITEM BREAKDOWN</div>
+            <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>ITEM</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
+              </div>
+              {result.bothItems.map((item, i) => {
+                const rdWins = item.rdPrice <= item.scPrice;
+                return (
+                  <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "10px 14px", borderBottom: i < result.bothItems.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 15 }}>{item.emoji}</span>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: rdWins ? "#16A34A" : "#888", textAlign: "right" }}>{fmt2(item.rdPrice)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: !rdWins ? "#2563EB" : "#888", textAlign: "right" }}>{fmt2(item.scPrice)}</div>
+                  </div>
+                );
+              })}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "12px 14px", background: "#F7F7F5", borderTop: "2px solid #EEEEE9" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>Total</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: result.purRD <= result.purSC ? "#16A34A" : "#111", textAlign: "right" }}>{fmt2(result.purRD)}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: result.purSC < result.purRD ? "#2563EB" : "#111", textAlign: "right" }}>{fmt2(result.purSC)}</div>
+              </div>
+            </div>
+          </>)}
+
+          {/* Skipped — missing one vendor price */}
+          {result.skipped.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>⚠️ SKIPPED — MISSING VENDOR PRICING</div>
+              <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", overflow: "hidden", marginBottom: 14 }}>
+                {result.skipped.map((item, i) => (
+                  <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.skipped.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10, opacity: 0.7 }}>
+                    <span style={{ fontSize: 15 }}>{item.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>{item.name}</div>
+                      <div style={{ fontSize: 11, color: "#AAA", marginTop: 1 }}>{item.reason}</div>
+                    </div>
+                    {item.rdPrice && <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 600 }}>RD {fmt2(item.rdPrice)}</div>}
+                    {item.scPrice && <div style={{ fontSize: 11, color: "#2563EB", fontWeight: 600 }}>Sysco {fmt2(item.scPrice)}</div>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Not recognized */}
           {result.unmatched.length > 0 && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>⚠️ NOT RECOGNIZED</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>❓ NOT RECOGNIZED</div>
               <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", marginBottom: 14 }}>
                 {result.unmatched.map((line, i) => (
-                  <div key={i} style={{ padding: "10px 14px", fontSize: 13, color: "#888", borderBottom: i < result.unmatched.length - 1 ? "1px solid #F3F3EF" : "none" }}>
+                  <div key={i} style={{ padding: "10px 14px", fontSize: 13, color: "#AAA", borderBottom: i < result.unmatched.length - 1 ? "1px solid #F3F3EF" : "none" }}>
                     {line}
                   </div>
                 ))}
