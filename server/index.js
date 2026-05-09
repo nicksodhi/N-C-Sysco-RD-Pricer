@@ -162,23 +162,99 @@ const SYSCO_ITEMS = [
 
 // ── Sysco UPC → RD Item ID mapping (for cross-vendor comparison) ─────────────
 // Maps Sysco Nick List items to their equivalent RD Item IDs
-const SYSCO_TO_RD = {
-  "1048222": "42545",   // Onion Yellow Jumbo → Jumbo Spanish Onions
-  "8053456": "77682",   // Chicken Thighs Boneless Frozen → Chicken Thighs
-  "4418117": "77670",   // Chicken Leg Quarters → Chicken Leg Quarters
-  "1803287": "77670",   // Chicken Leg Quarter Halal → Chicken Leg Quarters  
-  "0868459": "77658",   // Chicken Leg Meat Boneless → Chicken Leg Meat
-  "8379251": "2061212", // Flour All Purpose → All Purpose Flour
-  "4002325": "860044",  // Tomato Puree → Tomato Sauce/Puree
-  "6935464": "1530438", // Cream Heavy 40% → Heavy Cream
-  "4676306": "370496",  // Milk Whole Gallon → Whole Milk
-  "4119079": "1020075", // Oil Soybean → Soybean Oil
-  "5087572": "21051",   // Sugar Granulated → Granulated Sugar
-  "4518403": "1020077", // Shortening Fry → Fry Oil
-  "3355757": "1020152", // Butter-it Alternative → Liquid Butter Alternative
-  "4063095": "55523",   // Juice Lemon → Lemon Juice
-  "1543164": "42725",   // Potato Baking Russet → Russet Potato
+// ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
+// Seeded with known mappings, then auto-expanded by AI after each scrape
+const SYSCO_TO_RD_SEED = {
+  "1048222": "42545",   "8053456": "77682",   "4418117": "77670",
+  "1803287": "77670",   "0868459": "77658",   "8379251": "2061212",
+  "4002325": "860044",  "6935464": "1530438", "4676306": "370496",
+  "4119079": "1020075", "5087572": "21051",   "4518403": "1020077",
+  "3355757": "1020152", "4063095": "55523",   "1543164": "42725",
 };
+
+const CROSS_VENDOR_FILE = "/tmp/nc_cross_vendor.json";
+let SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED };
+
+function loadCrossVendor() {
+  try {
+    if (fs.existsSync(CROSS_VENDOR_FILE)) {
+      const saved = JSON.parse(fs.readFileSync(CROSS_VENDOR_FILE, "utf8"));
+      SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED, ...saved };
+      console.log("✅ Cross-vendor map loaded: " + Object.keys(SYSCO_TO_RD).length + " mappings");
+    }
+  } catch(e) { console.log("Cross-vendor load error:", e.message); }
+}
+
+function saveCrossVendor() {
+  try { fs.writeFileSync(CROSS_VENDOR_FILE, JSON.stringify(SYSCO_TO_RD, null, 2)); }
+  catch(e) { console.log("Cross-vendor save error:", e.message); }
+}
+
+loadCrossVendor();
+
+// AI-powered cross-vendor linker — runs after both scrapers finish
+async function buildCrossVendorMap(syscoMatched, rdMatched) {
+  // Only process Sysco items not already in our map
+  const unmapped = syscoMatched.filter(s => !SYSCO_TO_RD[s.id]);
+  if (unmapped.length === 0) { log("Cross-vendor: all Sysco items already mapped"); return; }
+
+  log("Cross-vendor: finding RD equivalents for " + unmapped.length + " unmapped Sysco items...");
+
+  // Build context: what Sysco items need linking, and what RD items are available
+  const syscoCtx = unmapped.map(s => {
+    const item = SYSCO_ITEMS.find(i => i.id === s.id);
+    return s.id + ": " + (item ? item.name + " " + item.pack : s.id);
+  }).join("\n");
+
+  const rdCtx = RD_ITEMS.map(i => i.id + ": " + i.name).join("\n");
+
+  const prompt = `You are linking grocery products between two wholesale vendors (Sysco and Restaurant Depot) for the same restaurant.
+
+SYSCO ITEMS (need RD equivalent):
+${syscoCtx}
+
+RESTAURANT DEPOT ITEMS:
+${rdCtx}
+
+For each Sysco item, find the Restaurant Depot item that is the SAME product (same food, similar pack size). Different brand names are OK as long as it's the same product type.
+
+Examples of valid matches:
+- "Onion Yellow Jumbo Bag 1/25LB" = "Jumbo Spanish Onions - 50 lbs" (both are bulk yellow onions)
+- "Cream Heavy 40% 12/32OZ" = "James Farm - Heavy Cream 40% - 64 oz" (both are 40% heavy cream)
+
+Only match if you are confident it is the same product. Skip if unclear.
+
+Return ONLY JSON array:
+[{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"one line explanation"}]`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (!m) { log("Cross-vendor: no JSON found in AI response"); return; }
+
+    const links = JSON.parse(m[0]);
+    let newLinks = 0;
+    links.forEach(({ sysco_id, rd_id, reason }) => {
+      if (sysco_id && rd_id && !SYSCO_TO_RD[sysco_id]) {
+        SYSCO_TO_RD[sysco_id] = rd_id;
+        newLinks++;
+        log("🔗 New cross-vendor link: Sysco " + sysco_id + " → RD " + rd_id + " (" + reason + ")");
+      }
+    });
+    if (newLinks > 0) {
+      saveCrossVendor();
+      log("Cross-vendor: " + newLinks + " new links saved (" + Object.keys(SYSCO_TO_RD).length + " total)");
+    } else {
+      log("Cross-vendor: no new links found");
+    }
+  } catch(e) { log("Cross-vendor AI error: " + e.message); }
+}
 
 // ── Claude API proxy ──────────────────────────────────────────────────────────
 app.post("/api/claude", async (req, res) => {
@@ -773,8 +849,21 @@ async function runScrape(source = "all") {
           }
           savedCount++;
         });
-        log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " + 
+        // Build / expand cross-vendor map for any unmapped Sysco items
+        await buildCrossVendorMap(matched, []);
+
+        // Re-apply cross-vendor links now that map may have grown
+        matched.forEach(({ id, price }) => {
+          if (!id || price <= 0) return;
+          const rdId = SYSCO_TO_RD[id];
+          if (rdId && !priceStore.sysco[rdId]) {
+            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id };
+          }
+        });
+
+        log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " +
           matched.filter(m => SYSCO_TO_RD[m.id]).map(m => m.id + "→" + SYSCO_TO_RD[m.id]).join(", "));
+        savePrices();
       } else { log("❌ Sysco: " + (result.error || "no items")); }
     } catch(e) { log("❌ Sysco: " + e.message); }
   }
