@@ -185,6 +185,8 @@ const CACHE_SEED = {
     "Russet Potato - 50 lb": "42725",
     "Carrots - 10 lb": "79152",
     "Jumbo Chicken Party Wings 6-8 ct": "77200",
+    "Boneless Skinless Chicken Breasts": "77232",
+    "Boneless, Skinless Chicken Breasts, Tenders Out, Dry": "77232",
   },
   sysco: {
     "Onion Yellow Jumbo Bag": "1048222",
@@ -202,6 +204,11 @@ const CACHE_SEED = {
     "Butter-it Alternative Liquid Zero Trans Fat": "3355757",
     "Juice Lemon Pasteurized Ultra Premium": "4063095",
     "Potato Baking Russet 40 Count Fresh": "1543164",
+    "Chicken Breast Boneless Skinless": "5231238",
+    "Pan Spray All Purpose": "6914451",
+    "Cheese Cheddar Jack Shredded": "2822383",
+    "Salt Kosher Coarse": "4564894",
+    "Cilantro Fresh": "7078475",
   }
 };
 
@@ -331,6 +338,11 @@ const SYSCO_ITEMS = [
   { id: "3355757", name: "Butter-it Alternative Liquid Zero Trans Fat",   pack: "3/1 GAL" },
   { id: "4063095", name: "Juice Lemon Pasteurized Ultra Premium",         pack: "6/.5 GAL"},
   { id: "1543164", name: "Potato Baking Russet 40 Count Fresh",          pack: "1/50LB"  },
+  { id: "5231238", name: "Chicken Breast Boneless Skinless",              pack: "2/10 LB" },
+  { id: "6914451", name: "Pan Spray All Purpose",                           pack: "6/17 OZ"  },
+  { id: "2822383", name: "Cheese Cheddar Jack Shredded",                    pack: "4/5 LB"   },
+  { id: "4564894", name: "Salt Kosher Coarse",                              pack: "1/50 LB"  },
+  { id: "7078475", name: "Cilantro Fresh",                                  pack: "1 CS"     },
 ];
 
 // ── Sysco UPC → RD Item ID mapping (for cross-vendor comparison) ─────────────
@@ -343,6 +355,11 @@ const SYSCO_TO_RD_SEED = {
   "4002325": "860044",  "6935464": "1530438", "4676306": "370496",
   "4119079": "1020075", "5087572": "21051",   "4518403": "1020077",
   "3355757": "1020152", "4063095": "55523",   "1543164": "42725",
+  "5231238": "77232",   // Chicken Breast Boneless Skinless → Boneless Skinless Chicken Breasts
+  "6914451": "12728",   // Pan Spray → All Purpose Pan Spray
+  "2822383": "1440203", // Cheddar Jack Shredded → Fancy Shredded Cheddar Jack
+  "4564894": "1070496", // Salt Kosher → Purex Salt 50lb
+  "7078475": "42566",   // Cilantro Fresh → Bagged Cilantro
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
