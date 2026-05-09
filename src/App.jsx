@@ -610,27 +610,28 @@ function OrderView({ rd, sc }) {
 
       {/* Quick reference — items from pasted list */}
       {matched.length > 0 && (
-        <div style={{ marginTop: 16, paddingBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>QUICK REFERENCE</div>
+        <div style={{ marginTop: 20, paddingBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 2 }}>PRICE REFERENCE</div>
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden" }}>
             {matched.map((item, i) => {
               const rdP = item.rdPrice, scP = item.scPrice;
-              const hasBoth = rdP && scP;
-              const rdBest = hasBoth ? rdP <= scP : !!rdP;
-              const bestPrice = rdP && scP ? Math.min(rdP, scP) : rdP || scP;
+              const rdBest = rdP && scP ? rdP <= scP : !!rdP;
               const vendor = rdP && scP ? (rdBest ? "RD" : "Sysco") : rdP ? "RD" : "Sysco";
-              const color = vendor === "RD" ? "#16A34A" : "#2563EB";
-              const bg = vendor === "RD" ? "#F0FDF4" : "#EFF6FF";
+              const green = "#16A34A", blue = "#2563EB";
               return (
-                <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < matched.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
-                  <span style={{ fontSize: 17 }}>{item.emoji}</span>
-                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                  {rdP && <div style={{ fontSize: 12, color: "#16A34A", fontWeight: 600 }}>RD {fmt(rdP)}</div>}
-                  {scP && <div style={{ fontSize: 12, color: "#2563EB", fontWeight: 600 }}>SC {fmt(scP)}</div>}
-                  <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: bg, color }}>{vendor}</div>
+                <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "11px 14px", borderBottom: i < matched.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: rdBest ? green : "#CCC", width: 56, textAlign: "right" }}>{rdP ? fmt(rdP) : "—"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: !rdBest && scP ? blue : "#CCC", width: 56, textAlign: "right" }}>{scP ? fmt(scP) : "—"}</div>
                 </div>
               );
             })}
+            {/* Column headers pinned to bottom */}
+            <div style={{ display: "flex", padding: "8px 14px", borderTop: "1px solid #EEEEE9", background: "#F7F7F5" }}>
+              <div style={{ flex: 1 }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", width: 56, textAlign: "right", letterSpacing: .3 }}>RD</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", width: 56, textAlign: "right", letterSpacing: .3 }}>SYSCO</div>
+            </div>
           </div>
         </div>
       )}
