@@ -129,8 +129,8 @@ export default function App() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 0, marginBottom: 0 }}>
-          {[["prices", "Prices"], ["order", "Order Help"]].map(([id, lbl]) => (
-            <button key={id} onClick={() => setView(id)} style={{ flex: 1, padding: "10px 0", border: "none", background: "none", fontSize: 13, fontWeight: 600, color: view === id ? "#111" : "#999", borderBottom: view === id ? "2px solid #111" : "2px solid transparent", cursor: "pointer", transition: "all .15s", letterSpacing: -0.1 }}>
+          {[["prices", "Prices"], ["compare", "Compare"], ["order", "Order Help"]].map(([id, lbl]) => (
+            <button key={id} onClick={() => setView(id)} style={{ flex: 1, padding: "10px 0", border: "none", background: "none", fontSize: 12, fontWeight: 600, color: view === id ? "#111" : "#999", borderBottom: view === id ? "2px solid #111" : "2px solid transparent", cursor: "pointer", transition: "all .15s", letterSpacing: -0.1 }}>
               {lbl}
             </button>
           ))}
@@ -245,12 +245,15 @@ export default function App() {
         </div>
       )}
 
+      {/* COMPARE VIEW */}
+      {view === "compare" && <CompareView rd={rd} sc={sc} />}
+
       {/* ORDER VIEW */}
       {view === "order" && <OrderView rd={rd} sc={sc} />}
 
       {/* BOTTOM NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr", zIndex: 100 }}>
-        {[["prices", "📊", "Prices"], ["order", "🛒", "Order"]].map(([id, icon, lbl]) => (
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", zIndex: 100 }}>
+        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Order"]].map(([id, icon, lbl]) => (
           <button key={id} onClick={() => setView(id)} style={{ padding: "12px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
             <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: .3 }}>{lbl}</div>
@@ -260,6 +263,197 @@ export default function App() {
     </div>
   );
 }
+
+function CompareView({ rd, sc }) {
+  const [list, setList] = useState("");
+  const [result, setResult] = useState(null);
+
+  function analyze() {
+    if (!list.trim()) return;
+
+    // Parse the list into item names
+    const lines = list.split("\n").map(l => l.trim()).filter(l => l.length > 2);
+
+    // Match each line to our known items (fuzzy match on name)
+    const matched = [];
+    const unmatched = [];
+
+    lines.forEach(line => {
+      // Strip leading numbers/bullets/dashes
+      const clean = line.replace(/^[\d\-•*\.x]+\s*/i, "").toLowerCase().trim();
+      if (!clean) return;
+
+      // Find best matching item
+      let best = null, bestScore = 0;
+      ITEMS.forEach(item => {
+        const itemWords = item.name.toLowerCase().split(" ");
+        const lineWords = clean.split(" ");
+        let score = 0;
+        itemWords.forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length; });
+        lineWords.forEach(w => { if (w.length > 2 && item.name.toLowerCase().includes(w)) score += w.length; });
+        if (score > bestScore) { bestScore = score; best = item; }
+      });
+
+      if (best && bestScore >= 4) {
+        matched.push({ line, item: best });
+      } else {
+        unmatched.push(line);
+      }
+    });
+
+    // Calculate totals
+    let rdTotal = 0, scTotal = 0;
+    const rdRows = [], scRows = [], rdOnlyRows = [], scOnlyRows = [], neitherRows = [];
+
+    matched.forEach(({ line, item }) => {
+      const rdP = rd[item.id]?.price;
+      const scP = sc[item.id]?.price;
+
+      if (rdP) rdTotal += rdP;
+      if (scP) scTotal += scP;
+
+      if (rdP && scP) {
+        rdRows.push({ name: item.name, emoji: item.emoji, price: rdP });
+        scRows.push({ name: item.name, emoji: item.emoji, price: scP });
+      } else if (rdP) {
+        rdTotal += 0; // already added
+        rdOnlyRows.push({ name: item.name, emoji: item.emoji, price: rdP });
+        scTotal += rdP; // hypothetical: assume same price if buying from RD
+      } else if (scP) {
+        scOnlyRows.push({ name: item.name, emoji: item.emoji, price: scP });
+        rdTotal += scP; // hypothetical
+      } else {
+        neitherRows.push({ name: item.name, emoji: item.emoji });
+      }
+    });
+
+    // Recalculate properly - pure totals for each vendor
+    let purRD = 0, purSC = 0;
+    const rdItems = [], scItems = [], noDataItems = [];
+
+    matched.forEach(({ line, item }) => {
+      const rdP = rd[item.id]?.price;
+      const scP = sc[item.id]?.price;
+      if (rdP) { purRD += rdP; rdItems.push({ ...item, price: rdP }); }
+      else rdItems.push({ ...item, price: null });
+      if (scP) { purSC += scP; scItems.push({ ...item, price: scP }); }
+      else scItems.push({ ...item, price: null });
+      if (!rdP && !scP) noDataItems.push(item);
+    });
+
+    setResult({ rdItems, scItems, purRD, purSC, unmatched, noDataItems });
+  }
+
+  const fmt2 = n => n != null ? "$" + n.toFixed(2) : "—";
+
+  return (
+    <div style={{ padding: "16px 12px 0" }}>
+      {/* Explainer */}
+      <div style={{ background: "#fff", borderRadius: 12, padding: "14px", border: "1px solid #EEEEE9", marginBottom: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>⚖️ Vendor Cost Comparison</div>
+        <div style={{ fontSize: 13, color: "#777", lineHeight: 1.6 }}>
+          Paste your order list. We'll calculate the <strong>total cost</strong> if you bought everything from Restaurant Depot vs everything from Sysco — so you can see which vendor wins for your full order.
+        </div>
+      </div>
+
+      <textarea value={list} onChange={e => setList(e.target.value)}
+        placeholder={"Paste your order list:
+
+Chicken leg quarters
+Yellow onions
+Heavy cream
+Russet potato
+Liquid butter
+Sugar
+All purpose flour
+..."}
+        style={{ width: "100%", minHeight: 160, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
+
+      <button onClick={analyze} disabled={!list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: !list.trim() ? "#F0F0EC" : "#111", color: !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
+        Compare Vendor Totals →
+      </button>
+
+      {result && (
+        <div style={{ marginTop: 14 }}>
+          {/* BIG TOTALS */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <div style={{ background: result.purRD <= result.purSC ? "#F0FDF4" : "#fff", border: result.purRD <= result.purSC ? "2px solid #16A34A" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
+              {result.purRD <= result.purSC && <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🏪 Restaurant Depot</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: result.purRD <= result.purSC ? "#16A34A" : "#111", lineHeight: 1 }}>{fmt2(result.purRD)}</div>
+              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>all items total</div>
+            </div>
+            <div style={{ background: result.purSC < result.purRD ? "#EFF6FF" : "#fff", border: result.purSC < result.purRD ? "2px solid #2563EB" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
+              {result.purSC < result.purRD && <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 6 }}>🚚 Sysco</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: result.purSC < result.purRD ? "#2563EB" : "#111", lineHeight: 1 }}>{fmt2(result.purSC)}</div>
+              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>all items total</div>
+            </div>
+          </div>
+
+          {/* Savings callout */}
+          {result.purRD > 0 && result.purSC > 0 && (
+            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "12px 14px", marginBottom: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
+                {result.purRD <= result.purSC
+                  ? `Buy from Restaurant Depot and save $${(result.purSC - result.purRD).toFixed(2)}`
+                  : `Buy from Sysco and save $${(result.purRD - result.purSC).toFixed(2)}`
+                }
+              </div>
+            </div>
+          )}
+
+          {/* RD itemized */}
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>🏪 RESTAURANT DEPOT — ITEM PRICES</div>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
+            {result.rdItems.map((item, i) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.rdItems.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{item.emoji}</span>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: item.price ? "#111" : "#CCC" }}>{fmt2(item.price)}</div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", background: "#F7FEF9", borderTop: "2px solid #D1FAE5" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#16A34A" }}>RD Total</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#16A34A" }}>{fmt2(result.purRD)}</div>
+            </div>
+          </div>
+
+          {/* Sysco itemized */}
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>🚚 SYSCO — ITEM PRICES</div>
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
+            {result.scItems.map((item, i) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.scItems.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{item.emoji}</span>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: item.price ? "#111" : "#CCC" }}>{fmt2(item.price)}</div>
+              </div>
+            ))}
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", background: "#EFF6FF", borderTop: "2px solid #BFDBFE" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>Sysco Total</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#2563EB" }}>{fmt2(result.purSC)}</div>
+            </div>
+          </div>
+
+          {/* Unmatched */}
+          {result.unmatched.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>⚠️ NOT RECOGNIZED</div>
+              <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", marginBottom: 14 }}>
+                {result.unmatched.map((line, i) => (
+                  <div key={i} style={{ padding: "10px 14px", fontSize: 13, color: "#888", borderBottom: i < result.unmatched.length - 1 ? "1px solid #F3F3EF" : "none" }}>
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function OrderView({ rd, sc }) {
   const [list, setList] = useState("");
