@@ -471,24 +471,41 @@ async function buildCrossVendorMap(syscoMatched, rdMatched) {
 
   const rdCtx = RD_ITEMS.map(i => i.id + ": " + i.name).join("\n");
 
-  const prompt = `You are linking grocery products between two wholesale vendors (Sysco and Restaurant Depot) for the same restaurant.
+  // Add current prices to context for smarter matching
+  const syscoPriceCtx = unmapped.map(s => {
+    const item = SYSCO_ITEMS.find(i => i.id === s.id);
+    const p = priceStore.sysco[s.id]?.price;
+    return s.id + ": " + (item ? item.name + " " + item.pack : s.id) + (p ? " @ $" + p : "");
+  }).join("\n");
 
-SYSCO ITEMS (need RD equivalent):
-${syscoCtx}
+  const rdPriceCtx = RD_ITEMS.map(i => {
+    const p = priceStore.rd[i.id]?.price;
+    return i.id + ": " + i.name + (p ? " @ $" + p : "");
+  }).join("\n");
 
-RESTAURANT DEPOT ITEMS:
-${rdCtx}
+  const prompt = `You are an expert wholesale grocery buyer linking equivalent products between Sysco and Restaurant Depot for Naan & Curry restaurant in Las Vegas.
 
-For each Sysco item, find the Restaurant Depot item that is the SAME product (same food, similar pack size). Different brand names are OK as long as it's the same product type.
+SYSCO ITEMS TO MATCH (with pack size and current price):
+${syscoPriceCtx}
 
-Examples of valid matches:
-- "Onion Yellow Jumbo Bag 1/25LB" = "Jumbo Spanish Onions - 50 lbs" (both are bulk yellow onions)
-- "Cream Heavy 40% 12/32OZ" = "James Farm - Heavy Cream 40% - 64 oz" (both are 40% heavy cream)
+RESTAURANT DEPOT ITEMS (with current price):
+${rdPriceCtx}
 
-Only match if you are confident it is the same product. Skip if unclear.
+For each Sysco item, find the Restaurant Depot item that is the SAME product. Consider:
+1. Product type (most important - chicken thighs = chicken thighs)
+2. Similar pack size / total weight
+3. Price per unit should be in a similar range if available
+4. Brand name doesn't matter
+
+Valid match examples:
+- Sysco "Onion Yellow Jumbo Bag 1/25LB @ $11.31" = RD "Jumbo Spanish Onions - 50 lbs @ $18.95" (both bulk yellow onions, different pack size is OK)
+- Sysco "Cream Heavy 40% 12/32OZ @ $43.87" = RD "James Farm - Heavy Cream 40% - 64 oz @ $43.95" (same product, similar price confirms match)
+- Sysco "Pan Coating Butter It 6/14 OZ" = RD "Chef's Quality - All Purpose Pan Spray - 17 oz" (same product category, different brand/size)
+
+Skip if genuinely different products or you are not confident.
 
 Return ONLY JSON array:
-[{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"one line explanation"}]`;
+[{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"one line explanation","confidence":"high|medium"}]`;
 
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1192,12 +1209,149 @@ function withTimeout(p, ms, name) {
     setTimeout(() => rej(new Error(name + " timed out")), ms))]);
 }
 
+// ── Feature 1: AI Price Validation ───────────────────────────────────────────
+async function validatePricesWithAI(vendor) {
+  const store = vendor === "rd" ? priceStore.rd : priceStore.sysco;
+  const items = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
+  const history = priceHistory;
+
+  // Build context: items where price changed significantly vs yesterday
+  const suspicious = [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  Object.entries(store).forEach(([id, entry]) => {
+    const itemHistory = history[id] || [];
+    if (itemHistory.length < 2) return;
+    const prev = itemHistory[itemHistory.length - 2];
+    const prevPrice = vendor === "rd" ? prev.rd : prev.sc;
+    if (!prevPrice || !entry.price) return;
+    const changePct = Math.abs((entry.price - prevPrice) / prevPrice) * 100;
+    // Flag if price changed more than 20% overnight
+    if (changePct > 20) {
+      const item = items.find(i => i.id === id);
+      suspicious.push({
+        id,
+        name: item?.name || id,
+        prev: prevPrice,
+        current: entry.price,
+        changePct: Math.round(changePct),
+      });
+    }
+  });
+
+  if (suspicious.length === 0) { log("Price validation: no suspicious changes detected"); return; }
+
+  log("Price validation: " + suspicious.length + " suspicious price changes — asking AI...");
+
+  const prompt = `You are validating wholesale grocery prices for a restaurant. Review these price changes and identify which ones are likely scraping errors vs genuine price changes.
+
+PRICE CHANGES (>20% overnight):
+${suspicious.map(s => `${s.name}: $${s.prev} → $${s.current} (${s.changePct}% change)`).join("\n")}
+
+For each item, decide:
+- "valid": price change is plausible for this product (seasonal, market fluctuation)
+- "error": price change is almost certainly a scraping error (e.g. 10x jump, doesn't match product type)
+
+Return ONLY JSON array:
+[{"id":"ITEM_ID","verdict":"valid|error","reason":"brief explanation"}]`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (!m) return;
+
+    JSON.parse(m[0]).forEach(({ id, verdict, reason }) => {
+      if (verdict === "error") {
+        const prev = suspicious.find(s => s.id === id)?.prev;
+        if (prev) {
+          // Revert to previous price
+          if (vendor === "rd") priceStore.rd[id] = { ...priceStore.rd[id], price: prev, flagged: true };
+          else priceStore.sysco[id] = { ...priceStore.sysco[id], price: prev, flagged: true };
+          log("🤖 Price validation: REVERTED " + id + " from $" + store[id]?.price + " → $" + prev + " (" + reason + ")");
+        }
+      } else {
+        log("🤖 Price validation: CONFIRMED " + id + " price change (" + reason + ")");
+      }
+    });
+    savePrices();
+  } catch(e) { log("Price validation AI error: " + e.message); }
+}
+
+// ── Feature 3: Auto-add new RD items ─────────────────────────────────────────
+async function autoDiscoverRDItems(scrapedItems) {
+  // Find scraped items that didn't match anything in RD_ITEMS
+  const knownIds = new Set(RD_ITEMS.map(i => i.id));
+  const unmatched = scrapedItems.filter(s => {
+    // Check if this scraped name is in our cache pointing to a known item
+    const cacheHit = matchCache.rd[s.name];
+    return !cacheHit || !knownIds.has(cacheHit);
+  });
+
+  if (unmatched.length === 0) { log("Auto-discover: no new RD items found"); return; }
+
+  log("Auto-discover: " + unmatched.length + " potentially new RD items — asking AI...");
+
+  const existingNames = RD_ITEMS.map(i => i.name).join(", ");
+  const prompt = `You are reviewing scraped products from a Restaurant Depot order guide for Naan & Curry restaurant in Las Vegas.
+
+EXISTING ITEMS (already tracked):
+${existingNames}
+
+NEWLY SCRAPED ITEMS (not yet in our list):
+${unmatched.map(s => s.name + " @ $" + s.price).join("\n")}
+
+Which of these new items should be added to the restaurant's tracking list? Consider:
+- Is it a food/beverage product the restaurant likely uses?
+- Is it NOT a duplicate of an existing item (different name, same product)?
+- Skip non-food items, equipment, disposables
+
+Return ONLY JSON array of items to add:
+[{"name":"exact scraped name","price":0.00,"category":"Produce|Dairy|Meat|Frozen|Dry|Oils|Other","reason":"why this should be tracked"}]
+Return empty array [] if nothing should be added.`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (!m) return;
+
+    const toAdd = JSON.parse(m[0]);
+    if (toAdd.length === 0) { log("Auto-discover: AI found no new items to add"); return; }
+
+    // Store discovered items for review — don't auto-add to RD_ITEMS without review
+    // Instead store them in priceStore for the app to display
+    if (!priceStore.discovered) priceStore.discovered = [];
+    toAdd.forEach(item => {
+      const exists = priceStore.discovered.find(d => d.name === item.name);
+      if (!exists) {
+        priceStore.discovered.push({ ...item, discoveredAt: new Date().toISOString() });
+        log("🆕 Auto-discover: new item found — " + item.name + " @ $" + item.price + " (" + item.reason + ")");
+      }
+    });
+    savePrices();
+    log("Auto-discover: " + toAdd.length + " new items queued for review");
+  } catch(e) { log("Auto-discover AI error: " + e.message); }
+}
+
 async function runScrape(source = "all") {
   if (source === "rd" || source === "all") {
     try {
       const result = await withTimeout(scrapeRD(), 180000, "RD");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
+        // Auto-discover potentially new items not in our list
+        autoDiscoverRDItems(result.items).catch(e => log("Auto-discover error: " + e.message));
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
           // Sanity check against known max prices — catches adjacent-item bleed
@@ -1246,6 +1400,8 @@ async function runScrape(source = "all") {
         else log("RD: no out-of-stock items matched");
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
         savePrices();
+        // AI price validation — runs async, flags suspicious price changes
+        validatePricesWithAI("rd").catch(e => log("Price validation error: " + e.message));
       } else { log("❌ RD: " + (result.error || "no items")); }
     } catch(e) { log("❌ RD: " + e.message); }
   }
@@ -1282,6 +1438,7 @@ async function runScrape(source = "all") {
         log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " +
           matched.filter(m => SYSCO_TO_RD[m.id]).map(m => m.id + "→" + SYSCO_TO_RD[m.id]).join(", "));
         savePrices();
+        validatePricesWithAI("sysco").catch(e => log("Sysco price validation error: " + e.message));
       } else { log("❌ Sysco: " + (result.error || "no items")); }
     } catch(e) { log("❌ Sysco: " + e.message); }
   }
@@ -1293,6 +1450,9 @@ async function runScrape(source = "all") {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
+// New items discovered by AI during scraping — review before adding
+app.get("/api/discovered", (req, res) => res.json(priceStore.discovered || []));
+
 app.get("/api/history", (req, res) => res.json({
   data: priceHistory,
   lastRecorded: priceStore.lastUpdated || null,
