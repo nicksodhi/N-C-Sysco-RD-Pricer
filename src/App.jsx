@@ -63,6 +63,7 @@ const ago = d => { if(!d) return ""; const h=(Date.now()-new Date(d))/3.6e6; if(
 export default function App() {
   const [rd, setRd] = useState({});
   const [sc, setSc] = useState({});
+  const [oos, setOos] = useState({ rd: [], sysco: [] });
   const [view, setView] = useState("prices");
   const [pricesView, setPricesView] = useState("list"); // list | history | oos
   const [cat, setCat] = useState("All");
@@ -110,6 +111,7 @@ export default function App() {
       let newRd = {}, newSc = {};
       if (d.rd && Object.keys(d.rd).length) { newRd = d.rd; setRd(p => ({ ...p, ...d.rd })); }
       if (d.sysco && Object.keys(d.sysco).length) { newSc = d.sysco; setSc(p => ({ ...p, ...d.sysco })); }
+      if (d.oos) setOos(d.oos);
       if (Object.keys(newRd).length || Object.keys(newSc).length) saveHistory(newRd, newSc);
       setSynced(new Date().toISOString());
     } catch {}
@@ -173,6 +175,7 @@ export default function App() {
           history={history} synced={synced}
           pricesView={pricesView} setPricesView={setPricesView}
           both={both} rdOnly={rdOnly} noPrice={noPrice}
+          oos={oos}
         />
       )}
 
@@ -196,7 +199,7 @@ export default function App() {
 }
 
 // ── PricesView ────────────────────────────────────────────────────────────────
-function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice }) {
+function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos }) {
   const [historySearch, setHistorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -265,13 +268,19 @@ ${rows.map(r => `<tr>
     ? ITEMS.filter(i => i.name.toLowerCase().includes(historySearch.toLowerCase()) && history[i.id]?.length > 0)
     : [];
 
-  // Out of stock — items that were recently seen but now have no price (or flagged)
-  // Since scraper doesn't explicitly flag OOS, show items missing from one vendor but present before
-  const oosItems = ITEMS.filter(item => {
+  // Out of stock — driven by actual scraper flags from server
+  const rdOosIds = new Set((oos?.rd || []));
+  const scOosIds = new Set((oos?.sysco || []));
+
+  // Items flagged OOS by scraper
+  const oosItems = ITEMS.filter(item => rdOosIds.has(item.id) || scOosIds.has(item.id));
+
+  // Also include items missing price from one vendor that have been seen before
+  const missingItems = ITEMS.filter(item => {
+    if (rdOosIds.has(item.id) || scOosIds.has(item.id)) return false; // already in oosItems
     const rdP = rd[item.id]?.price;
     const scP = sc[item.id]?.price;
     const hasHistory = history[item.id]?.length > 1;
-    // Show if has history but currently missing a vendor price
     return hasHistory && (!rdP || !scP);
   });
 
@@ -480,36 +489,71 @@ ${rows.map(r => `<tr>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 10, paddingLeft: 2 }}>
             ITEMS MISSING FROM ONE VENDOR
           </div>
-          {oosItems.length === 0 && (
+          {oosItems.length === 0 && missingItems.length === 0 && (
             <div style={{ textAlign: "center", padding: "50px 20px", color: "#999" }}>
               <div style={{ fontSize: 28, marginBottom: 10 }}>✅</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#555" }}>All items have pricing</div>
-              <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>No stock issues detected</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#555" }}>No stock issues detected</div>
+              <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>Run a sync to get latest stock status</div>
             </div>
           )}
-          {oosItems.map((item, i) => {
-            const rdP = rd[item.id]?.price;
-            const scP = sc[item.id]?.price;
-            return (
-              <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }}>{item.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                  <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
-                    <span style={{ color: rdP ? "#16A34A" : "#DC2626", fontWeight: 600 }}>
-                      {rdP ? "RD ✓ " + fmt(rdP) : "RD — no price"}
-                    </span>
-                    <span style={{ color: scP ? "#2563EB" : "#DC2626", fontWeight: 600 }}>
-                      {scP ? "Sysco ✓ " + fmt(scP) : "Sysco — no price"}
-                    </span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626" }}>
-                  {!rdP && !scP ? "Both" : !rdP ? "No RD" : "No Sysco"}
-                </div>
+
+          {/* Confirmed out of stock from scraper */}
+          {oosItems.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", letterSpacing: .5, marginBottom: 8, paddingLeft: 2 }}>
+                🔴 OUT OF STOCK
               </div>
-            );
-          })}
+              {oosItems.map((item) => {
+                const rdOos = rdOosIds.has(item.id);
+                const scOos = scOosIds.has(item.id);
+                const rdP = rd[item.id]?.price;
+                const scP = sc[item.id]?.price;
+                return (
+                  <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #FEE2E2", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                      <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
+                        <span style={{ color: rdOos ? "#DC2626" : "#16A34A", fontWeight: 600 }}>
+                          {rdOos ? "RD — out of stock" : "RD ✓ " + fmt(rdP)}
+                        </span>
+                        <span style={{ color: scOos ? "#DC2626" : "#2563EB", fontWeight: 600 }}>
+                          {scOos ? "Sysco — out of stock" : scP ? "Sysco ✓ " + fmt(scP) : "Sysco — no price"}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626" }}>OOS</div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* Items missing from one vendor based on history */}
+          {missingItems.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>
+                ⚠️ MISSING VENDOR PRICE
+              </div>
+              {missingItems.map((item) => {
+                const rdP = rd[item.id]?.price;
+                const scP = sc[item.id]?.price;
+                return (
+                  <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                      <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
+                        <span style={{ color: rdP ? "#16A34A" : "#F59E0B", fontWeight: 600 }}>{rdP ? "RD ✓ " + fmt(rdP) : "RD — no current price"}</span>
+                        <span style={{ color: scP ? "#2563EB" : "#F59E0B", fontWeight: 600 }}>{scP ? "Sysco ✓ " + fmt(scP) : "Sysco — no current price"}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#FFFBEB", color: "#D97706" }}>CHECK</div>
+                  </div>
+                );
+              })}
+            </>
+          )}
 
           {/* Also show items with zero history and no current price */}
           {ITEMS.filter(i => !rd[i.id] && !sc[i.id] && !history[i.id]?.length).length > 0 && (
