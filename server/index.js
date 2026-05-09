@@ -38,6 +38,37 @@ function savePrices() {
 const _loaded = loadPrices();
 let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
 
+// ── Match cache — persists learned name→ID mappings forever ──────────────────
+const CACHE_FILE = "/tmp/nc_match_cache.json";
+let matchCache = { rd: {}, sysco: {} }; // { "scraped name": "item_id" }
+
+function loadCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      matchCache = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+      const rdCount = Object.keys(matchCache.rd || {}).length;
+      const scCount = Object.keys(matchCache.sysco || {}).length;
+      console.log("✅ Match cache loaded: RD=" + rdCount + " Sysco=" + scCount + " known mappings");
+    }
+  } catch(e) { console.log("Cache load error:", e.message); }
+}
+
+function saveCache() {
+  try { fs.writeFileSync(CACHE_FILE, JSON.stringify(matchCache, null, 2)); }
+  catch(e) { console.log("Cache save error:", e.message); }
+}
+
+function learnMatch(source, scrapedName, itemId) {
+  if (!matchCache[source]) matchCache[source] = {};
+  if (!matchCache[source][scrapedName]) {
+    matchCache[source][scrapedName] = itemId;
+    saveCache();
+    log("🧠 Learned: [" + source + "] \"" + scrapedName + "\" → " + itemId);
+  }
+}
+
+loadCache();
+
 const log = (msg) => {
   console.log(msg);
   priceStore.log.unshift({ time: new Date().toISOString(), msg });
@@ -163,7 +194,7 @@ app.post("/api/claude", async (req, res) => {
 });
 
 // ── AI price matching ─────────────────────────────────────────────────────────
-// Word-overlap scorer — no AI, fully deterministic
+// Word-overlap scorer
 function wordScore(a, b) {
   const stopWords = new Set(["the","and","for","with","from","lbs","lb","oz","gal","ct","pk","pack","case","fresh","frozen","boneless","skinless"]);
   const aw = a.toLowerCase().split(/[\s\-,\/]+/).filter(w => w.length > 2 && !stopWords.has(w));
@@ -176,10 +207,30 @@ function wordScore(a, b) {
 
 async function matchWithAI(scrapedItems, itemList, source) {
   if (!scrapedItems.length) return [];
+  const cacheKey = source === "Restaurant Depot" ? "rd" : "sysco";
+  const cache = matchCache[cacheKey] || {};
   const results = [];
   const usedIds = new Set();
+  const needsMatching = []; // items not in cache
 
+  // ── Step 1: Check cache first (instant, no scoring needed) ──
   for (const scraped of scrapedItems) {
+    const cachedId = cache[scraped.name];
+    if (cachedId && itemList.find(i => i.id === cachedId)) {
+      if (!usedIds.has(cachedId)) {
+        results.push({ id: cachedId, price: scraped.price });
+        usedIds.add(cachedId);
+        log("📋 Cache hit: \"" + scraped.name + "\" → " + cachedId);
+      }
+    } else {
+      needsMatching.push(scraped);
+    }
+  }
+  log(source + ": " + (scrapedItems.length - needsMatching.length) + "/" + scrapedItems.length + " from cache, " + needsMatching.length + " need matching");
+
+  // ── Step 2: Word-overlap for uncached items ──
+  const stillUnmatched = [];
+  for (const scraped of needsMatching) {
     let bestId = null, bestScore = 0;
     for (const item of itemList) {
       if (usedIds.has(item.id)) continue;
@@ -189,42 +240,45 @@ async function matchWithAI(scrapedItems, itemList, source) {
     if (bestId && bestScore >= 6) {
       results.push({ id: bestId, price: scraped.price });
       usedIds.add(bestId);
-      log(source + " match: \"" + scraped.name + "\" → " + bestId + " (score=" + bestScore + ")");
+      learnMatch(cacheKey, scraped.name, bestId); // save to cache
+      log("✅ Word match: \"" + scraped.name + "\" → " + bestId + " (score=" + bestScore + ")");
     } else {
-      log(source + " NO MATCH: \"" + scraped.name + "\" (best score=" + bestScore + ")");
+      stillUnmatched.push(scraped);
+      log("❓ No word match: \"" + scraped.name + "\" (best score=" + bestScore + ")");
     }
   }
 
-  // AI fallback for any item list entries that got no match
-  const unmatchedItems = itemList.filter(i => !usedIds.has(i.id));
-  const unmatchedScraped = scrapedItems.filter(s => !results.find(r => r.price === s.price && scrapedItems.find(sc => sc.name === s.name)));
-  if (unmatchedItems.length > 0 && unmatchedScraped.length > 0) {
-    log(source + ": " + unmatchedScraped.length + " unmatched scraped items, trying AI for remaining " + unmatchedItems.length + " list items");
+  // ── Step 3: AI for anything still unmatched ──
+  const unmatchedListItems = itemList.filter(i => !usedIds.has(i.id));
+  if (stillUnmatched.length > 0 && unmatchedListItems.length > 0) {
+    log(source + ": sending " + stillUnmatched.length + " items to AI...");
     try {
-      const prompt = "Match scraped grocery items to product list IDs.\nSCRAPED:\n" +
-        unmatchedScraped.map(i => i.name + ": $" + i.price).join("\n") +
-        "\nOUR LIST:\n" + unmatchedItems.map(i => i.id + ": " + i.name).join("\n") +
-        "\nReturn ONLY JSON: [{\"id\":\"ID\",\"price\":0.00}] Only confident matches.";
+      const prompt = "You are a grocery product matcher for a restaurant. Match each scraped product name to the correct item ID from our list. Use the closest match based on product type and description.\n\nSCRAPED PRODUCTS:\n" +
+        stillUnmatched.map(i => "\"" + i.name + "\"  $" + i.price).join("\n") +
+        "\n\nOUR ITEM LIST:\n" + unmatchedListItems.map(i => i.id + ": " + i.name).join("\n") +
+        "\n\nReturn ONLY a JSON array. One entry per confident match:\n[{\"scraped\":\"exact scraped name\",\"id\":\"ITEM_ID\",\"price\":0.00}]\nSkip any you are not confident about.";
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
       });
       const data = await r.json();
       const txt = data.content?.find(b => b.type === "text")?.text || "[]";
       const m = txt.match(/\[[\s\S]*\]/);
       if (m) {
-        JSON.parse(m[0]).forEach(({ id, price }) => {
+        JSON.parse(m[0]).forEach(({ scraped, id, price }) => {
           if (id && price > 0 && !usedIds.has(id)) {
             results.push({ id, price });
             usedIds.add(id);
-            log(source + " AI fallback match: " + id + " $" + price);
+            if (scraped) learnMatch(cacheKey, scraped, id); // save AI match to cache
+            log("🤖 AI match: \"" + (scraped || "?") + "\" → " + id + " $" + price);
           }
         });
       }
-    } catch(e) { log("AI fallback error: " + e.message); }
+    } catch(e) { log("AI error: " + e.message); }
   }
 
+  log(source + ": total matched " + results.length + "/" + scrapedItems.length);
   return results;
 }
 
