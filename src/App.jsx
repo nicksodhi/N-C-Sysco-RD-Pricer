@@ -277,19 +277,27 @@ function CompareView({ rd, sc }) {
     const bothItems = []; // recognized AND has prices from BOTH vendors
 
     lines.forEach(line => {
-      const clean = line.replace(/^[\d\-•*\.x]+\s*/i, "").toLowerCase().trim();
-      if (!clean) return;
+      // Strip emojis, quantities, colons, bullets from line to get clean item name
+      let clean = line
+        .replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "")
+        .replace(/^[\d\s\-•*\.x:]+/i, "")
+        .replace(/[\d:]+\s*$/i, "")
+        .toLowerCase().trim();
+      if (!clean || clean.length < 2) return;
 
-      // Fuzzy match to known items
+      // Fuzzy match — lower threshold so short names like "Mint" still match
       let best = null, bestScore = 0;
       ITEMS.forEach(item => {
+        const iName = item.name.toLowerCase();
         let score = 0;
-        item.name.toLowerCase().split(" ").forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length; });
-        clean.split(" ").forEach(w => { if (w.length > 2 && item.name.toLowerCase().includes(w)) score += w.length; });
+        iName.split(" ").forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length * 2; });
+        clean.split(" ").forEach(w => { if (w.length > 2 && iName.includes(w)) score += w.length; });
+        // Bonus for direct substring or first-word match
+        if (iName.includes(clean) || clean.includes(iName.split(" ")[0])) score += 8;
         if (score > bestScore) { bestScore = score; best = item; }
       });
 
-      if (!best || bestScore < 4) {
+      if (!best || bestScore < 3) {
         unmatched.push(line);
         return;
       }
