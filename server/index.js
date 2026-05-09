@@ -611,7 +611,40 @@ app.post("/api/grocery", async (req, res) => {
       const p = priceStore.sysco[i.id];
       return p ? i.name + " " + i.pack + ": $" + p.price + " (Sysco)" : null;
     }).filter(Boolean).join("\n");
-    const prompt = "Purchasing assistant for Naan & Curry Las Vegas.\n\nRD PRICES:\n" + (rdCtx || "none") + "\n\nSYSCO PRICES:\n" + (scCtx || "none") + "\n\nOrder list:\n" + list + "\n\nBreak down by vendor:\n🟢 ORDER FROM RESTAURANT DEPOT:\n- item — $price\n\n🔵 ORDER FROM SYSCO:\n- item — $price\n\n⚠️ CHECK MANUALLY:\n- item\n\n💰 RD $X + Sysco $Y = $total";
+    const prompt = `You are the purchasing assistant for Naan & Curry Las Vegas.
+
+RD PRICES:
+${rdCtx || "none"}
+
+SYSCO PRICES:
+${scCtx || "none"}
+
+Order list:
+${list}
+
+Return a clean, minimal breakdown. Use SHORT common names only (e.g. "Russet Potato" not "Russet Potato - 50 lb Crtn, 90 cnt, US #1"). No markdown, no asterisks, no headers, no dashes in separators.
+
+Strict format — follow exactly:
+
+🟢 RESTAURANT DEPOT
+Item Name — $price
+Item Name (x2) — $price
+RD Cart Total: $XX.XX
+
+🔵 SYSCO
+Item Name — $price
+Sysco Cart Total: $XX.XX
+
+⚠️ ORDER MANUALLY
+Item name
+
+💰 TOTAL ORDER COST: $XX.XX
+
+Rules:
+- Use shortest recognizable name for each item
+- If quantity not specified assume 1 case
+- Assign each item to the cheaper vendor when both carry it
+- No explanations, no markdown formatting, no bold, no extra lines`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
