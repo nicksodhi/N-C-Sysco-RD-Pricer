@@ -582,64 +582,81 @@ ${rows.map(r => `<tr>
 function CompareView({ rd, sc }) {
   const [list, setList] = useState("");
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  function analyze() {
+  async function analyze() {
     if (!list.trim()) return;
+    setLoading(true);
 
-    const lines = list.split("\n").map(l => l.trim()).filter(l => l.length > 2);
-    const unmatched = []; // not recognized at all
-    const skipped = [];   // recognized but missing one vendor price
-    const bothItems = []; // recognized AND has prices from BOTH vendors
+    const catalog = ITEMS.map(item => ({
+      id: item.id,
+      name: item.name,
+      rdPrice: rd[item.id]?.price || null,
+      scPrice: sc[item.id]?.price || null,
+    }));
 
-    lines.forEach(line => {
-      // Strip emojis, quantities, colons, bullets from line to get clean item name
-      let clean = line
-        .replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "")
-        .replace(/^[\d\s\-*\.x:\u2022]+/i, "")
-        .replace(/[\d:]+\s*$/i, "")
-        .toLowerCase().trim();
-      if (!clean || clean.length < 2) return;
+    try {
+      const prompt = `Match each line of this restaurant order list to the best item in our product catalog.
 
-      // Fuzzy match - lower threshold so short names like "Mint" still match
-      let best = null, bestScore = 0;
-      ITEMS.forEach(item => {
-        const iName = item.name.toLowerCase();
-        let score = 0;
-        iName.split(" ").forEach(w => { if (w.length > 2 && clean.includes(w)) score += w.length * 2; });
-        clean.split(" ").forEach(w => { if (w.length > 2 && iName.includes(w)) score += w.length; });
-        // Bonus for direct substring or first-word match
-        if (iName.includes(clean) || clean.includes(iName.split(" ")[0])) score += 8;
-        if (score > bestScore) { bestScore = score; best = item; }
+ORDER LIST:
+${list}
+
+PRODUCT CATALOG (id: name | RD price | Sysco price):
+${catalog.map(i => i.id + ": " + i.name + " | RD: " + (i.rdPrice ? "$"+i.rdPrice : "N/A") + " | Sysco: " + (i.scPrice ? "$"+i.scPrice : "N/A")).join("\n")}
+
+Rules:
+- Match abbreviations and casual names ("chx breast", "LQ", "heavy cream", "flour")
+- Ignore quantities, emojis, bullets
+- Match the FOOD PRODUCT not the quantity
+- If no reasonable match exists, put in unmatched
+
+Return ONLY this JSON structure:
+{"matched":[{"line":"original line","id":"CATALOG_ID"}],"unmatched":["lines with no match"]}`;
+
+      const res = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ max_tokens: 1500, messages: [{ role: "user", content: prompt }] })
+      });
+      const data = await res.json();
+      const txt = data.content?.find(b => b.type === "text")?.text || "{}";
+      const jsonM = txt.match(/\{[\s\S]*\}/);
+      const parsed = jsonM ? JSON.parse(jsonM[0]) : { matched: [], unmatched: [] };
+
+      const bothItems = [], skipped = [], unmatched = parsed.unmatched || [];
+      (parsed.matched || []).forEach(({ line, id }) => {
+        const item = ITEMS.find(i => i.id === id);
+        if (!item) { unmatched.push(line); return; }
+        const rdP = rd[item.id]?.price, scP = sc[item.id]?.price;
+        if (rdP && scP) bothItems.push({ ...item, rdPrice: rdP, scPrice: scP });
+        else skipped.push({ ...item, rdPrice: rdP||null, scPrice: scP||null,
+          reason: !rdP&&!scP ? "No pricing from either vendor" : !rdP ? "No RD pricing" : "No Sysco pricing" });
       });
 
-      if (!best || bestScore < 3) {
-        unmatched.push(line);
-        return;
-      }
-
-      const rdP = rd[best.id]?.price;
-      const scP = sc[best.id]?.price;
-
-      if (rdP && scP) {
-        // Both vendors have pricing — include in comparison
-        bothItems.push({ ...best, rdPrice: rdP, scPrice: scP });
-      } else {
-        // Missing one or both vendor prices — skip from comparison
-        skipped.push({
-          ...best,
-          rdPrice: rdP || null,
-          scPrice: scP || null,
-          reason: !rdP && !scP ? "No pricing from either vendor"
-                : !rdP ? "No RD pricing"
-                : "No Sysco pricing"
+      const purRD = bothItems.reduce((s,i)=>s+i.rdPrice,0);
+      const purSC = bothItems.reduce((s,i)=>s+i.scPrice,0);
+      setResult({ bothItems, purRD, purSC, skipped, unmatched });
+    } catch(e) {
+      // Fallback to local fuzzy match
+      const lines = list.split("\n").map(l=>l.trim()).filter(l=>l.length>2);
+      const bothItems=[], skipped=[], unmatched=[];
+      lines.forEach(line => {
+        let clean = line.replace(/[^\w\s]/g,"").toLowerCase().trim();
+        let best=null, bestScore=0;
+        ITEMS.forEach(item => {
+          const iName=item.name.toLowerCase(); let score=0;
+          iName.split(" ").forEach(w=>{if(w.length>2&&clean.includes(w))score+=w.length*2;});
+          clean.split(" ").forEach(w=>{if(w.length>2&&iName.includes(w))score+=w.length;});
+          if(score>bestScore){bestScore=score;best=item;}
         });
-      }
-    });
-
-    const purRD = bothItems.reduce((s, i) => s + i.rdPrice, 0);
-    const purSC = bothItems.reduce((s, i) => s + i.scPrice, 0);
-
-    setResult({ bothItems, purRD, purSC, skipped, unmatched });
+        if(!best||bestScore<3){unmatched.push(line);return;}
+        const rdP=rd[best.id]?.price, scP=sc[best.id]?.price;
+        if(rdP&&scP)bothItems.push({...best,rdPrice:rdP,scPrice:scP});
+        else skipped.push({...best,rdPrice:rdP||null,scPrice:scP||null,reason:"Missing one vendor"});
+      });
+      setResult({ bothItems, purRD:bothItems.reduce((s,i)=>s+i.rdPrice,0), purSC:bothItems.reduce((s,i)=>s+i.scPrice,0), skipped, unmatched });
+    }
+    setLoading(false);
   }
 
   const fmt2 = n => n != null ? "$" + n.toFixed(2) : "—";
@@ -651,8 +668,8 @@ function CompareView({ rd, sc }) {
         placeholder="Paste list here..."
         style={{ width: "100%", minHeight: 160, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
 
-      <button onClick={analyze} disabled={!list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: !list.trim() ? "#F0F0EC" : "#111", color: !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
-        Compare Vendor Totals →
+      <button onClick={analyze} disabled={!list.trim() || loading} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: !list.trim() || loading ? "#F0F0EC" : "#111", color: !list.trim() || loading ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: !list.trim() || loading ? "default" : "pointer", transition: "all .2s" }}>
+        {loading ? "Analyzing with AI…" : "Compare Vendor Totals →"}
       </button>
 
       {result && (
