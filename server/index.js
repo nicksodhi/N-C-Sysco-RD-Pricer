@@ -38,6 +38,27 @@ function savePrices() {
 // ── GitHub backup — commits prices.json to repo after every scrape ────────────
 // Requires GITHUB_TOKEN and GITHUB_REPO env vars in Railway
 // GITHUB_REPO format: "username/repo-name"
+async function githubCommit(token, repo, filePath, content, message) {
+  const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + filePath;
+  const headers = {
+    "Authorization": "token " + token,
+    "Content-Type": "application/json",
+    "User-Agent": "naan-curry-price-tracker",
+  };
+  // Always fetch latest SHA right before committing to avoid conflicts
+  let sha = null;
+  try {
+    const get = await fetch(apiBase, { headers });
+    if (get.ok) { const j = await get.json(); sha = j.sha; }
+  } catch {}
+
+  const body = { message, content, ...(sha ? { sha } : {}) };
+  const put = await fetch(apiBase, { method: "PUT", headers, body: JSON.stringify(body) });
+  if (put.ok) return true;
+  const err = await put.json().catch(() => ({}));
+  throw new Error(err.message || put.status);
+}
+
 async function backupToGitHub() {
   const token = process.env.GITHUB_TOKEN;
   const repo  = process.env.GITHUB_REPO;
@@ -54,55 +75,18 @@ async function backupToGitHub() {
     };
 
     const encoded = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
-    const filePath = "backup/prices.json";
-    const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + filePath;
-    const headers = {
-      "Authorization": "token " + token,
-      "Content-Type": "application/json",
-      "User-Agent": "naan-curry-price-tracker",
-    };
+    const date = new Date().toISOString().slice(0, 10);
 
-    // Also backup history separately (headers now defined)
-    backupHistoryToGitHub(token, repo, headers).catch(e => log("History backup error: " + e.message));
+    // Commit prices first, then history sequentially (avoids SHA conflicts)
+    await githubCommit(token, repo, "backup/prices.json", encoded, "Price backup " + date);
+    log("✅ GitHub backup: prices.json committed to " + repo);
 
-    // Get current file SHA (needed to update existing file)
-    let sha = null;
-    try {
-      const get = await fetch(apiBase, { headers });
-      if (get.ok) { const j = await get.json(); sha = j.sha; }
-    } catch {}
+    // Now history
+    const hEncoded = Buffer.from(JSON.stringify(priceHistory)).toString("base64");
+    await githubCommit(token, repo, "backup/history.json", hEncoded, "History backup " + date);
+    log("✅ GitHub backup: history.json committed");
 
-    // Commit the file
-    const body = {
-      message: "Price backup " + new Date().toISOString().slice(0, 10),
-      content: encoded,
-      ...(sha ? { sha } : {}),
-    };
-
-    const put = await fetch(apiBase, { method: "PUT", headers, body: JSON.stringify(body) });
-    if (put.ok) {
-      log("✅ GitHub backup: prices.json committed to " + repo);
-    } else {
-      const err = await put.json();
-      log("❌ GitHub backup failed: " + (err.message || put.status));
-    }
-  } catch(e) { log("GitHub backup error: " + e.message); }
-}
-
-// ── Backup history to GitHub ─────────────────────────────────────────────────
-async function backupHistoryToGitHub(token, repo, headers) {
-  if (!token || !repo) return;
-  try {
-    const hContent = Buffer.from(JSON.stringify(priceHistory)).toString("base64");
-    const hPath = "backup/history.json";
-    const hBase = "https://api.github.com/repos/" + repo + "/contents/" + hPath;
-    let hSha = null;
-    try { const g = await fetch(hBase, { headers }); if (g.ok) { const j = await g.json(); hSha = j.sha; } } catch {}
-    const hBody = { message: "History backup " + new Date().toISOString().slice(0, 10), content: hContent, ...(hSha ? { sha: hSha } : {}) };
-    const hPut = await fetch(hBase, { method: "PUT", headers, body: JSON.stringify(hBody) });
-    if (hPut.ok) log("✅ GitHub backup: history.json committed");
-    else { const e = await hPut.json(); log("❌ History backup failed: " + (e.message || hPut.status)); }
-  } catch(e) { log("History backup error: " + e.message); }
+  } catch(e) { log("❌ GitHub backup error: " + e.message); }
 }
 
 // ── Restore from GitHub backup on startup (if local files missing) ────────────
