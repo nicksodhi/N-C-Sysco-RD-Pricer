@@ -503,41 +503,90 @@ async function scrapeRD() {
     log("RD: " + lines.length + " lines total");
 
     // RD price parsing strategy:
-    // "Current price: $36.24" alone = CASE price (most items)
-    // "Current price: $24.40" followed by "$2440-$8676" = single-case range
-    //   → $2440 = $24.40/single, $8676 = $86.76/case → USE $86.76
-    // "Current price: $286.24 each (estimated)" = per-lb, skip or use as-is
-    // Need IN-STORE pricing (set by selecting "In-Store" mode in browser)
+    // "Current price: $36.24"              → flat case price, use as-is
+    // "Current price: $24.40" + "$2440-$8676" → range format, higher = case price
+    // "Current price: $76.80 each (est.)"  → by-weight estimate, use as-is (it IS the case price)
+    // "Current price: $76.80 each (estimated)" → same
 
     const priceLines = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+
+      // Match both regular prices AND "each (est.)" / "each (estimated)" weight-based prices
       const m = line.match(/Current price:\s*\$([\d,]+\.[\d]{2})/i);
       if (!m) continue;
+
       const unitPrice = parseFloat(m[1].replace(",", ""));
       if (unitPrice < 0.5 || unitPrice > 5000) continue;
 
-      // Check next 1-2 lines for a range "$XXXX-$YYYY" (no decimal = cents format)
-      let casePrice = unitPrice; // default: current price IS case price
+      // Detect if this is a by-weight estimate
+      const isByWeight = /each\s*\(est/i.test(line) || /final cost by weight/i.test(line);
+
+      // Check next 1-2 lines for a range "$XXXX-$YYYY" (cents format, flat items only)
+      let casePrice = unitPrice;
       let raw = line;
-      for (let k = i + 1; k <= Math.min(i + 2, lines.length - 1); k++) {
-        const rangeLine = lines[k];
-        // "$2440-$8676" format: both numbers without decimal = cents
-        const rangeM = rangeLine.match(/^\$([\d]+)-([\d]+)$/) ||  // no dollar on second
-                       rangeLine.match(/^\$([\d]+)-\$([\d]+)$/);   // dollar on both
-        if (rangeM) {
-          const lo = parseInt(rangeM[1]) / 100;
-          const hi = parseInt(rangeM[2]) / 100;
-          // Higher value is case price, lower is unit price
-          casePrice = Math.max(lo, hi);
-          raw = line + " → case=" + casePrice;
-          break;
+
+      if (!isByWeight) {
+        for (let k = i + 1; k <= Math.min(i + 2, lines.length - 1); k++) {
+          const rangeLine = lines[k];
+          const rangeM = rangeLine.match(/^\$([\d]+)-([\d]+)$/) ||
+                         rangeLine.match(/^\$([\d]+)-\$([\d]+)$/);
+          if (rangeM) {
+            const lo = parseInt(rangeM[1]) / 100;
+            const hi = parseInt(rangeM[2]) / 100;
+            casePrice = Math.max(lo, hi);
+            raw = line + " → case=" + casePrice;
+            break;
+          }
+        }
+      } else {
+        // By-weight items — fixed case weights per item type at Restaurant Depot:
+        // Chicken (wings, breast, leg meat, leg quarters): always 40 lb
+        // Lamb leg: ~40-42 lb (use "About X lb" from page, fallback 40)
+        // Goat bone-in box: always 15 lb
+        const nearby = lines.slice(Math.max(0, i - 5), Math.min(lines.length, i + 10)).join(" ");
+        const perLbM = nearby.match(/\$([\d]+\.[\d]{2})\s*\/\s*lb/i);
+
+        if (perLbM) {
+          const perLb = parseFloat(perLbM[1]);
+
+          // Try to read "About X.X lb each" from page for variable-weight items
+          const aboutLbM = nearby.match(/About\s+([\d.]+)\s+lb/i);
+          const pageWeight = aboutLbM ? parseFloat(aboutLbM[1]) : null;
+
+          // Determine case weight by item context
+          const ctxLower = nearby.toLowerCase();
+          let caseWeight;
+          if (ctxLower.includes("goat")) {
+            caseWeight = 15;
+          } else if (ctxLower.includes("lamb")) {
+            caseWeight = pageWeight || 42; // use actual page weight or fallback 42
+          } else if (ctxLower.includes("chicken") || ctxLower.includes("wings") ||
+                     ctxLower.includes("breast") || ctxLower.includes("thigh") ||
+                     ctxLower.includes("leg")) {
+            caseWeight = 40;
+          } else {
+            caseWeight = pageWeight || 40; // fallback
+          }
+
+          casePrice = Math.round(perLb * caseWeight * 100) / 100;
+          raw = line + " ($" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice + ")";
+          log("RD: by-weight — $" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice);
+        } else {
+          // No per-lb rate found — try "Price estimate: $XX.XX"
+          const estM = nearby.match(/Price estimate:\s*\$([\d,]+\.[\d]{2})/i);
+          if (estM) {
+            casePrice = parseFloat(estM[1].replace(",", ""));
+            raw = line + " (est=" + casePrice + ")";
+          } else {
+            raw = line + " (by weight)";
+          }
         }
       }
 
       if (casePrice < 0.5 || casePrice > 5000) continue;
       const ctx = lines.slice(Math.max(0, i - 10), Math.min(lines.length, i + 15));
-      priceLines.push({ price: casePrice, unitPrice, raw, ctx: ctx.join(" | ") });
+      priceLines.push({ price: casePrice, unitPrice, raw, byWeight: isByWeight, ctx: ctx.join(" | ") });
     }
     log("RD: found " + priceLines.length + " price lines");
     log("RD: contexts: " + JSON.stringify(priceLines.slice(0, 5)));
@@ -549,7 +598,7 @@ async function scrapeRD() {
       "Payment methods","Credits and promos","Your saved lists","Notification settings",
       "Out of stock","Likely out of stock","Temporarily out of stock","Currently out of stock","Item unavailable","See eligible items","Explore popular","Whole","Dairy free",
       "Order approvals","Business settings","Log out","Restaurant Depot","Items","Members",
-      "Settings","Delivery available","each (est.)","each (estimated)","Caffeinated",
+      "Settings","Delivery available","each (est.)","each (estimated)","Final cost by weight","Price estimate","Caffeinated",
       "Caffeine free","Gluten free","Sugar free","Alcohol free","In-Store","DietSugar free",
     ]);
 
