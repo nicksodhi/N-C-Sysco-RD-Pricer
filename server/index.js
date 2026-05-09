@@ -16,9 +16,16 @@ const PRICES_FILE = "/data/nc_prices.json";
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
 const RD_SINGLE_UNIT = new Set(["42647","55519"]); // sold per-unit not per-case
 const RD_PRICE_MAX = {
-  "42647":  15,  // Mint 1 lb (~$5-8)
-  "55519":  25,  // Orchid Flowers (~$5-15)
-  "1070496": 20, // Morton Salt 50lb (~$8-12)
+  "42647":  15,   // Mint 1 lb (~$5-8)
+  "55519":  25,   // Orchid Flowers (~$5-15)
+  "1070496": 20,  // Morton Salt 50lb (~$8-12)
+  "77658":  150,  // Chicken Leg Meat 40lb (~$50-120)
+  "77670":  150,  // Chicken Leg Quarters 40lb (~$30-100)
+  "77232":  200,  // Chicken Breast 40lb (~$60-150)
+  "77682":  200,  // Chicken Thighs 40lb (~$60-150)
+  "77200":  200,  // Chicken Wings 40lb (~$60-150)
+  "79042":  500,  // Lamb Leg (~$150-400)
+  "1810019": 200, // Goat Bone-in 15lb (~$50-150)
 };
 
 
@@ -180,6 +187,8 @@ let matchCache = { rd: {}, sysco: {} }; // { "scraped name": "item_id" }
 const CACHE_SEED = {
   rd: {
     "Fresh Boneless Skinless Chicken Leg Meat": "77658",
+    "Boneless Skinless Chicken Leg Meat": "77658",
+    "Fresh Boneless Skinless Chicken\nLeg Meat": "77658",
     "Fresh Chicken Leg Quarters - 40 lbs": "77670",
     "Boneless Skinless Chicken Breasts": "77232",
     "Herb - Mint - 1 lb": "42647",
@@ -786,6 +795,7 @@ async function scrapeRD() {
             caseWeight = pageWeight || 42; // use actual page weight or fallback 42
           } else if (ctxLower.includes("chicken") || ctxLower.includes("wings") ||
                      ctxLower.includes("breast") || ctxLower.includes("thigh") ||
+                     ctxLower.includes("leg meat") || ctxLower.includes("leg quarter") ||
                      ctxLower.includes("leg")) {
             caseWeight = 40;
           } else {
@@ -899,8 +909,13 @@ async function scrapeRD() {
     // For items in RD_SINGLE_UNIT, search the full page for their name
     // then find the nearest "Current price: $X.XX" within 8 lines
     const singleUnitNames = {
-      "42647": ["Herb - Mint", "Mint - 1 lb", "Herb - Mint-"],
-      "55519": ["Orchid Flowers", "Micro Orchid"],
+      "42647":  ["Herb - Mint", "Mint - 1 lb", "Herb - Mint-"],
+      "55519":  ["Orchid Flowers", "Micro Orchid"],
+      "77658":  ["Chicken Leg Meat", "Boneless Skinless Chicken Leg Meat", "Chicken\nLeg Meat"],
+      "77232":  ["Boneless Skinless Chicken Breast", "Chicken Breast", "Tenders Out"],
+      "77670":  ["Chicken Leg Quarters", "Leg Quarters"],
+      "1810019":["Bone in Goat", "Goat Cube"],
+      "79042":  ["Boneless Lamb Leg", "Halal Boneless Lamb"],
     };
 
     for (const [itemId, nameVariants] of Object.entries(singleUnitNames)) {
@@ -915,7 +930,14 @@ async function scrapeRD() {
       // Scan full lines for this item's name
       for (let li = 0; li < lines.length; li++) {
         const lineText = lines[li];
-        const matched = nameVariants.some(v => lineText.toLowerCase().includes(v.toLowerCase()));
+        const ltLower = lineText.toLowerCase();
+        const matched = nameVariants.some(v => {
+          const vLower = v.toLowerCase();
+          // Strict: must include the variant but NOT be the wrong item
+          if (itemId === "77658" && ltLower.includes("quarter")) return false; // don't match quarters
+          if (itemId === "77670" && ltLower.includes("leg meat")) return false; // don't match leg meat
+          return ltLower.includes(vLower);
+        });
         if (!matched) continue;
 
         // Found the name — look for price within ±10 lines
