@@ -64,25 +64,53 @@ export default function App() {
   const [rd, setRd] = useState({});
   const [sc, setSc] = useState({});
   const [view, setView] = useState("prices");
+  const [pricesView, setPricesView] = useState("list"); // list | history | oos
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
   const [synced, setSynced] = useState(null);
   const [syncing, setSyncing] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState({}); // { itemId: [{date, rd, sc}] }
 
   useEffect(() => {
+    // Load history from storage
+    try {
+      const h = localStorage.getItem("nc_history");
+      if (h) setHistory(JSON.parse(h));
+    } catch {}
     pull().finally(() => setLoading(false));
     const t = setInterval(pull, 5 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
 
+  function saveHistory(rdData, scData) {
+    const today = new Date().toISOString().slice(0, 10);
+    setHistory(prev => {
+      const next = { ...prev };
+      ITEMS.forEach(item => {
+        const rdP = rdData[item.id]?.price;
+        const scP = scData[item.id]?.price;
+        if (!rdP && !scP) return;
+        if (!next[item.id]) next[item.id] = [];
+        // Only add if date not already recorded today
+        if (!next[item.id].find(e => e.date === today)) {
+          next[item.id] = [...next[item.id].slice(-29), { date: today, rd: rdP || null, sc: scP || null }];
+        }
+      });
+      try { localStorage.setItem("nc_history", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
   async function pull() {
     try {
       const r = await fetch("/api/prices"); if (!r.ok) return;
       const d = await r.json();
-      if (d.rd && Object.keys(d.rd).length) setRd(p => ({ ...p, ...d.rd }));
-      if (d.sysco && Object.keys(d.sysco).length) setSc(p => ({ ...p, ...d.sysco }));
+      let newRd = {}, newSc = {};
+      if (d.rd && Object.keys(d.rd).length) { newRd = d.rd; setRd(p => ({ ...p, ...d.rd })); }
+      if (d.sysco && Object.keys(d.sysco).length) { newSc = d.sysco; setSc(p => ({ ...p, ...d.sysco })); }
+      if (Object.keys(newRd).length || Object.keys(newSc).length) saveHistory(newRd, newSc);
       setSynced(new Date().toISOString());
     } catch {}
   }
@@ -139,8 +167,131 @@ export default function App() {
 
       {/* PRICES VIEW */}
       {view === "prices" && (
+        <PricesView
+          rd={rd} sc={sc} loading={loading}
+          cat={cat} setCat={setCat} q={q} setQ={setQ}
+          history={history} synced={synced}
+          pricesView={pricesView} setPricesView={setPricesView}
+          both={both} rdOnly={rdOnly} noPrice={noPrice}
+        />
+      )}
+
+      {/* COMPARE VIEW */}
+      {view === "compare" && <CompareView rd={rd} sc={sc} />}
+
+      {/* ORDER VIEW */}
+      {view === "order" && <OrderView rd={rd} sc={sc} />}
+
+      {/* BOTTOM NAV */}
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", zIndex: 100 }}>
+        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Breakdown"]].map(([id, icon, lbl]) => (
+          <button key={id} onClick={() => setView(id)} style={{ padding: "12px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
+            <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: .3 }}>{lbl}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── PricesView ────────────────────────────────────────────────────────────────
+function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice }) {
+  const [historySearch, setHistorySearch] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  // PDF export
+  function exportPDF() {
+    const date = new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+    const rows = ITEMS.map(item => {
+      const rdP = rd[item.id]?.price;
+      const scP = sc[item.id]?.price;
+      if (!rdP && !scP) return null;
+      const rdBest = rdP && scP ? rdP <= scP : !!rdP;
+      return { name: item.name, emoji: item.emoji, rdP, scP, rdBest };
+    }).filter(Boolean);
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Naan & Curry Price Report</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 700px; margin: 0 auto; padding: 32px; color: #111; }
+  h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #666; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; background: #f5f5f5; border-bottom: 2px solid #ddd; font-size: 11px; letter-spacing: .5px; }
+  td { padding: 9px 10px; border-bottom: 1px solid #eee; }
+  tr:hover td { background: #fafafa; }
+  .green { color: #16A34A; font-weight: 700; }
+  .blue { color: #2563EB; font-weight: 700; }
+  .gray { color: #aaa; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+  .badge-rd { background: #F0FDF4; color: #16A34A; }
+  .badge-sc { background: #EFF6FF; color: #2563EB; }
+  .footer { margin-top: 32px; font-size: 11px; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+<h1>🍛 Naan & Curry — Price Report</h1>
+<div class="sub">${date} · Las Vegas</div>
+<table>
+<thead><tr><th>ITEM</th><th>RESTAURANT DEPOT</th><th>SYSCO</th><th>BUY AT</th></tr></thead>
+<tbody>
+${rows.map(r => `<tr>
+  <td>${r.emoji} ${r.name}</td>
+  <td class="${r.rdP ? (r.rdBest ? "green" : "") : "gray"}">${r.rdP ? "$" + r.rdP.toFixed(2) : "—"}</td>
+  <td class="${r.scP ? (!r.rdBest ? "blue" : "") : "gray"}">${r.scP ? "$" + r.scP.toFixed(2) : "—"}</td>
+  <td><span class="badge ${r.rdBest ? "badge-rd" : "badge-sc"}">${r.rdBest ? "RD" : "Sysco"}</span></td>
+</tr>`).join("")}
+</tbody>
+</table>
+<div class="footer">Generated by Naan & Curry Price Tracker · ${new Date().toISOString()}</div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "naan-curry-prices-" + new Date().toISOString().slice(0,10) + ".html";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // History search results
+  const historyResults = historySearch.length > 1
+    ? ITEMS.filter(i => i.name.toLowerCase().includes(historySearch.toLowerCase()) && history[i.id]?.length > 0)
+    : [];
+
+  // Out of stock — items that were recently seen but now have no price (or flagged)
+  // Since scraper doesn't explicitly flag OOS, show items missing from one vendor but present before
+  const oosItems = ITEMS.filter(item => {
+    const rdP = rd[item.id]?.price;
+    const scP = sc[item.id]?.price;
+    const hasHistory = history[item.id]?.length > 1;
+    // Show if has history but currently missing a vendor price
+    return hasHistory && (!rdP || !scP);
+  });
+
+  return (
+    <div>
+      {/* Sub-nav: List | History | Out of Stock */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #EEEEE9", padding: "10px 16px", display: "flex", gap: 8, alignItems: "center" }}>
+        {[["list","📋 Prices"], ["history","📈 History"], ["oos","⚠️ Out of Stock"]].map(([id, lbl]) => (
+          <button key={id} onClick={() => setPricesView(id)} style={{ padding: "6px 12px", borderRadius: 99, border: "none", background: pricesView === id ? "#111" : "#F0F0EC", color: pricesView === id ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .15s", whiteSpace: "nowrap" }}>
+            {lbl}
+          </button>
+        ))}
+        <button onClick={exportPDF} style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 99, border: "1px solid #E0E0DB", background: "#fff", color: "#555", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+          ↓ PDF
+        </button>
+      </div>
+
+      {/* PRICE LIST */}
+      {pricesView === "list" && (
         <div>
-          {/* Search + categories */}
           <div style={{ background: "#fff", padding: "12px 16px", borderBottom: "1px solid #EEEEE9" }}>
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…"
               style={{ width: "100%", background: "#F7F7F5", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 14, color: "#111", outline: "none", marginBottom: 10 }} />
@@ -154,45 +305,29 @@ export default function App() {
           </div>
 
           <div style={{ padding: "16px 12px 0" }}>
+            {loading && <div style={{ textAlign: "center", padding: "60px 20px", color: "#999", fontSize: 13, fontWeight: 500 }}>Loading prices…</div>}
 
-            {loading && (
-              <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>Loading prices…</div>
-              </div>
-            )}
-
-            {/* Compared items */}
             {!loading && both.length > 0 && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>
-                  COMPARING BOTH VENDORS
-                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>COMPARING BOTH VENDORS</div>
                 {both.map((item, i) => {
-                  const r = rd[item.id].price, s = sc[item.id].price;
-                  const rdBest = r <= s;
+                  const r = rd[item.id].price, s = sc[item.id].price, rdBest = r <= s;
                   return (
                     <div key={item.id} className="fi" style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms" }}>
-                      {/* Top: item name */}
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}>{item.emoji}</span>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                        {/* Best vendor badge */}
                         <div style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: rdBest ? "#F0FDF4" : "#EFF6FF", color: rdBest ? "#16A34A" : "#2563EB" }}>
                           {rdBest ? "Buy at RD" : "Buy at Sysco"}
                         </div>
                       </div>
-                      {/* Bottom: two prices */}
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid #F3F3EF" }}>
                         <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdBest ? "#F7FEF9" : "transparent" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>
-                            {rdBest ? "✓ " : ""}Restaurant Depot
-                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdBest ? "✓ " : ""}Restaurant Depot</div>
                           <div style={{ fontSize: 17, fontWeight: 700, color: rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
                         </div>
                         <div style={{ padding: "10px 14px", background: !rdBest ? "#F0F6FF" : "transparent" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>
-                            {!rdBest ? "✓ " : ""}Sysco
-                          </div>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{!rdBest ? "✓ " : ""}Sysco</div>
                           <div style={{ fontSize: 17, fontWeight: 700, color: !rdBest ? "#2563EB" : "#555" }}>{fmt(s)}</div>
                         </div>
                       </div>
@@ -202,12 +337,9 @@ export default function App() {
               </>
             )}
 
-            {/* RD only */}
             {!loading && rdOnly.length > 0 && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>
-                  RESTAURANT DEPOT ONLY
-                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>RESTAURANT DEPOT ONLY</div>
                 {rdOnly.map((item, i) => (
                   <div key={item.id} className="fi" style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, animationDelay: i * 10 + "ms" }}>
                     <span style={{ fontSize: 20 }}>{item.emoji}</span>
@@ -219,7 +351,6 @@ export default function App() {
               </>
             )}
 
-            {/* Items with no current pricing */}
             {!loading && noPrice.length > 0 && (
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4, display: "flex", alignItems: "center", gap: 6 }}>
@@ -245,24 +376,160 @@ export default function App() {
         </div>
       )}
 
-      {/* COMPARE VIEW */}
-      {view === "compare" && <CompareView rd={rd} sc={sc} />}
+      {/* PRICE HISTORY */}
+      {pricesView === "history" && (
+        <div style={{ padding: "16px 12px 0" }}>
+          <input value={historySearch} onChange={e => { setHistorySearch(e.target.value); setSelectedItem(null); }}
+            placeholder="Search item history…"
+            style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#111", outline: "none", marginBottom: 12 }} />
 
-      {/* ORDER VIEW */}
-      {view === "order" && <OrderView rd={rd} sc={sc} />}
+          {/* Search results */}
+          {historySearch.length > 1 && historyResults.length === 0 && (
+            <div style={{ textAlign: "center", padding: "30px 20px", color: "#999", fontSize: 13 }}>No history found for that item</div>
+          )}
 
-      {/* BOTTOM NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", zIndex: 100 }}>
-        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Breakdown"]].map(([id, icon, lbl]) => (
-          <button key={id} onClick={() => setView(id)} style={{ padding: "12px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
-            <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: .3 }}>{lbl}</div>
-          </button>
-        ))}
-      </div>
+          {historyResults.map(item => (
+            <div key={item.id}>
+              <button onClick={() => setSelectedItem(selectedItem?.id === item.id ? null : item)}
+                style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                <div style={{ fontSize: 11, color: "#999" }}>{history[item.id]?.length || 0} days ›</div>
+              </button>
+
+              {selectedItem?.id === item.id && (
+                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 12 }}>
+                  {/* Header */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
+                  </div>
+                  {[...( history[item.id] || [])].reverse().map((entry, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < history[item.id].length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center" }}>
+                      <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.rd ? "#111" : "#CCC", textAlign: "right" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.sc ? "#111" : "#CCC", textAlign: "right" }}>{entry.sc ? "$" + entry.sc.toFixed(2) : "—"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Show all items with history if no search */}
+          {historySearch.length <= 1 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 10, paddingLeft: 2 }}>
+                ITEMS WITH PRICE HISTORY ({ITEMS.filter(i => history[i.id]?.length > 0).length})
+              </div>
+              {ITEMS.filter(i => history[i.id]?.length > 0).map(item => {
+                const entries = history[item.id] || [];
+                const latest = entries[entries.length - 1];
+                const prev = entries[entries.length - 2];
+                const rdChange = prev?.rd && latest?.rd ? latest.rd - prev.rd : null;
+                const scChange = prev?.sc && latest?.sc ? latest.sc - prev.sc : null;
+                return (
+                  <button key={item.id} onClick={() => setSelectedItem(selectedItem?.id === item.id ? null : item)}
+                    style={{ width: "100%", background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left" }}>
+                    <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                      <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{entries.length} day{entries.length !== 1 ? "s" : ""} of data</div>
+                    </div>
+                    {rdChange !== null && (
+                      <div style={{ fontSize: 11, fontWeight: 700, color: rdChange > 0 ? "#DC2626" : rdChange < 0 ? "#16A34A" : "#999" }}>
+                        RD {rdChange > 0 ? "↑" : rdChange < 0 ? "↓" : "="} ${Math.abs(rdChange).toFixed(2)}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: "#999" }}>›</div>
+                  </button>
+                );
+              })}
+              {ITEMS.filter(i => history[i.id]?.length > 0).length === 0 && (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "#999" }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>No history yet</div>
+                  <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>Prices are recorded daily after the 6am scrape</div>
+                </div>
+              )}
+              {/* Expanded detail for selected item from full list */}
+              {selectedItem && !historySearch && (
+                <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 12, marginTop: -4 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", letterSpacing: .5, textAlign: "right" }}>SYSCO</div>
+                  </div>
+                  {[...(history[selectedItem.id] || [])].reverse().map((entry, i, arr) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < arr.length - 1 ? "1px solid #F3F3EF" : "none" }}>
+                      <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month:"short", day:"numeric" })}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.rd ? "#111" : "#CCC", textAlign: "right" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: entry.sc ? "#111" : "#CCC", textAlign: "right" }}>{entry.sc ? "$" + entry.sc.toFixed(2) : "—"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* OUT OF STOCK */}
+      {pricesView === "oos" && (
+        <div style={{ padding: "16px 12px 0" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 10, paddingLeft: 2 }}>
+            ITEMS MISSING FROM ONE VENDOR
+          </div>
+          {oosItems.length === 0 && (
+            <div style={{ textAlign: "center", padding: "50px 20px", color: "#999" }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>✅</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#555" }}>All items have pricing</div>
+              <div style={{ fontSize: 12, marginTop: 6, color: "#BBB" }}>No stock issues detected</div>
+            </div>
+          )}
+          {oosItems.map((item, i) => {
+            const rdP = rd[item.id]?.price;
+            const scP = sc[item.id]?.price;
+            return (
+              <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                  <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
+                    <span style={{ color: rdP ? "#16A34A" : "#DC2626", fontWeight: 600 }}>
+                      {rdP ? "RD ✓ " + fmt(rdP) : "RD — no price"}
+                    </span>
+                    <span style={{ color: scP ? "#2563EB" : "#DC2626", fontWeight: 600 }}>
+                      {scP ? "Sysco ✓ " + fmt(scP) : "Sysco — no price"}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626" }}>
+                  {!rdP && !scP ? "Both" : !rdP ? "No RD" : "No Sysco"}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Also show items with zero history and no current price */}
+          {ITEMS.filter(i => !rd[i.id] && !sc[i.id] && !history[i.id]?.length).length > 0 && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>NEVER SCRAPED</div>
+              {ITEMS.filter(i => !rd[i.id] && !sc[i.id] && !history[i.id]?.length).map(item => (
+                <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
+                  <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
+                  <div style={{ fontSize: 11, color: "#BBB" }}>No data</div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
 
 function CompareView({ rd, sc }) {
   const [list, setList] = useState("");
