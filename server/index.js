@@ -21,7 +21,7 @@ function loadPrices() {
       return data;
     }
   } catch(e) { console.log("Could not load prices:", e.message); }
-  return { rd: {}, sysco: {}, lastUpdated: null };
+  return { rd: {}, sysco: {}, lastUpdated: null, oos: { rd: [], sysco: [] } };
 }
 
 function savePrices() {
@@ -29,12 +29,13 @@ function savePrices() {
     fs.writeFileSync(PRICES_FILE, JSON.stringify({
       rd: priceStore.rd,
       sysco: priceStore.sysco,
-      lastUpdated: priceStore.lastUpdated
+      lastUpdated: priceStore.lastUpdated,
+      oos: priceStore.oos
     }));
   } catch(e) { console.log("Could not save prices:", e.message); }
 }
 
-let priceStore = { ...loadPrices(), log: [] };
+let priceStore = { ...loadPrices(), log: [], oos: { rd: [], sysco: [] } };
 
 const log = (msg) => {
   console.log(msg);
@@ -370,15 +371,29 @@ async function scrapeRD() {
       }
 
       if (bestName && pl.price > 0) {
-        items.push({ name: bestName, price: pl.price, raw: pl.raw });
+        // Check context for "Out of stock" near this item
+        const isOos = pl.ctx.toLowerCase().includes("out of stock");
+        items.push({ name: bestName, price: pl.price, raw: pl.raw, outOfStock: isOos });
         seen.add(bestName);
       } else {
         log("RD: no name for $" + pl.price + " | " + ctxLines.filter(isProductName).join(" / "));
       }
     }
 
+    // Also scan for items explicitly marked out of stock with no price
+    const oosNames = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === "Out of stock") {
+        // Look nearby for a product name
+        const nearCtx = lines.slice(Math.max(0, i - 5), Math.min(lines.length, i + 5));
+        const name = nearCtx.find(l => isProductName(l) && !seen.has(l));
+        if (name) { oosNames.push(name); seen.add(name); }
+      }
+    }
+    if (oosNames.length) log("RD: out-of-stock items: " + oosNames.join(", "));
+
     log("RD: " + items.length + " items extracted: " + JSON.stringify(items.slice(0, 10)));
-    return { success: true, items };
+    return { success: true, items, oosNames };
   } catch(e) {
     log("RD FATAL: " + e.message);
     return { success: false, error: e.message, items: [] };
@@ -470,18 +485,73 @@ async function scrapeSysco() {
     }
     log("Sysco: Search List input found");
 
-    // Search each item by name keyword and extract price
+    // Step 1: Clear search to show ALL items, scrape every UPC visible on the list
+    // This auto-discovers any new items you added to Nick List in Sysco
+    await searchInput.click({ clickCount: 3 });
+    await page.keyboard.press("Backspace");
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Scroll through entire list to load all rows
+    for (let s = 0; s < 20; s++) {
+      await page.evaluate(() => window.scrollBy(0, 400));
+      await new Promise(r => setTimeout(r, 200));
+    }
+    await new Promise(r => setTimeout(r, 1000));
+
+    // Read ALL rows currently visible — captures every item on the Nick List
+    const allDiscovered = await page.evaluate(() => {
+      const rows = document.querySelectorAll("[class*='product-item-row']");
+      const found = [];
+      rows.forEach(row => {
+        const nameEl = row.querySelector("[class*='item-details-col']");
+        const priceEl = row.querySelector("[class*='price-col']");
+        if (!nameEl || !priceEl) return;
+        const text = row.innerText;
+        // Extract UPC — usually a 7-digit number in the item details
+        const upcM = text.match(/\b(\d{7})\b/);
+        const name = nameEl.innerText.trim().split("\n")[0].trim();
+        const priceText = priceEl.innerText.trim();
+        const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+        const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
+        const m = csM || anyM;
+        if (upcM && m && name) {
+          found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: priceText });
+        }
+      });
+      return found;
+    });
+
+    // Auto-update SYSCO_ITEMS with any newly discovered SKUs
+    const knownIds = new Set(SYSCO_ITEMS.map(i => i.id));
+    let newItemsFound = 0;
+    allDiscovered.forEach(disc => {
+      if (!knownIds.has(disc.upc)) {
+        SYSCO_ITEMS.push({ id: disc.upc, name: disc.name, pack: "" });
+        knownIds.add(disc.upc);
+        newItemsFound++;
+        log("Sysco: 🆕 New SKU discovered: " + disc.upc + " " + disc.name);
+      }
+    });
+    if (newItemsFound > 0) log("Sysco: " + newItemsFound + " new SKUs added to list");
+
+    // Step 2: Now search each item (known + newly discovered) for accurate UPC-confirmed prices
     const allItems = new Map();
 
+    // First populate from bulk discovery (items already visible)
+    allDiscovered.forEach(disc => {
+      allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw });
+    });
+    log("Sysco: bulk discovery got " + allItems.size + " items");
+
+    // Step 3: For known SKUs not caught by bulk, search individually to confirm
     for (const item of SYSCO_ITEMS) {
+      if (allItems.has(item.id)) continue; // already found
       try {
-        // Clear search and type keyword (use first distinctive word of product name)
         const keyword = item.name.split(" ").slice(0, 2).join(" ");
-        await searchInput.click({ clickCount: 3 }); // select all
+        await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
         await new Promise(r => setTimeout(r, 2000));
 
-        // Extract visible rows after search
         const results = await page.evaluate((upc) => {
           const rows = document.querySelectorAll("[class*='product-item-row']");
           const found = [];
@@ -492,7 +562,6 @@ async function scrapeSysco() {
             if (!nameEl || !priceEl) return;
             const name = nameEl.innerText.trim().split("\n")[0].trim();
             const priceText = priceEl.innerText.trim();
-            // Check UPC appears in row
             const hasUpc = text.includes(upc);
             const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
             const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
@@ -502,17 +571,14 @@ async function scrapeSysco() {
           return found;
         }, item.id);
 
-        // Prefer row where UPC matches exactly
         const exact = results.find(r => r.hasUpc);
         const best = exact || results[0];
         if (best) {
-          log("Sysco: " + item.name + " → $" + best.price + " (upc match=" + !!exact + ")");
+          log("Sysco: " + item.name + " → $" + best.price + " (search fallback)");
           allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
         } else {
-          log("Sysco: " + item.name + " (" + item.id + ") no results for keyword '" + keyword + "'");
+          log("Sysco: " + item.name + " not found in search");
         }
-
-        // Clear search for next item
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.press("Backspace");
         await new Promise(r => setTimeout(r, 500));
@@ -522,7 +588,7 @@ async function scrapeSysco() {
     }
 
     const items = Array.from(allItems.values());
-    log("Sysco: " + items.length + "/" + SYSCO_ITEMS.length + " items found: " + JSON.stringify(items));
+    log("Sysco: " + items.length + " items total (including " + newItemsFound + " new): " + JSON.stringify(items.slice(0, 5)));
     return { success: true, items };
   } catch(e) {
     log("Sysco FATAL: " + e.message);
@@ -547,6 +613,29 @@ async function runScrape(source = "all") {
         matched.forEach(({ id, price }) => {
           if (id && price > 0) priceStore.rd[id] = { price, date: new Date().toISOString() };
         });
+        // Store out-of-stock flags
+        const oosIds = [];
+        if (result.oosNames) {
+          result.oosNames.forEach(oosName => {
+            // Match OOS name to RD_ITEMS
+            const match = matched.find(m => {
+              const item = RD_ITEMS.find(i => i.id === m.id);
+              return item && oosName.toLowerCase().includes(item.name.toLowerCase().split(" ")[0].toLowerCase());
+            });
+            if (match) oosIds.push(match.id);
+          });
+        }
+        // Also flag items where scraper found outOfStock=true
+        result.items.filter(i => i.outOfStock).forEach(item => {
+          const aiMatch = matched.find(m => {
+            const rdItem = RD_ITEMS.find(r => r.id === m.id);
+            return rdItem && item.name.toLowerCase().includes(rdItem.name.toLowerCase().split(" ")[0].toLowerCase());
+          });
+          if (aiMatch && !oosIds.includes(aiMatch.id)) oosIds.push(aiMatch.id);
+        });
+        if (!priceStore.oos) priceStore.oos = { rd: [], sysco: [] };
+        priceStore.oos.rd = oosIds;
+        if (oosIds.length) log("RD: out-of-stock IDs: " + oosIds.join(", "));
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
         savePrices();
       } else { log("❌ RD: " + (result.error || "no items")); }
@@ -579,7 +668,12 @@ async function runScrape(source = "all") {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
-app.get("/api/prices", (req, res) => res.json(priceStore));
+app.get("/api/prices", (req, res) => res.json({
+  rd: priceStore.rd,
+  sysco: priceStore.sysco,
+  lastUpdated: priceStore.lastUpdated,
+  oos: priceStore.oos || { rd: [], sysco: [] },
+}));
 app.get("/api/status", (req, res) => res.json({
   status: "running",
   lastUpdated: priceStore.lastUpdated,
