@@ -136,6 +136,8 @@ async function restoreFromGitHub() {
     saveCache();
     saveCrossVendor();
     log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
+    // Record today's prices into history immediately after restore
+    recordHistory();
 
     // Also restore history
     try {
@@ -193,6 +195,9 @@ const CACHE_SEED = {
     "Jumbo Chicken Party Wings 6-8 ct": "77200",
     "Boneless Skinless Chicken Breasts": "77232",
     "Boneless, Skinless Chicken Breasts, Tenders Out, Dry": "77232",
+    "Morton - Purex Salt - 50lb": "1070496",
+    "Morton Purex Salt 50lb": "1070496",
+    "Purex Salt - 50lb": "1070496",
   },
   sysco: {
     "Onion Yellow Jumbo Bag": "1048222",
@@ -326,6 +331,18 @@ const RD_SINGLE_UNIT = new Set([
   "55519",  // Micro Orchid Flowers - 4 oz
 ]);
 
+// Max reasonable price per item — catches scraper bleed from adjacent items
+// If scraped price exceeds this, it's almost certainly a misread
+const RD_PRICE_MAX = {
+  "42647":  20,   // Mint 1 lb — should be ~$5-10
+  "55519":  25,   // Orchid Flowers — should be ~$5-15
+  "1070496": 20,  // Morton Salt 50lb — should be ~$8-12
+  "21051":   30,  // Sugar 25lb — should be ~$15-25
+  "2061212": 50,  // All Purpose Flour 25lb — should be ~$25-40
+  "42566":   30,  // Cilantro — should be ~$10-20
+  "42647":   15,  // Mint — should be ~$5-8
+};
+
 // ── Sysco Nick List: exact Sysco UPCs from Nick List PDF ─────────────────────
 // Prices from Sysco PDF: CS = case price
 const SYSCO_ITEMS = [
@@ -406,7 +423,11 @@ function saveHistory() {
 }
 
 function recordHistory() {
-  const today = new Date().toISOString().slice(0, 10);
+  // Use Las Vegas local date (UTC-7 or UTC-8 depending on DST)
+  const now = new Date();
+  const lvOffset = -7 * 60; // PDT (UTC-7), change to -8 for PST
+  const lvTime = new Date(now.getTime() + (now.getTimezoneOffset() + lvOffset) * 60000);
+  const today = lvTime.toISOString().slice(0, 10);
   let changed = false;
   // Go through every item we have prices for
   const allIds = new Set([...Object.keys(priceStore.rd), ...Object.keys(priceStore.sysco)]);
@@ -1113,7 +1134,19 @@ async function runScrape(source = "all") {
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
         matched.forEach(({ id, price }) => {
-          if (id && price > 0) priceStore.rd[id] = {
+          if (!id || price <= 0) return;
+          // Sanity check against known max prices — catches adjacent-item bleed
+          const maxPrice = RD_PRICE_MAX[id];
+          if (maxPrice && price > maxPrice) {
+            log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (max expected $" + maxPrice + ")");
+            return;
+          }
+          // Also check single-unit items with generic $25 ceiling
+          if (RD_SINGLE_UNIT.has(id) && !maxPrice && price > 25) {
+            log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + price);
+            return;
+          }
+          priceStore.rd[id] = {
             price,
             date: new Date().toISOString(),
             unit: RD_SINGLE_UNIT.has(id) ? "each" : "case"
