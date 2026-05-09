@@ -877,6 +877,65 @@ async function scrapeRD() {
       }
     }
 
+    // ── Targeted scan for single-unit items that normal extraction misses ────────
+    // For items in RD_SINGLE_UNIT, search the full page for their name
+    // then find the nearest "Current price: $X.XX" within 8 lines
+    const singleUnitNames = {
+      "42647": ["Herb - Mint", "Mint - 1 lb", "Herb - Mint-"],
+      "55519": ["Orchid Flowers", "Micro Orchid"],
+    };
+
+    for (const [itemId, nameVariants] of Object.entries(singleUnitNames)) {
+      if (seen.has(itemId + "_found")) continue; // already found via normal extraction
+      // Check if already found by name
+      const alreadyFound = items.find(i => {
+        const cache = matchCache.rd || {};
+        return Object.entries(cache).find(([k, v]) => v === itemId && i.name === k);
+      });
+      if (alreadyFound) continue;
+
+      // Scan full lines for this item's name
+      for (let li = 0; li < lines.length; li++) {
+        const lineText = lines[li];
+        const matched = nameVariants.some(v => lineText.toLowerCase().includes(v.toLowerCase()));
+        if (!matched) continue;
+
+        // Found the name — look for price within ±10 lines
+        let foundPrice = null;
+        for (let offset = -10; offset <= 10; offset++) {
+          const idx = li + offset;
+          if (idx < 0 || idx >= lines.length) continue;
+          const pm = lines[idx].match(/Current price:\s*\$([\d.]+)/i);
+          if (pm) {
+            const p = parseFloat(pm[1]);
+            const max = RD_PRICE_MAX[itemId];
+            if (p > 0 && (!max || p <= max)) {
+              foundPrice = p;
+              break;
+            }
+          }
+        }
+
+        if (foundPrice) {
+          const itemName = lineText.trim();
+          if (isProductName(itemName) && !seen.has(itemName)) {
+            items.push({ name: itemName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
+            seen.add(itemName);
+            log("RD: 🎯 Targeted scan found " + itemId + " '" + itemName + "' = $" + foundPrice);
+          } else {
+            // Use the name from cache seed instead
+            const cacheName = Object.entries(matchCache.rd || {}).find(([k, v]) => v === itemId)?.[0];
+            if (cacheName && !seen.has(cacheName)) {
+              items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
+              seen.add(cacheName);
+              log("RD: 🎯 Targeted scan found " + itemId + " (cache name) = $" + foundPrice);
+            }
+          }
+          break;
+        }
+      }
+    }
+
     // Detect OOS items — catch all RD out-of-stock phrasings:
     // "Out of stock", "Likely out of stock", "Temporarily out of stock", etc.
     const OOS_PATTERNS = [
