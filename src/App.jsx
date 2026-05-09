@@ -94,8 +94,20 @@ export default function App() {
         const scP = scData[item.id]?.price;
         if (!rdP && !scP) return;
         if (!next[item.id]) next[item.id] = [];
-        // Only add if date not already recorded today
-        if (!next[item.id].find(e => e.date === today)) {
+        const existingIdx = next[item.id].findIndex(e => e.date === today);
+        if (existingIdx >= 0) {
+          // Update today's entry — merge in any new prices (don't overwrite with null)
+          const existing = next[item.id][existingIdx];
+          const updated = {
+            date: today,
+            rd: rdP || existing.rd || null,
+            sc: scP || existing.sc || null,
+          };
+          const arr = [...next[item.id]];
+          arr[existingIdx] = updated;
+          next[item.id] = arr;
+        } else {
+          // New entry for today
           next[item.id] = [...next[item.id].slice(-29), { date: today, rd: rdP || null, sc: scP || null }];
         }
       });
