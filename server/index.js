@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.static(path.join(__dirname, "../build")));
 
-// ── Price store (in-memory, persists while server runs) ───────────────────────
+// ── Price store ───────────────────────────────────────────────────────────────
 let priceStore = { rd: {}, sysco: {}, lastUpdated: null, log: [] };
 const log = (msg) => {
   console.log(msg);
@@ -17,62 +17,96 @@ const log = (msg) => {
   if (priceStore.log.length > 500) priceStore.log.pop();
 };
 
-// ── Item master list ──────────────────────────────────────────────────────────
-const ITEMS = [
-  { id: "42599",    name: "Russet Potatoes" },
-  { id: "44146",    name: "Peeled Garlic" },
-  { id: "42513",    name: "Fresh Ginger" },
-  { id: "1440528",  name: "Paneer" },
-  { id: "42566",    name: "Cilantro" },
-  { id: "44137",    name: "Serrano Peppers" },
-  { id: "42658",    name: "Red Onions" },
-  { id: "42545",    name: "Yellow Onions" },
-  { id: "42504",    name: "Cucumbers" },
-  { id: "1530438",  name: "Heavy Cream" },
-  { id: "370496",   name: "Whole Milk" },
-  { id: "14785",    name: "Plain Yogurt" },
-  { id: "1440204",  name: "Cheddar Jack Cheese" },
-  { id: "77200",    name: "Chicken Wings" },
-  { id: "77670",    name: "Chicken Leg Quarters" },
-  { id: "77682",    name: "Chicken Thighs Boneless" },
-  { id: "1810019",  name: "Goat Bone-in Cubed" },
-  { id: "79042",    name: "Lamb Leg Boneless Halal" },
-  { id: "77595",    name: "Chicken Thigh Meat Frozen" },
-  { id: "77597",    name: "Chicken Leg Meat Frozen Marinated" },
-  { id: "51457",    name: "Tilapia Fillets Frozen" },
-  { id: "64046",    name: "Chopped Spinach Frozen" },
-  { id: "64120",    name: "Broccoli Florets Frozen" },
-  { id: "86527",    name: "Mixed Vegetables Frozen" },
-  { id: "86525",    name: "Green Peas Frozen" },
-  { id: "2910159",  name: "Cornstarch" },
-  { id: "16200",    name: "Garbanzo Beans" },
-  { id: "69810",    name: "Red Kidney Beans" },
-  { id: "860044",   name: "Tomato Sauce" },
-  { id: "860135",   name: "Petite Diced Tomatoes" },
-  { id: "490266",   name: "Basmati Rice Extra Long Grain" },
-  { id: "490219",   name: "Sela Basmati Rice" },
-  { id: "21051",    name: "Granulated Sugar" },
-  { id: "1070496",  name: "Salt" },
-  { id: "29268",    name: "Baking Powder" },
-  { id: "53556",    name: "Atta Flour Durum Wheat" },
-  { id: "1020152",  name: "Liquid Butter Alt" },
-  { id: "13417",    name: "Sambal Oelek Chili Paste" },
-  { id: "1020079",  name: "Canola Oil" },
-  { id: "1020075",  name: "Soybean Oil" },
-  { id: "1020077",  name: "Fry Oil" },
-  { id: "2550014",  name: "Red Food Coloring" },
-  { id: "25267",    name: "Roasted Eggplant Pulp" },
-  { id: "12728",    name: "Pan Spray" },
-  { id: "21039",    name: "Spring Water Evian" },
-  { id: "440040",   name: "Sprite" },
-  { id: "440039",   name: "Diet Coke" },
-  { id: "55519",    name: "Micro Orchid Flowers" },
-  // Sysco-specific items from Nick List
-  { id: "SC-ONION-Y",  name: "Onion Yellow Jumbo Bag" },
-  { id: "77682",       name: "Chicken Thighs Boneless Skinless Frozen" },
-  { id: "77670",       name: "Chicken Legs Quarters Jumbo" },
-  { id: "SC-LEG-H",   name: "Chicken Leg Quarter Small Halal" },
-  { id: "77597",       name: "Chicken Leg Meat Boneless Skinless" },
+// ── EXACT item lists from PDFs ────────────────────────────────────────────────
+// RD items: Item ID from order guide PDF
+const RD_ITEMS = [
+  { id: "860135",  name: "Isabella - Petite Diced Tomatoes -#10 cans" },
+  { id: "860043",  name: "Chef's Quality - Tomato Puree - 6 lb Can" },
+  { id: "860044",  name: "Chef's Quality - Tomato Sauce - #10 cans" },
+  { id: "45900",   name: "Chef's Quality - White Vinegar - gallon" },
+  { id: "12728",   name: "Chef's Quality - All Purpose Pan Spray - 17 oz" },
+  { id: "1020152", name: "Chef's Quality - Liquid Butter Alternative - gallon" },
+  { id: "1020079", name: "Chef's Quality - 100% Canola Salad Oil - 35 lbs" },
+  { id: "1020077", name: "Chef's Quality - Clear Liquid Fry Oil - 35 lbs" },
+  { id: "25267",   name: "Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg" },
+  { id: "16200",   name: "Chef's Quality - Garbanzo Beans - #10 can" },
+  { id: "69810",   name: "Chef's Quality - Dark Red Kidney Beans - #10 cans" },
+  { id: "490266",  name: "Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs" },
+  { id: "2620442", name: "A ROY-D - COCONUT MILK REGULAR - 400ML" },
+  { id: "13417",   name: "Huy Fong - Sambal Olek - 3/136 oz" },
+  { id: "2550014", name: "Felbro - Red Food Coloring - gallon" },
+  { id: "2550012", name: "Felbro - Egg Yellow Food Coloring - gallon" },
+  { id: "1070496", name: "Morton - Purex Salt - 50lb" },
+  { id: "21051",   name: "C&H - Granulated Sugar - 25 lbs" },
+  { id: "2910159", name: "Clabber Girl Cornstarch - 3 lbs" },
+  { id: "29268",   name: "Clabber Girl - Baking Powder - 5 lbs" },
+  { id: "2061212", name: "Chef's Quality - All Purpose Flour - 25 lb Bag" },
+  { id: "53556",   name: "Golden Temple - Durum Atta Flour - 2/20 lb Bag" },
+  { id: "440039",  name: "Diet Coke Bottles - 24 Pack" },
+  { id: "440040",  name: "Sprite Bottles - 4 Pack" },
+  { id: "440038",  name: "Coca-Cola Bottles - 24 Pack" },
+  { id: "55523",   name: "Chef's Quality - Lemon Juice - gallon" },
+  { id: "1440528", name: "Royal Mahout - Paneer Loaf - 5 lbs" },
+  { id: "1440203", name: "James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs" },
+  { id: "370496",  name: "MILK WHL GAL GS/AN" },
+  { id: "1530438", name: "James Farm - Heavy Cream 40% - 64 oz" },
+  { id: "14785",   name: "James Farm - Plain Yogurt - 32 lbs" },
+  { id: "40212",   name: "SHRP P&D TF 16-20 FROZEN SEAFOOD" },
+  { id: "51457",   name: "Frozen Tilapia Fillets - 3-5 oz - 10 lbs" },
+  { id: "64120",   name: "Frozen James Farm - IQF Broccoli Florets - 2 lbs" },
+  { id: "64046",   name: "Frozen James Farm - Frozen Chopped Spinach - 3 lbs" },
+  { id: "86525",   name: "Frozen James Farm - IQF Peas - 2.5 lbs" },
+  { id: "86527",   name: "Frozen James Farm - IQF Mixed Vegetables - 2.5 lbs" },
+  { id: "44211",   name: "Cleaned Spinach - 2.5 lbs" },
+  { id: "44137",   name: "Serrano Peppers" },
+  { id: "42570",   name: "Lemons 71-115 ct" },
+  { id: "42513",   name: "Fresh Ginger - 30 lbs" },
+  { id: "44146",   name: "Peeled Garlic" },
+  { id: "42504",   name: "Cucumbers - 6 ct" },
+  { id: "42606",   name: "White Cauliflower" },
+  { id: "43431",   name: "Green Bell Peppers - 9 ct" },
+  { id: "42566",   name: "Taylor Farms - Bagged Cilantro" },
+  { id: "42647",   name: "Herb - Mint - 1 lb" },
+  { id: "55519",   name: "Micro Orchid Flowers - 4 oz" },
+  { id: "42725",   name: "Russet Potato - 50 lb" },
+  { id: "42545",   name: "Jumbo Spanish Onions - 50 lbs" },
+  { id: "42658",   name: "Jumbo Red Onions - 25 lbs" },
+  { id: "77200",   name: "Jumbo Chicken Party Wings 6-8 ct" },
+  { id: "77670",   name: "Fresh Chicken Leg Quarters - 40 lbs" },
+  { id: "77658",   name: "Fresh Boneless Skinless Chicken Leg Meat" },
+  { id: "77232",   name: "Boneless Skinless Chicken Breasts" },
+  { id: "79152",   name: "Carrots - 10 lb" },
+  { id: "1810019", name: "Thomas Farms - Bone in Goat Cube - #15" },
+  { id: "79042",   name: "Frozen Halal Boneless Lamb Leg Australia" },
+  { id: "21039",   name: "Evian - Natural Spring Water 24 Ct" },
+  { id: "490219",  name: "Royal Sela Basmati Rice - 40 lbs" },
+  { id: "77595",   name: "Chicken Thigh Meat Frozen" },
+  { id: "77597",   name: "Chicken Leg Meat Frozen Marinated" },
+];
+
+// Sysco Nick List items: Sysco UPC from Nick List PDF
+const SYSCO_ITEMS = [
+  { id: "1048222", name: "Onion Yellow Jumbo Bag", pack: "1/25 LB" },
+  { id: "8053456", name: "Chicken Cvp Thighs Boneless - Skinless Frozen", pack: "4/10 LB" },
+  { id: "4418117", name: "Chicken Legs Quarters Jumbo Controlled Vacuum", pack: "1/40LB" },
+  { id: "1803287", name: "Chicken Cvp Leg Quarter Small Halal", pack: "4/10LB" },
+  { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless", pack: "4/10 LB" },
+  { id: "8379251", name: "Flour All Purpose Hotel & Restaurant Bleached", pack: "1/25LB" },
+  { id: "4002325", name: "Tomato Puree 1.06 Fancy California", pack: "6/#10" },
+  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life Stabilized", pack: "12/32OZ" },
+  { id: "4676306", name: "Milk Whole Gallon", pack: "4/1 GAL" },
+  { id: "4119079", name: "Oil Soybean Vegetable Pure", pack: "1/35LB" },
+  { id: "5087572", name: "Sugar Granulated Extra Fine Cane", pack: "1/25LB" },
+  { id: "4518403", name: "Shortening Fry Liquid Clear Zero Trans Fat", pack: "1/35LB" },
+  { id: "3355757", name: "Butter-it Alternative Liquid Zero Trans Fat", pack: "3/1 GAL" },
+  { id: "4063095", name: "Juice Lemon Pasteurized Ultra Premium", pack: "6/.5 GAL" },
+  { id: "1543164", name: "Potato Baking Russet 40 Count Fresh", pack: "1/50LB" },
+];
+
+// Combined list for grocery matching (both vendors)
+const ALL_ITEMS = [
+  ...RD_ITEMS.map(i => ({ ...i, vendor: "rd" })),
+  ...SYSCO_ITEMS.map(i => ({ ...i, vendor: "sysco" })),
 ];
 
 // ── Claude API proxy ──────────────────────────────────────────────────────────
@@ -90,13 +124,18 @@ app.post("/api/claude", async (req, res) => {
 });
 
 // ── AI price matching ─────────────────────────────────────────────────────────
-async function matchWithAI(scrapedItems, source) {
+async function matchWithAI(scrapedItems, itemList, source) {
   if (!scrapedItems.length) return [];
-  const list = ITEMS.map(i => `${i.id}: ${i.name}`).join("\n");
+  const list = itemList.map(i => `${i.id}: ${i.name}`).join("\n");
   const scraped = scrapedItems.slice(0, 100).map(i => `${i.name}: $${i.price}`).join("\n");
-  const prompt = `Match these ${source} items to our product list. Only match if confident.
-SCRAPED:\n${scraped}\nOUR LIST:\n${list}
-Return ONLY JSON array: [{"id":"ITEM_ID","price":0.00}]`;
+  const prompt = `Match these ${source} grocery items to our exact product list. Only match if very confident it is the same product.
+
+SCRAPED ITEMS:\n${scraped}
+
+OUR PRODUCT LIST (id: name):\n${list}
+
+Return ONLY a JSON array, no markdown:
+[{"id":"ITEM_ID","price":0.00,"matched":"scraped name"}]`;
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -107,193 +146,134 @@ Return ONLY JSON array: [{"id":"ITEM_ID","price":0.00}]`;
     const txt = data.content?.find(b => b.type === "text")?.text || "[]";
     const m = txt.match(/\[[\s\S]*\]/);
     return m ? JSON.parse(m[0]) : [];
-  } catch(e) { return []; }
+  } catch(e) { log("AI match error: " + e.message); return []; }
 }
 
-// ── RD Scraper using Puppeteer with full diagnostic logging ───────────────────
-async function scrapeRD() {
-  log("🟢 RD: launching browser...");
+// ── Browser launch ────────────────────────────────────────────────────────────
+async function launchBrowser() {
   const chromium = require("@sparticuz/chromium");
   const puppeteer = require("puppeteer-core");
+  const execPath = await chromium.executablePath();
+  log("Browser: " + execPath);
+  return puppeteer.launch({
+    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
+    executablePath: execPath,
+    headless: chromium.headless,
+    timeout: 30000,
+  });
+}
+
+// ── RD Scraper ────────────────────────────────────────────────────────────────
+async function scrapeRD() {
+  log("🟢 RD: starting...");
   let browser;
   try {
-    const execPath = await chromium.executablePath();
-    log(`RD: chromium at ${execPath}`);
-    browser = await puppeteer.launch({
-      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
-      executablePath: execPath,
-      headless: chromium.headless,
-      timeout: 30000,
-    });
+    browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
 
-    // Step 1: SSO login
-    log("RD: going to SSO init URL...");
-    try {
-      await page.goto(
-        "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
-        { waitUntil: "domcontentloaded", timeout: 45000 }
-      );
-    } catch(e) { log(`RD: SSO nav error: ${e.message}`); }
+    // Login via SSO
+    log("RD: SSO login...");
+    await page.goto(
+      "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
+      { waitUntil: "domcontentloaded", timeout: 45000 }
+    ).catch(e => log("RD SSO nav: " + e.message));
     await new Promise(r => setTimeout(r, 5000));
-    log(`RD: after SSO goto, URL=${page.url()}`);
+    log("RD: URL=" + page.url());
 
-    // Step 2: Find and fill login form
-    const inputs = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, name: i.name, id: i.id, placeholder: i.placeholder }))
-    );
-    log(`RD: inputs on page: ${JSON.stringify(inputs)}`);
-    log(`RD: page title: ${await page.title()}`);
+    await page.waitForSelector('#email, input[type="email"]', { timeout: 20000 });
+    await page.click('#email, input[type="email"]');
+    await page.keyboard.type(process.env.RD_EMAIL, { delay: 50 });
+    await page.click('input[type="password"]');
+    await page.keyboard.type(process.env.RD_PASSWORD, { delay: 50 });
+    await page.click('button[type="submit"]');
+    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log("RD login nav: " + e.message));
+    await new Promise(r => setTimeout(r, 4000));
+    log("RD: after login=" + page.url());
 
-    const hasEmail = inputs.find(i => i.type === "email" || i.id === "email" || i.name === "email");
-    const hasPass = inputs.find(i => i.type === "password");
-
-    if (!hasEmail && !hasPass) {
-      log("RD: no login form found, trying login page button...");
-      try {
-        await page.goto("https://member.restaurantdepot.com/login", { waitUntil: "domcontentloaded", timeout: 30000 });
-      } catch(e) { log(`RD: login page nav error: ${e.message}`); }
-      await new Promise(r => setTimeout(r, 4000));
-      log(`RD: login page URL=${page.url()}`);
-
-      // Click the SSO button (only button on page)
-      await page.evaluate(() => { const b = document.querySelector("button"); if (b) b.click(); });
-      log("RD: clicked SSO button");
-      await new Promise(r => setTimeout(r, 6000));
-      log(`RD: after button click URL=${page.url()}`);
-
-      // Re-check inputs
-      const inputs2 = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, name: i.name, id: i.id }))
-      );
-      log(`RD: inputs after button click: ${JSON.stringify(inputs2)}`);
-    }
-
-    // Step 3: Fill credentials wherever the form is
-    try {
-      await page.waitForSelector('#email, input[type="email"]', { timeout: 15000 });
-      await page.click('#email, input[type="email"]');
-      await page.keyboard.type(process.env.RD_EMAIL, { delay: 60 });
-      log("RD: email typed");
-      await page.click('input[type="password"]');
-      await page.keyboard.type(process.env.RD_PASSWORD, { delay: 60 });
-      log("RD: password typed");
-      await page.click('button[type="submit"]');
-      log("RD: submit clicked");
-    } catch(e) { log(`RD: form fill error: ${e.message}`); }
-
-    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log(`RD: post-login nav: ${e.message}`));
-    await new Promise(r => setTimeout(r, 5000));
-    log(`RD: after login URL=${page.url()}`);
-
-    // Step 4: Go to order guide
-    log("RD: going to order guide...");
-    try {
-      await page.goto(
-        "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
-        { waitUntil: "domcontentloaded", timeout: 60000 }
-      );
-    } catch(e) { log(`RD: order guide nav error: ${e.message}`); }
+    // Go to order guide
+    await page.goto(
+      "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
+      { waitUntil: "domcontentloaded", timeout: 60000 }
+    ).catch(e => log("RD order guide nav: " + e.message));
     await new Promise(r => setTimeout(r, 8000));
-    log(`RD: order guide URL=${page.url()}, title=${await page.title()}`);
+    log("RD: order guide=" + page.url());
 
-    // Step 5: Wait for items to load, then scroll
-    await page.waitForSelector('[class*="product"], [class*="item-card"], [class*="order-guide"]', { timeout: 15000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 3000));
-
-    // Log what's on the page before scrolling
-    const rdPageInfo = await page.evaluate(() => ({
-      bodyLen: document.body.innerText.length,
-      dollarSigns: (document.body.innerText.match(/\$/g) || []).length,
-      sample: document.body.innerText.slice(0, 1000),
-    }));
-    log(`RD: page info before scroll: len=${rdPageInfo.bodyLen} $signs=${rdPageInfo.dollarSigns}`);
-    log(`RD: page sample: ${rdPageInfo.sample.slice(0, 300)}`);
-
+    // Scroll to load all items
     for (let i = 0; i < 40; i++) {
       await page.evaluate(() => window.scrollBy(0, 600));
       await new Promise(r => setTimeout(r, 350));
     }
     await new Promise(r => setTimeout(r, 3000));
 
-    // Step 6: Extract prices from RD page
-    // RD format: "$36" on one line + "24" cents on next = $36.24
-    // Also: "Current price: $36.24 each (estimated)" for by-weight
-    // Also: "$7.84-$43.95" range = use higher ($43.95 = case price)
-    const rdLines = await page.evaluate(() => document.body.innerText.split("\n").map(l => l.trim()).filter(l => l.length > 0));
-    log(`RD: ${rdLines.length} lines after scroll`);
+    // Get all lines and log dollar lines for debugging
+    const lines = await page.evaluate(() => document.body.innerText.split("\n").map(l => l.trim()).filter(l => l));
+    log("RD: " + lines.length + " lines, $-lines: " + JSON.stringify(
+      lines.map((l, i) => ({ i, l })).filter(({ l }) => l.includes("$")).slice(0, 40)
+    ));
 
+    // Parse prices: RD shows "$36" on one line, "24" cents on next = $36.24
+    // Also "Current price: $36.24 each (estimated)" and "$7.84-$43.95" ranges
     const items = [];
     const seen = new Set();
+    const skipSet = new Set([
+      "Skip Navigation","Buy It Again","Order Guides","Products","Equipment","Receipts",
+      "Monthly Flyer","Back to Home","Many in stock","Add","Skip","Show similar",
+      "Back","Las Vegas","Pickup","Delivery","Order history","Account settings",
+      "Addresses","Payment methods","Credits and promos","Your saved lists",
+      "Notification settings","0","Explore popular searches with arrow keys or begin typing in the search field, and the app will offer suggestions. Use the arrow keys to navigate to a suggestion and then use the Enter key to select it. Once you press Enter, navigate to the search results that appear."
+    ]);
 
-    // Skip lines that are clearly navigation
-    const skipWords = new Set(['Skip Navigation','Buy It Again','Order Guides','Products','Equipment','Receipts','Monthly Flyer','Back to Home','Many in stock','Add','Skip','Show similar','Current price','Back','Las Vegas','Pickup','Delivery']);
-
-    for (let i = 0; i < rdLines.length; i++) {
-      const line = rdLines[i];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       let price = null;
       let raw = line;
 
-      // "Current price: $36.24 each (estimated)" or "$31.60 each (est.)"
+      // "Current price: $36.24 each (estimated)"
       const eachM = line.match(/\$([\d,]+\.[\d]{2})\s+each/i);
-      if (eachM) { price = parseFloat(eachM[1].replace(',','')); }
+      if (eachM) price = parseFloat(eachM[1].replace(",", ""));
 
-      // "$7.84-$43.95" = range, use higher (case price)
-      // But need to distinguish from "$4-$16" which is dollars only (no cents yet)
+      // "$7.84-$43.95" range → use higher (case price)
       const rangeM = line.match(/\$([\d]+\.[\d]{2})\s*[-–]\s*\$([\d]+\.[\d]{2})/);
-      if (rangeM) { price = Math.max(parseFloat(rangeM[1]), parseFloat(rangeM[2])); }
+      if (rangeM) price = Math.max(parseFloat(rangeM[1]), parseFloat(rangeM[2]));
 
-      // "$36" alone on a line — next line is cents "24" = $36.24
+      // "$36" alone → next line "24" = $36.24
       if (!price) {
         const dolM = line.match(/^\$([\d]{1,4})$/);
         if (dolM) {
-          // Look ahead for cents
-          for (let k = i+1; k <= Math.min(i+3, rdLines.length-1); k++) {
-            const cM = rdLines[k].match(/^(\d{2})$/);
-            if (cM) {
-              price = parseFloat(dolM[1] + "." + cM[1]);
-              raw = "$" + dolM[1] + "." + cM[1];
-              break;
-            }
+          for (let k = i + 1; k <= Math.min(i + 3, lines.length - 1); k++) {
+            const cM = lines[k].match(/^(\d{2})$/);
+            if (cM) { price = parseFloat(dolM[1] + "." + cM[1]); raw = "$" + dolM[1] + "." + cM[1]; break; }
           }
         }
       }
 
       if (!price || price < 1 || price > 2000) continue;
 
-      // Find product name — look in surrounding lines
-      let found = false;
-      for (let j = i - 12; j <= i + 12 && !found; j++) {
-        if (j < 0 || j >= rdLines.length) continue;
-        const c = rdLines[j];
-        if (seen.has(c)) continue;
-        if (skipWords.has(c)) continue;
-        if (c.length < 8 || c.length > 130) continue;
-        // Skip lines starting with $ or that are pure numbers
+      // Find product name in ±15 surrounding lines
+      for (let j = i - 15; j <= i + 15; j++) {
+        if (j < 0 || j >= lines.length) continue;
+        const c = lines[j];
+        if (seen.has(c) || skipSet.has(c)) continue;
+        if (c.length < 5 || c.length > 150) continue;
         if (/^\$/.test(c)) continue;
         if (/^[\d\s.\-/#x]+$/.test(c)) continue;
-        // Skip unit-only lines
         if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|x\s*\d)\s*$/i.test(c)) continue;
-        // Skip navigation/UI text
-        if (/^(Bin|Bin -|Many in stock|About|See eligible|Show similar|Current price|Pickup ready|Buy \d|Order history|Account settings|Addresses|Payment|Credits|Notification|Your saved|Explore popular|Once you press)/.test(c)) continue;
-        // Skip lines that are just numbers with dots (prices disguised)
-        if (/^\$?[\d,]+\.[\d]{2}/.test(c)) continue;
-        // Must have actual product-like words
-        if (c.split(" ").length < 2) continue;
+        if (/^(Bin|Bin -|Many|About|See eligible|Show similar|Current price|Buy \d|Pickup ready|Order history|Account)/.test(c)) continue;
+        if (/arrow keys|search field|suggestions|navigate|Enter key|Once you|app will/i.test(c)) continue;
         if (!/[a-zA-Z]{3,}/.test(c)) continue;
-        // Avoid lines that look like UI descriptions
-        if (/arrow keys|search field|suggestions|navigate to|Enter key|press Enter|app will offer/i.test(c)) continue;
+        if (c.split(" ").length < 2) continue;
         items.push({ name: c, price, raw });
         seen.add(c);
-        found = true;
+        break;
       }
     }
-    log(`RD: found ${items.length} items. Sample: ${JSON.stringify(items.slice(0, 5))}`);
+
+    log("RD: found " + items.length + " items: " + JSON.stringify(items.slice(0, 8)));
     return { success: true, items };
   } catch(e) {
-    log(`RD: FATAL error: ${e.message}\n${e.stack?.slice(0, 300)}`);
+    log("RD FATAL: " + e.message);
     return { success: false, error: e.message, items: [] };
   } finally {
     if (browser) { try { await browser.close(); } catch(e) {} }
@@ -302,143 +282,58 @@ async function scrapeRD() {
 
 // ── Sysco Scraper ─────────────────────────────────────────────────────────────
 async function scrapeSysco() {
-  log("🔵 Sysco: launching browser...");
-  const chromium = require("@sparticuz/chromium");
-  const puppeteer = require("puppeteer-core");
+  log("🔵 Sysco: starting...");
   let browser;
   try {
-    const execPath = await chromium.executablePath();
-    browser = await puppeteer.launch({
-      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
-      executablePath: execPath,
-      headless: chromium.headless,
-      timeout: 30000,
-    });
+    browser = await launchBrowser();
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
 
     // Step 1: Email
-    log("Sysco: step 1 - email page...");
-    try {
-      await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "domcontentloaded", timeout: 30000 });
-    } catch(e) { log(`Sysco: login goto error: ${e.message}`); }
+    await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log("Sysco login nav: " + e.message));
     await new Promise(r => setTimeout(r, 3000));
-    log(`Sysco: login page URL=${page.url()}`);
+    log("Sysco: login=" + page.url());
 
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     await page.click('input[type="email"]');
-    await page.keyboard.type(process.env.SYSCO_EMAIL, { delay: 60 });
-    log("Sysco: email typed");
+    await page.keyboard.type(process.env.SYSCO_EMAIL, { delay: 50 });
 
-    // Click Next — find by text since it's not type="submit" 
-    const clicked = await page.evaluate(() => {
-      // Try all buttons, find the one that says "Next"
-      const allBtns = Array.from(document.querySelectorAll("button, input[type=submit], [role=button]"));
-      const next = allBtns.find(b => (b.textContent || b.value || "").trim().toLowerCase() === "next");
-      if (next) { next.click(); return "clicked: " + (next.textContent || next.value); }
-      // Fallback: click first button that's not "Become a Customer" or "Continue as Guest"
-      const filtered = allBtns.filter(b => {
-        const t = (b.textContent || b.value || "").trim().toLowerCase();
-        return t && t !== "become a customer" && t !== "continue as guest" && !t.includes("cookie");
-      });
-      if (filtered[0]) { filtered[0].click(); return "clicked fallback: " + filtered[0].textContent; }
-      return null;
+    // Click Next button by text
+    const nextClicked = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button, [role=button]"));
+      const next = btns.find(b => b.textContent.trim().toLowerCase() === "next");
+      if (next) { next.click(); return true; }
+      return false;
     });
-    log(`Sysco: Next button click result: ${clicked}`);
-    if (!clicked) await page.keyboard.press("Enter");
+    if (!nextClicked) await page.keyboard.press("Enter");
+    log("Sysco: Next clicked=" + nextClicked);
 
-    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(e => log(`Sysco: next nav: ${e.message}`));
-    await new Promise(r => setTimeout(r, 4000));
-    log(`Sysco: after Next URL=${page.url()}`);
+    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(e => log("Sysco Next nav: " + e.message));
+    await new Promise(r => setTimeout(r, 3000));
+    log("Sysco: after Next=" + page.url());
 
     // Step 2: Password (Okta at secure.sysco.com)
-    log("Sysco: step 2 - password...");
     await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 20000 });
-    log(`Sysco: password page URL=${page.url()}`);
-
     await page.click('#okta-signin-password, input[type="password"]');
-    await page.keyboard.type(process.env.SYSCO_PASSWORD, { delay: 60 });
-    log("Sysco: password typed");
+    await page.keyboard.type(process.env.SYSCO_PASSWORD, { delay: 50 });
 
     const loginBtn = await page.$("#okta-signin-submit") || await page.$('input[type="submit"]') || await page.$('button[type="submit"]');
     if (loginBtn) await loginBtn.click();
     else await page.keyboard.press("Enter");
 
-    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log(`Sysco: login nav: ${e.message}`));
+    await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log("Sysco login nav2: " + e.message));
     await new Promise(r => setTimeout(r, 5000));
-    log(`Sysco: logged in URL=${page.url()}`);
+    log("Sysco: logged in=" + page.url());
 
-    if (!page.url().includes("shop.sysco.com")) {
-      throw new Error(`Sysco login failed, at: ${page.url()}`);
-    }
+    if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed at: " + page.url());
 
-    // Step 3: Use Sysco's GraphQL API directly to get Nick List items
-    // The browser SPA uses # anchors - intercept the API instead
-    log("Sysco: fetching lists via API...");
+    // Step 3: Navigate to lists and click Nick List
+    await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log("Sysco lists nav: " + e.message));
+    await new Promise(r => setTimeout(r, 5000));
+    log("Sysco: lists=" + page.url());
 
-    const syscoLists = await page.evaluate(async () => {
-      try {
-        // Sysco uses GraphQL at /graphql
-        const r = await fetch("/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            operationName: "GetOrderLists",
-            query: `query GetOrderLists { orderLists { id name items { id product { id name brand price { netPrice } } quantity } } }`
-          })
-        });
-        const data = await r.json();
-        return JSON.stringify(data);
-      } catch(e) { return "error: " + e.message; }
-    });
-    log(`Sysco: GraphQL lists response: ${syscoLists.slice(0, 500)}`);
-
-    // Also try REST API
-    const syscoListsRest = await page.evaluate(async () => {
-      try {
-        const r = await fetch("/api/v3/orderlists?limit=50", {
-          credentials: "include",
-          headers: { "Accept": "application/json" }
-        });
-        const data = await r.json();
-        return JSON.stringify(data).slice(0, 1000);
-      } catch(e) { return "error: " + e.message; }
-    });
-    log(`Sysco: REST lists response: ${syscoListsRest}`);
-
-    // Navigate to the lists page and intercept network requests for the list data
-    const listDataPromise = new Promise((resolve) => {
-      const handler = async (response) => {
-        const url = response.url();
-        if ((url.includes('/graphql') || url.includes('/api/')) && response.status() === 200) {
-          try {
-            const txt = await response.text();
-            if (txt.includes('orderList') || txt.includes('OrderList') || txt.includes('nick') || txt.includes('Nick')) {
-              page.off('response', handler);
-              resolve(txt);
-            }
-          } catch(e) {}
-        }
-      };
-      page.on('response', handler);
-      setTimeout(() => { page.off('response', handler); resolve(null); }, 20000);
-    });
-
-    // Navigate to lists - the SPA will make API calls we can intercept
-    await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(e => log(e.message));
-    await new Promise(r => setTimeout(r, 6000));
-    log(`Sysco: lists page URL=${page.url()}`);
-
-    // Check for Nick List in sidebar text content (not links)
-    const sidebarText = await page.evaluate(() => {
-      const sidebar = document.querySelector('[class*="sidebar"], [class*="nav"], [class*="list-nav"], nav, aside');
-      return sidebar ? sidebar.innerText : document.body.innerText.slice(0, 2000);
-    });
-    log(`Sysco: sidebar text: ${sidebarText.slice(0, 400)}`);
-
-    // Click Nick List by finding any element containing "Nick List" text
+    // Click Nick List LI
     const nickClicked = await page.evaluate(() => {
       const all = Array.from(document.querySelectorAll("*"));
       for (const el of all) {
@@ -446,87 +341,56 @@ async function scrapeSysco() {
         const t = el.textContent.trim();
         if (t.toLowerCase().includes("nick list") && t.length < 30) {
           el.click();
-          return `clicked: ${t} (tag: ${el.tagName})`;
+          return `${el.tagName}: ${t}`;
         }
       }
       return null;
     });
-    log(`Sysco: Nick List click: ${nickClicked}`);
-    await new Promise(r => setTimeout(r, 6000));
-    log(`Sysco: after Nick click URL=${page.url()}`);
+    log("Sysco: Nick List click=" + nickClicked);
 
-    // Check intercepted data
-    const intercepted = await Promise.race([listDataPromise, new Promise(r => setTimeout(() => r(null), 1000))]);
-    if (intercepted) log(`Sysco: intercepted list data: ${intercepted.slice(0, 300)}`);
-
-    // Scroll to load all items
-    for (let i = 0; i < 60; i++) {
-      await page.evaluate(() => window.scrollBy(0, 500));
-      await new Promise(r => setTimeout(r, 200));
+    // Wait for SPA to load Nick List content
+    let rows = 0;
+    for (let w = 0; w < 20; w++) {
+      await new Promise(r => setTimeout(r, 1000));
+      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
+      log("Sysco: wait " + w + "s, rows=" + rows + ", url=" + page.url());
+      if (rows >= 5) break;
     }
-    await new Promise(r => setTimeout(r, 3000));
 
-    // Log page state
-    const pageState = await page.evaluate(() => ({
-      url: location.href,
-      title: document.title,
-      bodyLen: document.body.innerText.length,
-      rowCount: document.querySelectorAll("[class*='product-item-row']").length,
-      priceCount: document.querySelectorAll("[class*='price-col']").length,
-      sample: document.body.innerText.slice(0, 800),
-    }));
-    log(`Sysco: page state: ${JSON.stringify(pageState)}`);
+    // Scroll to bottom to load all items (infinite scroll)
+    let prevRows = 0;
+    for (let s = 0; s < 20; s++) {
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await new Promise(r => setTimeout(r, 1500));
+      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
+      log("Sysco: scroll " + s + ", rows=" + rows);
+      if (rows === prevRows && s > 3) break;
+      prevRows = rows;
+    }
+    log("Sysco: final rows=" + rows);
 
-    // Extract items using ALL strategies
+    // Extract items using exact CSS classes
     const items = await page.evaluate(() => {
       const results = [];
       const seen = new Set();
-
-      // Strategy 1: product-item-row with item-details-col and price-col
       document.querySelectorAll("[class*='product-item-row']").forEach(row => {
-        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name'], [class*='description']");
-        const priceEl = row.querySelector("[class*='price-col'], [class*='price']");
+        const nameEl = row.querySelector("[class*='item-details-col'], [class*='item-desc'], [class*='product-name']");
+        const priceEl = row.querySelector("[class*='price-col']");
         if (!nameEl || !priceEl) return;
         const name = nameEl.innerText.trim().split("\n")[0].trim();
-        const m = priceEl.innerText.match(/\$([\d,]+\.[\d]{2})/);
+        const priceText = priceEl.innerText.trim();
+        const m = priceText.match(/\$([\d,]+\.[\d]{2})/);
         if (!m || name.length < 3 || seen.has(name)) return;
         const price = parseFloat(m[1].replace(",", ""));
-        if (price > 0 && price < 10000) { results.push({ name, price, src: "strategy1" }); seen.add(name); }
+        if (price > 0 && price < 10000) { results.push({ name, price, raw: priceText }); seen.add(name); }
       });
-
-      // Strategy 2: Any CS/Case price in text
-      if (results.length < 5) {
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        const texts = [];
-        while (walker.nextNode()) { const t = walker.currentNode.textContent.trim(); if (t) texts.push(t); }
-        for (let i = 0; i < texts.length; i++) {
-          const t = texts[i];
-          // "$76.30 CS" or "$11.31 CS" or "$26.05 CS"
-          const m = t.match(/\$([\d,]+\.[\d]{2})\s*CS\b/) || t.match(/\$([\d,]+\.[\d]{2})\s*Case\b/i);
-          if (!m) continue;
-          const price = parseFloat(m[1].replace(",", ""));
-          if (price < 1 || price > 10000) continue;
-          for (let j = i - 8; j <= i + 3; j++) {
-            if (j < 0 || j === i || j >= texts.length) continue;
-            const c = texts[j];
-            if (c.length > 5 && c.length < 150 && !seen.has(c) &&
-                !/^\$/.test(c) && !/^[\d\s.,]+$/.test(c) &&
-                !/^(N\/A|CS|Case|Add|Remove|Out of stock|Find similar|Order Qty|Last Order|Item Details|Price|Total|Share|Settings|Delete|#|\d+)$/.test(c) &&
-                c.split(" ").length >= 2) {
-              results.push({ name: c, price, src: "strategy2" });
-              seen.add(c);
-              break;
-            }
-          }
-        }
-      }
       return results;
     });
 
-    log(`Sysco: extracted ${items.length} items. Sample: ${JSON.stringify(items.slice(0, 5))}`);
+    log("Sysco: " + items.length + " items: " + JSON.stringify(items.slice(0, 5)));
     return { success: true, items };
   } catch(e) {
-    log(`Sysco: FATAL error: ${e.message}\n${e.stack?.slice(0, 300)}`);
+    log("Sysco FATAL: " + e.message);
     return { success: false, error: e.message, items: [] };
   } finally {
     if (browser) { try { await browser.close(); } catch(e) {} }
@@ -535,7 +399,7 @@ async function scrapeSysco() {
 
 // ── Run scrape ────────────────────────────────────────────────────────────────
 function withTimeout(p, ms, name) {
-  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${name} timed out after ${ms/1000}s`)), ms))]);
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(name + " timed out after " + ms/1000 + "s")), ms))]);
 }
 
 async function runScrape(source = "all") {
@@ -543,24 +407,23 @@ async function runScrape(source = "all") {
     try {
       const result = await withTimeout(scrapeRD(), 180000, "RD");
       if (result.success && result.items.length > 0) {
-        const matched = await matchWithAI(result.items, "Restaurant Depot");
-        matched.forEach(({ id, price }) => { priceStore.rd[id] = { price, date: new Date().toISOString() }; });
-        log(`✅ RD: ${matched.length} prices saved (${result.items.length} raw items)`);
-      } else { log(`❌ RD: no items found`); }
-    } catch(e) { log(`❌ RD failed: ${e.message}`); }
+        const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
+        matched.forEach(({ id, price }) => { if (id && price > 0) priceStore.rd[id] = { price, date: new Date().toISOString() }; });
+        log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw items)");
+      } else { log("❌ RD: " + (result.error || "no items found")); }
+    } catch(e) { log("❌ RD failed: " + e.message); }
   }
 
   if (source === "sysco" || source === "all") {
     try {
       const result = await withTimeout(scrapeSysco(), 180000, "Sysco");
       if (result.success && result.items.length > 0) {
-        const matched = await matchWithAI(result.items, "Sysco");
-        matched.forEach(({ id, price }) => { priceStore.sysco[id] = { price, date: new Date().toISOString() }; });
-        log(`✅ Sysco: ${matched.length} prices saved (${result.items.length} raw items)`);
-      } else { log(`❌ Sysco: no items found. Error: ${result.error || "unknown"}`); }
-    } catch(e) { log(`❌ Sysco failed: ${e.message}`); }
+        const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
+        matched.forEach(({ id, price }) => { if (id && price > 0) priceStore.sysco[id] = { price, date: new Date().toISOString() }; });
+        log("✅ Sysco: " + matched.length + " prices saved (" + result.items.length + " raw items)");
+      } else { log("❌ Sysco: " + (result.error || "no items found")); }
+    } catch(e) { log("❌ Sysco failed: " + e.message); }
   }
-
   priceStore.lastUpdated = new Date().toISOString();
 }
 
@@ -575,17 +438,15 @@ app.get("/api/status", (req, res) => res.json({
 }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
-  res.json({ message: `Scraping ${src}...` });
-  runScrape(src).catch(e => log(`Trigger error: ${e.message}`));
+  res.json({ message: "Scraping " + src + "..." });
+  runScrape(src).catch(e => log("Trigger error: " + e.message));
 });
 app.post("/api/scrape", (req, res) => {
   const src = req.body?.source || "all";
-  res.json({ message: `Scraping ${src}...` });
-  runScrape(src).catch(e => log(`Scrape error: ${e.message}`));
+  res.json({ message: "Scraping " + src + "..." });
+  runScrape(src).catch(e => log("Scrape error: " + e.message));
 });
-
-// Manual price update from app
-app.post("/api/prices", (req, res) => {
+app.post("/api/prices/manual", (req, res) => {
   const { source, id, price } = req.body;
   if (!source || !id || !price) return res.status(400).json({ error: "Missing source/id/price" });
   priceStore[source][id] = { price, date: new Date().toISOString() };
@@ -597,21 +458,23 @@ app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list provided" });
   try {
-    const context = ITEMS.map(item => {
-      const rd = priceStore.rd[item.id];
-      const sc = priceStore.sysco[item.id];
-      const best = !rd && !sc ? "?" : !rd ? "SYSCO" : !sc ? "RD" : rd.price <= sc.price ? "RD" : "SYSCO";
-      return `${item.name}: RD=$${rd?.price || "?"} Sysco=$${sc?.price || "?"} → ${best}`;
-    }).filter(l => !l.includes("RD=$?") || !l.includes("Sysco=$?")).join("\n");
+    const rdContext = RD_ITEMS.map(i => {
+      const p = priceStore.rd[i.id];
+      return p ? `${i.name}: $${p.price} (RD)` : null;
+    }).filter(Boolean).join("\n");
+
+    const syscoContext = SYSCO_ITEMS.map(i => {
+      const p = priceStore.sysco[i.id];
+      return p ? `${i.name} ${i.pack}: $${p.price} (Sysco)` : null;
+    }).filter(Boolean).join("\n");
 
     const prompt = `You are the purchasing assistant for Naan & Curry restaurant Las Vegas.
-Current pricing:\n${context || "No prices loaded yet"}\n
+
+RESTAURANT DEPOT PRICES:\n${rdContext || "No RD prices loaded"}\n
+SYSCO NICK LIST PRICES:\n${syscoContext || "No Sysco prices loaded"}\n
 Chef order list:\n${list}\n
-Break this down by vendor. Be concise.\n
-🟢 ORDER FROM RESTAURANT DEPOT:\n- [item] — $[price]/case\n
-🔵 ORDER FROM SYSCO:\n- [item] — $[price]/case\n
-⚠️ CHECK MANUALLY:\n- [item]\n
-💰 Estimated: RD $[X] + Sysco $[Y] = $[total]`;
+Break this down by vendor. Be concise and practical.\n
+🟢 ORDER FROM RESTAURANT DEPOT:\n- [item] — $[price]\n\n🔵 ORDER FROM SYSCO:\n- [item] — $[price]\n\n⚠️ CHECK MANUALLY (not in our system):\n- [item]\n\n💰 Estimated: RD $[X] + Sysco $[Y] = $[total]`;
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -625,28 +488,22 @@ Break this down by vendor. Be concise.\n
 
 app.get("/api/browser-test", async (req, res) => {
   try {
-    const chromium = require("@sparticuz/chromium");
-    const puppeteer = require("puppeteer-core");
-    const execPath = await chromium.executablePath();
-    const browser = await puppeteer.launch({
-      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--single-process"],
-      executablePath: execPath, headless: chromium.headless,
-    });
+    const browser = await launchBrowser();
     const page = await browser.newPage();
     await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 15000 });
     const title = await page.title();
     await browser.close();
-    res.json({ success: true, title, execPath });
+    res.json({ success: true, title });
   } catch(e) { res.json({ success: false, error: e.message }); }
 });
 
 // Daily scrape 6am Las Vegas (1pm UTC)
-cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape..."); runScrape("all").catch(console.error); });
+cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape"); runScrape("all").catch(console.error); });
 
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../build/index.html")));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  log(`🚀 Server on port ${PORT}`);
+  log("🚀 Server on port " + PORT);
   setTimeout(() => runScrape("all").catch(console.error), 15000);
 });
