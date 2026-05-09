@@ -35,7 +35,8 @@ function savePrices() {
   } catch(e) { console.log("Could not save prices:", e.message); }
 }
 
-let priceStore = { ...loadPrices(), log: [], oos: { rd: [], sysco: [] } };
+const _loaded = loadPrices();
+let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
 
 const log = (msg) => {
   console.log(msg);
