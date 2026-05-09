@@ -197,6 +197,27 @@ async function scrapeRD() {
     await new Promise(r => setTimeout(r, 3000));
     log("RD: logged in, URL=" + page.url());
 
+    // Set In-Store mode (not Pickup/Delivery) to get in-store pricing
+    // Navigate to homepage first to trigger store selector
+    await page.goto("https://member.restaurantdepot.com/", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Click "In-Store" option if not already selected
+    const inStoreSet = await page.evaluate(() => {
+      // Look for In-Store button/link
+      const els = Array.from(document.querySelectorAll("button, a, div, span"));
+      const inStore = els.find(el => el.textContent.trim() === "In-Store" || el.textContent.trim() === "In-Store Las Vegas");
+      if (inStore) {
+        inStore.click();
+        return "clicked: " + inStore.textContent.trim();
+      }
+      // Check if already in In-Store mode
+      const current = document.body.innerText;
+      return current.includes("In-Store") ? "already set" : "not found";
+    });
+    log("RD: In-Store mode = " + inStoreSet);
+    await new Promise(r => setTimeout(r, 2000));
+
     // Go to order guide
     await page.goto(
       "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
@@ -220,19 +241,42 @@ async function scrapeRD() {
     );
     log("RD: " + lines.length + " lines total");
 
-    // Parse: "Current price: $38.06" → price=38.06
-    // "Current price: $286.24 each (estimated)" → price=286.24
-    // Find product name in surrounding lines by matching to our known item list
+    // RD price parsing strategy:
+    // "Current price: $36.24" alone = CASE price (most items)
+    // "Current price: $24.40" followed by "$2440-$8676" = single-case range
+    //   → $2440 = $24.40/single, $8676 = $86.76/case → USE $86.76
+    // "Current price: $286.24 each (estimated)" = per-lb, skip or use as-is
+    // Need IN-STORE pricing (set by selecting "In-Store" mode in browser)
+
     const priceLines = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const m = line.match(/Current price:\s*\$([\d,]+\.[\d]{2})/i);
       if (!m) continue;
-      const price = parseFloat(m[1].replace(",", ""));
-      if (price < 0.5 || price > 5000) continue;
-      // Collect context: 15 lines before and after
-      const ctx = lines.slice(Math.max(0, i - 15), Math.min(lines.length, i + 15));
-      priceLines.push({ price, raw: line, ctx: ctx.join(" | ") });
+      const unitPrice = parseFloat(m[1].replace(",", ""));
+      if (unitPrice < 0.5 || unitPrice > 5000) continue;
+
+      // Check next 1-2 lines for a range "$XXXX-$YYYY" (no decimal = cents format)
+      let casePrice = unitPrice; // default: current price IS case price
+      let raw = line;
+      for (let k = i + 1; k <= Math.min(i + 2, lines.length - 1); k++) {
+        const rangeLine = lines[k];
+        // "$2440-$8676" format: both numbers without decimal = cents
+        const rangeM = rangeLine.match(/^\$([\d]+)-([\d]+)$/) ||  // no dollar on second
+                       rangeLine.match(/^\$([\d]+)-\$([\d]+)$/);   // dollar on both
+        if (rangeM) {
+          const lo = parseInt(rangeM[1]) / 100;
+          const hi = parseInt(rangeM[2]) / 100;
+          // Higher value is case price, lower is unit price
+          casePrice = Math.max(lo, hi);
+          raw = line + " → case=" + casePrice;
+          break;
+        }
+      }
+
+      if (casePrice < 0.5 || casePrice > 5000) continue;
+      const ctx = lines.slice(Math.max(0, i - 10), Math.min(lines.length, i + 15));
+      priceLines.push({ price: casePrice, unitPrice, raw, ctx: ctx.join(" | ") });
     }
     log("RD: found " + priceLines.length + " price lines");
     log("RD: contexts: " + JSON.stringify(priceLines.slice(0, 5)));
@@ -400,6 +444,7 @@ async function scrapeSysco() {
           if (!nameEl || !priceEl) return;
           const name = nameEl.innerText.trim().split("\n")[0].trim();
           const priceText = priceEl.innerText.trim();
+          // "$29.99 CS" — grab CS (case) price specifically
           const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
           const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
           const m = csM || anyM;
@@ -413,27 +458,51 @@ async function scrapeSysco() {
       return visible.length;
     }
 
-    // Scroll from top to bottom in small steps, extracting at each step
-    const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
-    const viewHeight = await page.evaluate(() => window.innerHeight);
-    log("Sysco: scrollHeight=" + scrollHeight + " viewHeight=" + viewHeight);
+    // Sysco uses a virtualized list div — must scroll THAT div, not window
+    // Dev tools: div.virtualized-list with overflow:auto, height:355px
+    const vListInfo = await page.evaluate(() => {
+      const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
+      if (!vl) return null;
+      return { scrollHeight: vl.scrollHeight, clientHeight: vl.clientHeight, class: vl.className };
+    });
+    log("Sysco: virtualized list = " + JSON.stringify(vListInfo));
 
-    let scrollPos = 0;
-    let stepCount = 0;
-    while (scrollPos <= scrollHeight + viewHeight) {
-      await page.evaluate((pos) => window.scrollTo(0, pos), scrollPos);
-      await new Promise(r => setTimeout(r, 800));
-      const found = await extractVisible();
-      log("Sysco: pos=" + scrollPos + " visible=" + found + " total=" + allItems.size);
-      scrollPos += Math.max(200, viewHeight * 0.6);
-      stepCount++;
-      if (stepCount > 50) break;
+    if (vListInfo && vListInfo.scrollHeight > vListInfo.clientHeight) {
+      // Scroll the virtualized container
+      let pos = 0;
+      const step = Math.max(150, vListInfo.clientHeight * 0.5);
+      while (pos <= vListInfo.scrollHeight + vListInfo.clientHeight) {
+        await page.evaluate((p) => {
+          const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
+          if (vl) vl.scrollTop = p;
+        }, pos);
+        await new Promise(r => setTimeout(r, 800));
+        const found = await extractVisible();
+        log("Sysco: vlist pos=" + pos + " visible=" + found + " total=" + allItems.size);
+        pos += step;
+        if (pos > 5000) break;
+      }
+      // Back to top
+      await page.evaluate(() => {
+        const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
+        if (vl) vl.scrollTop = 0;
+      });
+      await new Promise(r => setTimeout(r, 500));
+      await extractVisible();
+    } else {
+      // Fallback: scroll window
+      const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
+      const viewHeight = await page.evaluate(() => window.innerHeight);
+      log("Sysco: fallback window scroll h=" + scrollHeight);
+      let pos = 0;
+      while (pos <= scrollHeight + viewHeight) {
+        await page.evaluate((p) => window.scrollTo(0, p), pos);
+        await new Promise(r => setTimeout(r, 800));
+        await extractVisible();
+        pos += Math.max(200, viewHeight * 0.5);
+        if (pos > 10000) break;
+      }
     }
-
-    // Scroll back to top and extract once more to catch any missed items
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await new Promise(r => setTimeout(r, 1000));
-    await extractVisible();
 
     const items = Array.from(allItems.values());
     log("Sysco: " + items.length + " total items: " + JSON.stringify(items));
