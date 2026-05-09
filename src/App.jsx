@@ -75,56 +75,27 @@ export default function App() {
   const [history, setHistory] = useState({}); // { itemId: [{date, rd, sc}] }
 
   useEffect(() => {
-    // Load history from storage
-    try {
-      const h = localStorage.getItem("nc_history");
-      if (h) setHistory(JSON.parse(h));
-    } catch {}
-    pull().finally(() => setLoading(false));
-    const t = setInterval(pull, 5 * 60 * 1000);
+    Promise.all([pull(), fetchHistory()]).finally(() => setLoading(false));
+    const t = setInterval(() => { pull(); fetchHistory(); }, 5 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
 
-  function saveHistory(rdData, scData) {
-    const today = new Date().toISOString().slice(0, 10);
-    setHistory(prev => {
-      const next = { ...prev };
-      ITEMS.forEach(item => {
-        const rdP = rdData[item.id]?.price;
-        const scP = scData[item.id]?.price;
-        if (!rdP && !scP) return;
-        if (!next[item.id]) next[item.id] = [];
-        const existingIdx = next[item.id].findIndex(e => e.date === today);
-        if (existingIdx >= 0) {
-          // Update today's entry — merge in any new prices (don't overwrite with null)
-          const existing = next[item.id][existingIdx];
-          const updated = {
-            date: today,
-            rd: rdP || existing.rd || null,
-            sc: scP || existing.sc || null,
-          };
-          const arr = [...next[item.id]];
-          arr[existingIdx] = updated;
-          next[item.id] = arr;
-        } else {
-          // New entry for today
-          next[item.id] = [...next[item.id].slice(-29), { date: today, rd: rdP || null, sc: scP || null }];
-        }
-      });
-      try { localStorage.setItem("nc_history", JSON.stringify(next)); } catch {}
-      return next;
-    });
+  async function fetchHistory() {
+    try {
+      const r = await fetch("/api/history");
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data && Object.keys(data).length > 0) setHistory(data);
+    } catch {}
   }
 
   async function pull() {
     try {
       const r = await fetch("/api/prices"); if (!r.ok) return;
       const d = await r.json();
-      let newRd = {}, newSc = {};
-      if (d.rd && Object.keys(d.rd).length) { newRd = d.rd; setRd(p => ({ ...p, ...d.rd })); }
-      if (d.sysco && Object.keys(d.sysco).length) { newSc = d.sysco; setSc(p => ({ ...p, ...d.sysco })); }
+      if (d.rd && Object.keys(d.rd).length) setRd(p => ({ ...p, ...d.rd }));
+      if (d.sysco && Object.keys(d.sysco).length) setSc(p => ({ ...p, ...d.sysco }));
       if (d.oos) setOos(d.oos);
-      if (Object.keys(newRd).length || Object.keys(newSc).length) saveHistory(newRd, newSc);
       setSynced(new Date().toISOString());
     } catch {}
   }
