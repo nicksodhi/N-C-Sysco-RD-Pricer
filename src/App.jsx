@@ -99,16 +99,21 @@ const SEED_RD = {
   "42513": 27.71,  "490219": 53.18,
 };
 const SEED_SC = {
-  "42599":68.99,"44146":34.99,"42513":31.99,"1440528":94.99,"42566":21.99,
-  "44137":27.99,"42658":36.99,"42545":27.49,"42504":25.99,
-  "1530438":74.99,"370496":31.99,"14785":67.99,"1440204":51.99,
-  "77200":94.99,"77670":71.99,"77682":114.99,"1810019":149.99,"79042":169.99,
-  "77595":124.99,"77597":129.99,"51457":84.99,"64046":41.99,"64120":29.99,
-  "86527":31.99,"86525":24.99,
-  "2910159":37.99,"16200":58.99,"69810":49.99,"860044":51.99,"860135":48.99,
-  "490266":41.99,"490219":39.99,"21051":27.99,"1070496":12.99,"29268":35.99,"53556":48.99,
-  "1020152":67.99,"13417":48.99,"1020079":94.99,"1020075":86.99,"1020077":88.99,
-  "2550014":47.99,"12728":35.99,
+  // Real Sysco Nick List prices mapped to matching RD Item IDs for comparison
+  "42545":  11.31,  // Onion Yellow Jumbo Bag (1048222)
+  "77682":  76.30,  // Chicken Thighs Boneless Frozen (8053456)
+  "77670":  26.05,  // Chicken Leg Quarters (4418117)
+  "77658":  61.67,  // Chicken Leg Meat Boneless (0868459)
+  "1020152":29.99,  // Butter-it Alternative (3355757)
+  "55523":  34.27,  // Lemon Juice (4063095)
+  "42725":  10.48,  // Russet Potato (1543164)
+  "1530438":61.67,  // Heavy Cream 40% (6935464)
+  "370496": 26.05,  // Milk Whole Gallon (4676306)
+  "1020075":35.17,  // Soybean Oil (4119079)
+  "21051":  11.31,  // Sugar Granulated (5087572)
+  "1020077":61.67,  // Fry Shortening (4518403)
+  "860044": 61.67,  // Tomato Puree (4002325)
+  "2061212":11.31,  // All Purpose Flour (8379251)
 };
 
 function initPriceMap(seed, date) {
@@ -233,9 +238,35 @@ export default function App() {
     setLoaded(true);
   }
 
+  async function fetchServerPrices() {
+    try {
+      const resp = await fetch("/api/prices");
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const now = new Date().toISOString();
+      if (data.rd && Object.keys(data.rd).length > 0) {
+        setRdMap(prev => {
+          const m = { ...prev };
+          Object.entries(data.rd).forEach(([id, v]) => { m[id] = { price: v.price, date: v.date || now }; });
+          saveRd(m);
+          return m;
+        });
+      }
+      if (data.sysco && Object.keys(data.sysco).length > 0) {
+        setScMap(prev => {
+          const m = { ...prev };
+          Object.entries(data.sysco).forEach(([id, v]) => { m[id] = { price: v.price, date: v.date || now }; });
+          saveSc(m);
+          return m;
+        });
+      }
+    } catch(e) {}
+  }
+
   useEffect(() => {
     loadFromStorage();
-    const interval = setInterval(loadFromStorage, 60000); // refresh every 60s
+    fetchServerPrices();
+    const interval = setInterval(() => { loadFromStorage(); fetchServerPrices(); }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -396,8 +427,12 @@ Rules:
   }
   function getBest(id) {
     const rd = rdMap[id]?.price, sc = scMap[id]?.price;
-    if (!rd && !sc) return null; if (!rd) return "sysco"; if (!sc) return "rd";
-    if (rd < sc) return "rd"; if (sc < rd) return "sysco"; return "tie";
+    if (!rd && !sc) return null;
+    if (!rd) return "sysco";      // Sysco only
+    if (!sc) return "rd-only";   // RD only — no Sysco equivalent
+    if (rd < sc) return "rd";    // Both have it, RD cheaper
+    if (sc < rd) return "sysco"; // Both have it, Sysco cheaper
+    return "tie";
   }
   function getSav(id) {
     const rd = rdMap[id]?.price, sc = scMap[id]?.price;
@@ -429,18 +464,28 @@ Rules:
   }, [storeMode, homeCat, homeSearch, rdMap, scMap, hiddenItems]);
 
   const flatFiltered = useMemo(() => {
-    if (storeMode === "rd") return null; // use aisleGroups instead
-    return RD_DATA.filter(item => {
+    if (storeMode === "rd") return null;
+    const base = RD_DATA.filter(item => {
       if (hiddenItems.has(item.id)) return false;
       const b = getBest(item.id);
+      if (!b) return false; // no prices yet
       if (storeMode === "sysco" && b !== "sysco") return false;
       if (homeCat !== "ALL" && item.category !== homeCat) return false;
       if (homeSearch && !item.description.toLowerCase().includes(homeSearch.toLowerCase())) return false;
       return true;
+    });
+    // Items with BOTH vendors: sort by savings desc
+    const compared = base.filter(i => {
+      const b = getBest(i.id);
+      return b === "rd" || b === "sysco" || b === "tie";
     }).sort((a, b) => getSav(b.id) - getSav(a.id));
+    // Items with RD only: sort by price asc
+    const rdOnly = base.filter(i => getBest(i.id) === "rd-only")
+      .sort((a, b) => (rdMap[a.id]?.price||0) - (rdMap[b.id]?.price||0));
+    return { compared, rdOnly };
   }, [storeMode, homeCat, homeSearch, rdMap, scMap, hiddenItems]);
 
-  const rdWins = useMemo(() => RD_DATA.filter(i => getBest(i.id) === "rd").length, [rdMap, scMap]);
+  const rdWins = useMemo(() => RD_DATA.filter(i => ["rd","rd-only"].includes(getBest(i.id))).length, [rdMap, scMap]);
   const scWins = useMemo(() => RD_DATA.filter(i => getBest(i.id) === "sysco").length, [rdMap, scMap]);
   const totalSav = useMemo(() => RD_DATA.reduce((s, i) => s + getSav(i.id), 0), [rdMap, scMap]);
 
@@ -523,7 +568,30 @@ Rules:
       );
     }
 
-    // All items — 2-col grid card
+    // RD-only card — green, single price, "RD ONLY" badge
+    if (b === "rd-only") {
+      return (
+        <div style={{ background: "linear-gradient(135deg,#0d1f12,#0f2318)", border: "1px solid #1a3d20",
+          borderRadius: 8, padding: "10px 12px", cursor: "pointer" }}
+          onClick={() => { setHistItem(item); setTab("history"); }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: "#e8e4dc", lineHeight: 1.3 }}>{item.description}</div>
+              <div style={{ fontSize: 9, color: "#555", marginTop: 2 }}>{item.unit}</div>
+            </div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: "#4ade80", lineHeight: 1 }}>
+                {rd ? `$${rd.price.toFixed(2)}` : "—"}
+              </div>
+              <div style={{ fontSize: 8, color: "#3a6640", marginTop: 1 }}>RD ONLY</div>
+              {rdAge && <div style={{ fontSize: 8, color: "#333", marginTop: 1 }}>{rdAge}</div>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Both vendors — full comparison card
     return (
       <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: "11px 12px", position: "relative" }}>
         {/* Hide button */}
@@ -677,7 +745,7 @@ Rules:
                   <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: winColor, lineHeight: 1 }}>
                     {storeMode === "rd"
                       ? Object.values(aisleGroups || {}).flat().length
-                      : flatFiltered?.length || 0}
+                      : (flatFiltered ? flatFiltered.compared.length + flatFiltered.rdOnly.length : 0)}
                   </div>
                 </div>
               </div>
@@ -731,8 +799,21 @@ Rules:
             {/* Sysco mode or All mode: grid */}
             {storeMode !== "rd" && (
               <div style={storeMode === "sysco" ? { display: "flex", flexDirection: "column", gap: 8 } : { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {(flatFiltered || []).map(item => <ItemCard key={item.id} item={item} />)}
-                {(flatFiltered || []).length === 0 && (
+                {flatFiltered && flatFiltered.compared.length > 0 && (
+                  <div style={{ fontSize: 9, color: "#555", letterSpacing: 2, padding: "6px 0 4px", textTransform: "uppercase" }}>
+                    ⚖️ Price Comparison — {flatFiltered.compared.length} items
+                  </div>
+                )}
+                {(flatFiltered?.compared || []).map(item => <ItemCard key={item.id} item={item} />)}
+
+                {flatFiltered && flatFiltered.rdOnly.length > 0 && (
+                  <div style={{ fontSize: 9, color: "#555", letterSpacing: 2, padding: "12px 0 4px", textTransform: "uppercase" }}>
+                    🟢 Restaurant Depot Only — {flatFiltered.rdOnly.length} items
+                  </div>
+                )}
+                {(flatFiltered?.rdOnly || []).map(item => <ItemCard key={item.id} item={item} />)}
+
+                {flatFiltered && flatFiltered.compared.length === 0 && flatFiltered.rdOnly.length === 0 && (
                   <div style={{ color: "#444", fontSize: 13, padding: "40px 0", textAlign: "center", gridColumn: "1/-1" }}>
                     {storeMode === "sysco" ? "No items are cheaper at Sysco in this category." : "No items match."}
                   </div>
