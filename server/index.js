@@ -281,10 +281,6 @@ async function scrapeRD() {
     log("RD: found " + priceLines.length + " price lines");
     log("RD: contexts: " + JSON.stringify(priceLines.slice(0, 5)));
 
-    // From context logs: product name comes AFTER the price line
-    // Pattern: "Current price: $38.06 | $3806 | James Farm - Plain Yogurt - 32 lbs"
-    // Search FORWARD from price position first, then backward as fallback
-
     const noise = new Set([
       "Skip Navigation","Buy It Again","Order Guides","Products","Equipment","Receipts",
       "Monthly Flyer","Back to Home","Many in stock","Add","Skip","Show similar","Back",
@@ -292,7 +288,8 @@ async function scrapeRD() {
       "Payment methods","Credits and promos","Your saved lists","Notification settings",
       "Out of stock","See eligible items","Explore popular","Whole","Dairy free",
       "Order approvals","Business settings","Log out","Restaurant Depot","Items","Members",
-      "Settings","Delivery available","each (est.)","each (estimated)",
+      "Settings","Delivery available","each (est.)","each (estimated)","Caffeinated",
+      "Caffeine free","Gluten free","Sugar free","Alcohol free","In-Store","DietSugar free",
     ]);
 
     function isProductName(c) {
@@ -300,8 +297,9 @@ async function scrapeRD() {
       if (/^\$/.test(c)) return false;
       if (/^[\d\s.\-/#x$]+$/.test(c)) return false;
       if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|fl)\s*$/i.test(c)) return false;
-      if (/^(Current price|Buy \d|Pickup ready|Out of stock|Show similar|See eligible|Buy It Again|Add \d+|Naan|Edit items|Order approvals|Business|Log out|Delivery avail|12\.|About \d|Pickup ready)/.test(c)) return false;
-      if (/arrow keys|search field|Once you|navigate to|Enter key|members$/i.test(c)) return false;
+      if (/^(Current price|Buy \d|Pickup|Out of stock|Show similar|See eligible|Buy It Again|Add \d+|Edit items|Order approvals|Business|Log out|Delivery|About \d|Bin -|\d+\.\d+ mi)/.test(c)) return false;
+      if (/arrow keys|search field|Once you|navigate to|Enter key/i.test(c)) return false;
+      if (/^\d+ ct$|^1 ct$|^[A-Z0-9]+ - \d+$/.test(c)) return false; // "1 ct", "Bin - 4043"
       if (noise.has(c)) return false;
       if (!/[a-zA-Z]{3,}/.test(c)) return false;
       if (c.split(" ").length < 2) return false;
@@ -314,22 +312,34 @@ async function scrapeRD() {
     for (let pi = 0; pi < priceLines.length; pi++) {
       const pl = priceLines[pi];
       const ctxLines = pl.ctx.split(" | ").map(l => l.trim()).filter(l => l);
-      // Find index of the price line in context
-      const priceIdx = ctxLines.findIndex(l => l === pl.raw || l.includes(pl.raw));
+
+      // Find the "Current price: $XX" line in context (use unitPrice to find it)
+      const cpStr = "Current price: $" + pl.unitPrice.toFixed(2);
+      const priceIdx = ctxLines.findIndex(l => l.startsWith("Current price:") && l.includes("$" + pl.unitPrice.toFixed(2)));
+
       let bestName = null;
 
-      // SEARCH FORWARD first (name comes after price on RD)
-      const startFwd = priceIdx >= 0 ? priceIdx + 1 : ctxLines.length / 2;
-      for (let j = startFwd; j < Math.min(ctxLines.length, startFwd + 8); j++) {
-        const c = ctxLines[j];
-        if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
-      }
-
-      // FALLBACK: search backward if forward found nothing
-      if (!bestName) {
-        const startBwd = priceIdx >= 0 ? priceIdx - 1 : ctxLines.length / 2;
-        for (let j = startBwd; j >= Math.max(0, startBwd - 8); j--) {
+      if (priceIdx >= 0) {
+        // Search FORWARD first (most items: name comes after price)
+        for (let j = priceIdx + 1; j < Math.min(ctxLines.length, priceIdx + 10); j++) {
           const c = ctxLines[j];
+          // Skip the range line "$XXXX-$YYYY" and unit lines
+          if (/^\$[\d]+-/.test(c) || /^\$[\d]+$/.test(c)) continue;
+          if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
+        }
+        // Search BACKWARD if forward found nothing
+        if (!bestName) {
+          for (let j = priceIdx - 1; j >= Math.max(0, priceIdx - 10); j--) {
+            const c = ctxLines[j];
+            if (/^\$[\d]+-/.test(c) || /^\$[\d]+$/.test(c)) continue;
+            if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
+          }
+        }
+      } else {
+        // priceIdx not found (range case price) — search whole ctx
+        for (let j = 0; j < ctxLines.length; j++) {
+          const c = ctxLines[j];
+          if (/^\$/.test(c) || /Current price/.test(c)) continue;
           if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
         }
       }
@@ -338,7 +348,7 @@ async function scrapeRD() {
         items.push({ name: bestName, price: pl.price, raw: pl.raw });
         seen.add(bestName);
       } else {
-        log("RD: no name for price " + pl.price + " ctx=" + ctxLines.slice(0,6).join(" | "));
+        log("RD: no name for $" + pl.price + " | " + ctxLines.filter(isProductName).join(" / "));
       }
     }
 
@@ -352,12 +362,9 @@ async function scrapeRD() {
   }
 }
 
-// ── Sysco Scraper ─────────────────────────────────────────────────────────────
-// Key insight from PDF: Nick List has 15 items, prices show as "$29.99 CS"
-// The scraper lands on items 13-15 because the list is already scrolled to bottom.
-// Fix: scroll to TOP after clicking Nick List, then extract from top.
+// ── Sysco Scraper — search each item by UPC ─────────────────────────────────
 async function scrapeSysco() {
-  log("🔵 Sysco: starting...");
+  log("🔵 Sysco: starting UPC search scrape...");
   let browser;
   try {
     browser = await launchBrowser();
@@ -365,7 +372,7 @@ async function scrapeSysco() {
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
 
-    // Step 1: Email
+    // Login step 1: email
     await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
@@ -380,9 +387,8 @@ async function scrapeSysco() {
     if (!nextOk) await page.keyboard.press("Enter");
     await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
-    log("Sysco: after Next=" + page.url());
 
-    // Step 2: Password (Okta)
+    // Login step 2: password (Okta)
     await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 20000 });
     await page.click('#okta-signin-password, input[type="password"]');
     await page.keyboard.type(process.env.SYSCO_PASSWORD, { delay: 50 });
@@ -394,118 +400,54 @@ async function scrapeSysco() {
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
 
-    // Step 3: Go to lists
-    await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 5000));
-    log("Sysco: lists page=" + page.url());
+    // Search each item by UPC and extract CS price
+    const items = [];
+    for (const item of SYSCO_ITEMS) {
+      try {
+        const searchUrl = "https://shop.sysco.com/app/search?searchTerm=" + item.id;
+        await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+        await new Promise(r => setTimeout(r, 3000));
 
-    // Wait for Nick List to appear in sidebar (SPA needs time)
-    let nickClicked = null;
-    for (let attempt = 0; attempt < 15; attempt++) {
-      await new Promise(r => setTimeout(r, 1000));
-      nickClicked = await page.evaluate(() => {
-        const all = Array.from(document.querySelectorAll("li, a, button, div, span"));
-        for (const el of all) {
-          if (el.children.length > 5) continue;
-          const t = el.textContent.trim();
-          if (t.toLowerCase().includes("nick list") && t.length < 30) {
-            el.click();
-            return el.tagName + ": " + t;
+        // Extract price from search results — look for CS price
+        const result = await page.evaluate((upc, itemName) => {
+          // Try product card price
+          const cards = document.querySelectorAll("[class*='product-card'], [class*='product-tile'], [class*='search-result'], [class*='product-item']");
+          for (const card of cards) {
+            const text = card.innerText;
+            // Check it's the right product (UPC match)
+            if (!text.includes(upc)) continue;
+            const csM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:CS|Case)/i);
+            const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
+            const m = csM || anyM;
+            if (m) return { price: parseFloat(m[1].replace(",", "")), raw: text.slice(0, 100), src: "card" };
           }
-        }
-        return null;
-      });
-      if (nickClicked) { log("Sysco: Nick List click=" + nickClicked + " attempt=" + attempt); break; }
-    }
-    if (!nickClicked) log("Sysco: Nick List not found after 15s");
 
-    // Wait for SPA to load Nick List content
-    let rows = 0;
-    for (let w = 0; w < 20; w++) {
-      await new Promise(r => setTimeout(r, 1000));
-      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
-      log("Sysco: wait " + w + "s rows=" + rows);
-      if (rows >= 5) break;
-    }
+          // Fallback: scan all text for UPC then nearby price
+          const allText = document.body.innerText;
+          const upcIdx = allText.indexOf(upc);
+          if (upcIdx < 0) return { notFound: true };
 
-    // Virtual scroll: only ~5 rows rendered at a time
-    // Must scroll through entire list collecting items at each position
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await new Promise(r => setTimeout(r, 2000));
-
-    const allItems = new Map(); // name -> {name, price, raw}
-
-    async function extractVisible() {
-      const visible = await page.evaluate(() => {
-        const results = [];
-        document.querySelectorAll("[class*='product-item-row']").forEach(row => {
-          const nameEl = row.querySelector("[class*='item-details-col']");
-          const priceEl = row.querySelector("[class*='price-col']");
-          if (!nameEl || !priceEl) return;
-          const name = nameEl.innerText.trim().split("\n")[0].trim();
-          const priceText = priceEl.innerText.trim();
-          // "$29.99 CS" — grab CS (case) price specifically
-          const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-          const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
+          // Search for price near the UPC
+          const nearby = allText.slice(Math.max(0, upcIdx - 200), upcIdx + 400);
+          const csM = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+          const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
           const m = csM || anyM;
-          if (!m || name.length < 3) return;
-          const price = parseFloat(m[1].replace(",", ""));
-          if (price > 0 && price < 10000) results.push({ name, price, raw: priceText });
-        });
-        return results;
-      });
-      visible.forEach(item => { if (!allItems.has(item.name)) allItems.set(item.name, item); });
-      return visible.length;
-    }
+          if (m) return { price: parseFloat(m[1].replace(",", "")), raw: nearby.slice(0, 150), src: "text" };
+          return { notFound: true, nearby: nearby.slice(0, 200) };
+        }, item.id, item.name);
 
-    // Sysco uses a virtualized list div — must scroll THAT div, not window
-    // Dev tools: div.virtualized-list with overflow:auto, height:355px
-    const vListInfo = await page.evaluate(() => {
-      const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
-      if (!vl) return null;
-      return { scrollHeight: vl.scrollHeight, clientHeight: vl.clientHeight, class: vl.className };
-    });
-    log("Sysco: virtualized list = " + JSON.stringify(vListInfo));
-
-    if (vListInfo && vListInfo.scrollHeight > vListInfo.clientHeight) {
-      // Scroll the virtualized container
-      let pos = 0;
-      const step = Math.max(150, vListInfo.clientHeight * 0.5);
-      while (pos <= vListInfo.scrollHeight + vListInfo.clientHeight) {
-        await page.evaluate((p) => {
-          const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
-          if (vl) vl.scrollTop = p;
-        }, pos);
-        await new Promise(r => setTimeout(r, 800));
-        const found = await extractVisible();
-        log("Sysco: vlist pos=" + pos + " visible=" + found + " total=" + allItems.size);
-        pos += step;
-        if (pos > 5000) break;
-      }
-      // Back to top
-      await page.evaluate(() => {
-        const vl = document.querySelector(".virtualized-list, [class*='virtualized-list'], .data-grid-body");
-        if (vl) vl.scrollTop = 0;
-      });
-      await new Promise(r => setTimeout(r, 500));
-      await extractVisible();
-    } else {
-      // Fallback: scroll window
-      const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
-      const viewHeight = await page.evaluate(() => window.innerHeight);
-      log("Sysco: fallback window scroll h=" + scrollHeight);
-      let pos = 0;
-      while (pos <= scrollHeight + viewHeight) {
-        await page.evaluate((p) => window.scrollTo(0, p), pos);
-        await new Promise(r => setTimeout(r, 800));
-        await extractVisible();
-        pos += Math.max(200, viewHeight * 0.5);
-        if (pos > 10000) break;
+        if (result.notFound) {
+          log("Sysco: " + item.name + " (" + item.id + ") not found. nearby=" + (result.nearby || ""));
+        } else {
+          log("Sysco: " + item.name + " = $" + result.price + " [" + result.src + "]");
+          items.push({ name: item.name, price: result.price, upc: item.id, raw: result.raw });
+        }
+      } catch(e) {
+        log("Sysco: error searching " + item.id + ": " + e.message);
       }
     }
 
-    const items = Array.from(allItems.values());
-    log("Sysco: " + items.length + " total items: " + JSON.stringify(items));
+    log("Sysco: found " + items.length + "/" + SYSCO_ITEMS.length + " items via search");
     return { success: true, items };
   } catch(e) {
     log("Sysco FATAL: " + e.message);
