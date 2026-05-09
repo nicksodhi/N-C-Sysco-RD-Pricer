@@ -1253,6 +1253,15 @@ app.get("/api/trigger", (req, res) => {
   runScrape(src).catch(e => log("Trigger: " + e.message));
 });
 
+// Force an immediate clean backup to GitHub (no scrape needed)
+app.get("/api/force-backup", async (req, res) => {
+  try {
+    cleanBadPrices(); // ensure no bad prices go in
+    await backupToGitHub();
+    res.json({ success: true, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Clear a specific item price and push clean backup to GitHub
 // e.g. /api/clear?id=42647&vendor=rd
 app.get("/api/clear", async (req, res) => {
