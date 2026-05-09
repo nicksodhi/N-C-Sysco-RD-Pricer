@@ -140,6 +140,20 @@ async function restoreFromGitHub() {
 const _loaded = loadPrices();
 let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
 
+// Clean up any previously cached bad prices on startup
+function cleanBadPrices() {
+  let cleaned = 0;
+  Object.entries(priceStore.rd).forEach(([id, entry]) => {
+    const max = RD_PRICE_MAX[id];
+    if (max && entry.price > max) {
+      delete priceStore.rd[id];
+      cleaned++;
+      console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (max $" + max + ")");
+    }
+  });
+  if (cleaned > 0) savePrices();
+}
+
 const log = (msg) => {
   console.log(msg);
   priceStore.log.unshift({ time: new Date().toISOString(), msg });
@@ -442,6 +456,7 @@ function recordHistory() {
 }
 
 loadHistory();
+cleanBadPrices(); // remove any previously stored bad prices
 
 // AI-powered cross-vendor linker — runs after both scrapers finish
 async function buildCrossVendorMap(syscoMatched, rdMatched) {
