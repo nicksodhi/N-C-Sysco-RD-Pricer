@@ -596,7 +596,7 @@ function CompareView({ rd, sc }) {
     }));
 
     try {
-      const prompt = `Match each line of this restaurant order list to the best item in our product catalog.
+      const prompt = `Match each line of this restaurant order list to a product catalog item, and extract the quantity.
 
 ORDER LIST:
 ${list}
@@ -605,13 +605,13 @@ PRODUCT CATALOG (id: name | RD price | Sysco price):
 ${catalog.map(i => i.id + ": " + i.name + " | RD: " + (i.rdPrice ? "$"+i.rdPrice : "N/A") + " | Sysco: " + (i.scPrice ? "$"+i.scPrice : "N/A")).join("\n")}
 
 Rules:
-- Match abbreviations and casual names ("chx breast", "LQ", "heavy cream", "flour")
-- Ignore quantities, emojis, bullets
-- Match the FOOD PRODUCT not the quantity
-- If no reasonable match exists, put in unmatched
+- Match abbreviations and casual names ("chx breast"=chicken breast, "LQ"=leg quarters, "WM"=whole milk)
+- Extract quantity from each line (e.g. "2 milks" → qty:2, "3x chicken" → qty:3, "chicken" → qty:1)
+- Quantities apply to cases unless otherwise stated
+- If no reasonable product match exists, put in unmatched
 
 Return ONLY this JSON structure:
-{"matched":[{"line":"original line","id":"CATALOG_ID"}],"unmatched":["lines with no match"]}`;
+{"matched":[{"line":"original line","id":"CATALOG_ID","qty":1}],"unmatched":["lines with no match"]}`;
 
       const res = await fetch("/api/claude", {
         method: "POST",
@@ -624,17 +624,18 @@ Return ONLY this JSON structure:
       const parsed = jsonM ? JSON.parse(jsonM[0]) : { matched: [], unmatched: [] };
 
       const bothItems = [], skipped = [], unmatched = parsed.unmatched || [];
-      (parsed.matched || []).forEach(({ line, id }) => {
+      (parsed.matched || []).forEach(({ line, id, qty }) => {
         const item = ITEMS.find(i => i.id === id);
         if (!item) { unmatched.push(line); return; }
         const rdP = rd[item.id]?.price, scP = sc[item.id]?.price;
-        if (rdP && scP) bothItems.push({ ...item, rdPrice: rdP, scPrice: scP });
-        else skipped.push({ ...item, rdPrice: rdP||null, scPrice: scP||null,
+        const q = Math.max(1, parseInt(qty) || 1);
+        if (rdP && scP) bothItems.push({ ...item, rdPrice: rdP, scPrice: scP, qty: q, line });
+        else skipped.push({ ...item, rdPrice: rdP||null, scPrice: scP||null, qty: q, line,
           reason: !rdP&&!scP ? "No pricing from either vendor" : !rdP ? "No RD pricing" : "No Sysco pricing" });
       });
 
-      const purRD = bothItems.reduce((s,i)=>s+i.rdPrice,0);
-      const purSC = bothItems.reduce((s,i)=>s+i.scPrice,0);
+      const purRD = bothItems.reduce((s,i)=>s+(i.rdPrice * i.qty),0);
+      const purSC = bothItems.reduce((s,i)=>s+(i.scPrice * i.qty),0);
       setResult({ bothItems, purRD, purSC, skipped, unmatched });
     } catch(e) {
       // Fallback to local fuzzy match
@@ -722,10 +723,19 @@ Return ONLY this JSON structure:
                   <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "10px 14px", borderBottom: i < result.bothItems.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center", gap: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 15 }}>{item.emoji}</span>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
+                        {item.qty > 1 && <div style={{ fontSize: 10, color: "#999" }}>×{item.qty} cases</div>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: rdWins ? "#16A34A" : "#888", textAlign: "right" }}>{fmt2(item.rdPrice)}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: !rdWins ? "#2563EB" : "#888", textAlign: "right" }}>{fmt2(item.scPrice)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: rdWins ? "#16A34A" : "#888", textAlign: "right" }}>
+                      {fmt2(item.rdPrice * item.qty)}
+                      {item.qty > 1 && <div style={{ fontSize: 9, color: "#AAA", fontWeight: 500 }}>{fmt2(item.rdPrice)} ea</div>}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: !rdWins ? "#2563EB" : "#888", textAlign: "right" }}>
+                      {fmt2(item.scPrice * item.qty)}
+                      {item.qty > 1 && <div style={{ fontSize: 9, color: "#AAA", fontWeight: 500 }}>{fmt2(item.scPrice)} ea</div>}
+                    </div>
                   </div>
                 );
               })}
