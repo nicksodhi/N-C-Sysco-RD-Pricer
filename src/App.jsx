@@ -372,20 +372,40 @@ ${rows.map(r => `<tr>
               </>
             )}
 
-            {!loading && noPrice.length > 0 && (
-              <>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>⚠️</span> NO CURRENT PRICING
-                </div>
-                {noPrice.map((item, i) => (
-                  <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
-                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
-                    <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: "#BBB", fontWeight: 500 }}>Not scraped yet</div>
+            {!loading && noPrice.length > 0 && (()=> {
+              const rdOosSet = new Set(oos?.rd || []);
+              const oosHere = noPrice.filter(i => rdOosSet.has(i.id));
+              const unscraped = noPrice.filter(i => !rdOosSet.has(i.id));
+              return (<>
+                {oosHere.length > 0 && (<>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>
+                    🔴 OUT OF STOCK AT RD
                   </div>
-                ))}
-              </>
-            )}
+                  {oosHere.map(item => (
+                    <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #FEE2E2", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                      {sc[item.id] && <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>{fmt(sc[item.id].price)}</div>}
+                      {sc[item.id]
+                        ? <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#EFF6FF", color: "#2563EB" }}>Sysco</div>
+                        : <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626" }}>OOS</div>}
+                    </div>
+                  ))}
+                </>)}
+                {unscraped.length > 0 && (<>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>⚠️</span> NO CURRENT PRICING
+                  </div>
+                  {unscraped.map(item => (
+                    <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
+                      <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
+                      <div style={{ fontSize: 11, color: "#BBB", fontWeight: 500 }}>Not scraped yet</div>
+                    </div>
+                  ))}
+                </>)}
+              </>);
+            })()}
 
             {!loading && both.length === 0 && rdOnly.length === 0 && noPrice.length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
