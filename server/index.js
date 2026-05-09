@@ -55,6 +55,9 @@ async function backupToGitHub() {
 
     const content = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
     const path = "backup/prices.json";
+
+    // Also backup history separately
+    backupHistoryToGitHub(token, repo, headers).catch(e => log("History backup error: " + e.message));
     const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + path;
     const headers = {
       "Authorization": "token " + token,
@@ -84,6 +87,22 @@ async function backupToGitHub() {
       log("❌ GitHub backup failed: " + (err.message || put.status));
     }
   } catch(e) { log("GitHub backup error: " + e.message); }
+}
+
+// ── Backup history to GitHub ─────────────────────────────────────────────────
+async function backupHistoryToGitHub(token, repo, headers) {
+  if (!token || !repo) return;
+  try {
+    const hContent = Buffer.from(JSON.stringify(priceHistory)).toString("base64");
+    const hPath = "backup/history.json";
+    const hBase = "https://api.github.com/repos/" + repo + "/contents/" + hPath;
+    let hSha = null;
+    try { const g = await fetch(hBase, { headers }); if (g.ok) { const j = await g.json(); hSha = j.sha; } } catch {}
+    const hBody = { message: "History backup " + new Date().toISOString().slice(0, 10), content: hContent, ...(hSha ? { sha: hSha } : {}) };
+    const hPut = await fetch(hBase, { method: "PUT", headers, body: JSON.stringify(hBody) });
+    if (hPut.ok) log("✅ GitHub backup: history.json committed");
+    else { const e = await hPut.json(); log("❌ History backup failed: " + (e.message || hPut.status)); }
+  } catch(e) { log("History backup error: " + e.message); }
 }
 
 // ── Restore from GitHub backup on startup (if local files missing) ────────────
@@ -117,6 +136,18 @@ async function restoreFromGitHub() {
     saveCache();
     saveCrossVendor();
     log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
+
+    // Also restore history
+    try {
+      const hBase = "https://api.github.com/repos/" + repo + "/contents/backup/history.json";
+      const hR = await fetch(hBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
+      if (hR.ok) {
+        const hJ = await hR.json();
+        priceHistory = JSON.parse(Buffer.from(hJ.content, "base64").toString("utf8"));
+        saveHistory();
+        log("✅ Restore: history restored for " + Object.keys(priceHistory).length + " items");
+      }
+    } catch(e) { log("History restore error: " + e.message); }
   } catch(e) { log("Restore error: " + e.message); }
 }
 
@@ -333,6 +364,58 @@ function saveCrossVendor() {
 }
 
 loadCrossVendor();
+
+// ── Price history store — persisted to disk + GitHub ─────────────────────────
+const HISTORY_FILE = "/tmp/nc_history.json";
+let priceHistory = {}; // { itemId: [{date, rd, sc}] }
+
+function loadHistory() {
+  try {
+    if (fs.existsSync(HISTORY_FILE)) {
+      priceHistory = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
+      const count = Object.keys(priceHistory).length;
+      console.log("✅ History loaded: " + count + " items");
+    }
+  } catch(e) { console.log("History load error:", e.message); }
+}
+
+function saveHistory() {
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(priceHistory)); }
+  catch(e) { console.log("History save error:", e.message); }
+}
+
+function recordHistory() {
+  const today = new Date().toISOString().slice(0, 10);
+  let changed = false;
+  // Go through every item we have prices for
+  const allIds = new Set([...Object.keys(priceStore.rd), ...Object.keys(priceStore.sysco)]);
+  allIds.forEach(id => {
+    const rdP = priceStore.rd[id]?.price || null;
+    const scP = priceStore.sysco[id]?.price || null;
+    if (!rdP && !scP) return;
+    if (!priceHistory[id]) priceHistory[id] = [];
+    const existing = priceHistory[id].findIndex(e => e.date === today);
+    if (existing >= 0) {
+      // Update today — merge, never overwrite real price with null
+      const old = priceHistory[id][existing];
+      priceHistory[id][existing] = {
+        date: today,
+        rd: rdP || old.rd || null,
+        sc: scP || old.sc || null,
+      };
+    } else {
+      // New entry — keep max 90 days
+      priceHistory[id] = [...priceHistory[id].slice(-89), { date: today, rd: rdP, sc: scP }];
+    }
+    changed = true;
+  });
+  if (changed) {
+    saveHistory();
+    log("📅 History recorded: " + allIds.size + " items for " + today);
+  }
+}
+
+loadHistory();
 
 // AI-powered cross-vendor linker — runs after both scrapers finish
 async function buildCrossVendorMap(syscoMatched, rdMatched) {
@@ -1081,11 +1164,14 @@ async function runScrape(source = "all") {
   }
   priceStore.lastUpdated = new Date().toISOString();
   savePrices();
+  recordHistory(); // record today's prices to history
   // Backup everything to GitHub after each full scrape
   backupToGitHub().catch(e => log("Backup error: " + e.message));
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
+app.get("/api/history", (req, res) => res.json(priceHistory));
+
 app.get("/api/prices", (req, res) => res.json({
   rd: priceStore.rd,
   sysco: priceStore.sysco,
