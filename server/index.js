@@ -212,57 +212,68 @@ async function scrapeRD() {
     }
     await new Promise(r => setTimeout(r, 3000));
 
-    // Step 6: Use innerText line by line - RD prices show as "$36\n24" = $36.24
-    const rdLines = await page.evaluate(() => document.body.innerText.split("\n").map(l => l.trim()).filter(l => l));
-    log(`RD: ${rdLines.length} lines, sample: ${JSON.stringify(rdLines.slice(0, 20))}`);
+    // Step 6: Extract prices from RD page
+    // RD format: "$36" on one line + "24" cents on next = $36.24
+    // Also: "Current price: $36.24 each (estimated)" for by-weight
+    // Also: "$7.84-$43.95" range = use higher ($43.95 = case price)
+    const rdLines = await page.evaluate(() => document.body.innerText.split("\n").map(l => l.trim()).filter(l => l.length > 0));
+    log(`RD: ${rdLines.length} lines after scroll`);
 
-    // Find all dollar-sign lines and reconstruct prices
     const items = [];
     const seen = new Set();
+
+    // Skip lines that are clearly navigation
+    const skipWords = new Set(['Skip Navigation','Buy It Again','Order Guides','Products','Equipment','Receipts','Monthly Flyer','Back to Home','Many in stock','Add','Skip','Show similar','Current price','Back','Las Vegas','Pickup','Delivery']);
+
     for (let i = 0; i < rdLines.length; i++) {
       const line = rdLines[i];
       let price = null;
       let raw = line;
 
-      // "$31.60 each (est.)" — direct price
-      const eachM = line.match(/\$([\d.]+)\s+each/i);
-      if (eachM) { price = parseFloat(eachM[1]); }
+      // "Current price: $36.24 each (estimated)" or "$31.60 each (est.)"
+      const eachM = line.match(/\$([\d,]+\.[\d]{2})\s+each/i);
+      if (eachM) { price = parseFloat(eachM[1].replace(',','')); }
 
-      // "$7.84-$43.95" — range, use higher (case price)
-      const rangeM = line.match(/\$([\d.]+)\s*[-–]\s*\$([\d.]+)/);
+      // "$7.84-$43.95" = range, use higher (case price)
+      // But need to distinguish from "$4-$16" which is dollars only (no cents yet)
+      const rangeM = line.match(/\$([\d]+\.[\d]{2})\s*[-–]\s*\$([\d]+\.[\d]{2})/);
       if (rangeM) { price = Math.max(parseFloat(rangeM[1]), parseFloat(rangeM[2])); }
 
-      // "$36" on one line + "24" on next = $36.24
-      // OR "$36" alone
-      const dollarM = line.match(/^\$([\d]{1,4})$/);
-      if (dollarM && i + 1 < rdLines.length) {
-        const nextLine = rdLines[i + 1];
-        const centsM = nextLine.match(/^(\d{2})\s*$/);
-        if (centsM) {
-          price = parseFloat(dollarM[1] + "." + centsM[1]);
-          raw = line + "." + nextLine;
+      // "$36" alone on a line — next line is cents "24" = $36.24
+      if (!price) {
+        const dolM = line.match(/^\$([\d]{1,4})$/);
+        if (dolM) {
+          // Look ahead for cents
+          for (let k = i+1; k <= Math.min(i+3, rdLines.length-1); k++) {
+            const cM = rdLines[k].match(/^(\d{2})$/);
+            if (cM) {
+              price = parseFloat(dolM[1] + "." + cM[1]);
+              raw = "$" + dolM[1] + "." + cM[1];
+              break;
+            }
+          }
         }
       }
 
-      // "$  36  24" combined (superscript format)
-      const superM = line.match(/\$\s*(\d+)\s+(\d{2})$/);
-      if (superM) { price = parseFloat(superM[1] + "." + superM[2]); }
+      if (!price || price < 1 || price > 2000) continue;
 
-      if (!price || price < 2 || price > 5000) continue;
-
-      // Find product name in surrounding lines
-      for (let j = i - 8; j <= i + 8; j++) {
-        if (j < 0 || j === i || j >= rdLines.length) continue;
+      // Find product name — look in surrounding lines
+      let found = false;
+      for (let j = i - 10; j <= i + 10 && !found; j++) {
+        if (j < 0 || j >= rdLines.length) continue;
         const c = rdLines[j];
-        if (c.length > 8 && c.length < 130 && !seen.has(c) &&
-            !/^\$/.test(c) && !/^[\d\s.\-/#x]+$/.test(c) &&
-            !/^(Bin|stock|Add|Skip Navigation|Cart|Login|Search|Buy|eligible|Pickup|Delivery|Many|About|See|Back|Order Guides|Products|Equipment|Receipts|Monthly Flyer|Buy It Again|Skip)$/i.test(c) &&
-            !/^\d+\s*(oz|lb|gal|ct|#|z)$/i.test(c) &&
-            c.split(" ").length >= 2) {
-          items.push({ name: c, price, raw });
-          seen.add(c);
-          break;
-        }
+        if (seen.has(c) || skipWords.has(c)) continue;
+        if (c.length < 8 || c.length > 130) continue;
+        if (/^\$/.test(c)) continue;
+        if (/^[\d\s.\-/#x]+$/.test(c)) continue;
+        if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs)\s*$/i.test(c)) continue;
+        if (/^(Bin|stock|Bin -|Many|About|See|eligible|Skip|Back|Pickup|Delivery|Show similar|Current price)$/i.test(c)) continue;
+        if (c.split(" ").length < 2) continue;
+        // Must look like a product name (has letters, reasonable length)
+        if (!/[a-zA-Z]{3,}/.test(c)) continue;
+        items.push({ name: c, price, raw });
+        seen.add(c);
+        found = true;
       }
     }
     log(`RD: found ${items.length} items. Sample: ${JSON.stringify(items.slice(0, 5))}`);
