@@ -13,6 +13,14 @@ app.use(express.static(path.join(__dirname, "../build")));
 const fs = require("fs");
 const PRICES_FILE = "/data/nc_prices.json";
 
+// Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
+const RD_SINGLE_UNIT = new Set(["42647","55519"]); // sold per-unit not per-case
+const RD_PRICE_MAX = {
+  "42647":  15,  // Mint 1 lb (~$5-8)
+  "55519":  25,  // Orchid Flowers (~$5-15)
+  "1070496": 20, // Morton Salt 50lb (~$8-12)
+};
+
 function loadPrices() {
   try {
     if (fs.existsSync(PRICES_FILE)) {
@@ -122,10 +130,8 @@ async function restoreFromGitHub() {
     saveCache();
     saveCrossVendor();
     log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
-    // Record today's prices into history immediately after restore
-    recordHistory();
 
-    // Also restore history
+    // Restore history FIRST, then record today on top of it
     try {
       const hBase = "https://api.github.com/repos/" + repo + "/contents/backup/history.json";
       const hR = await fetch(hBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
@@ -136,6 +142,9 @@ async function restoreFromGitHub() {
         log("✅ Restore: history restored for " + Object.keys(priceHistory).length + " items");
       }
     } catch(e) { log("History restore error: " + e.message); }
+
+    // Record TODAY's prices AFTER history is loaded — merges today on top correctly
+    recordHistory();
   } catch(e) { log("Restore error: " + e.message); }
 }
 
@@ -325,23 +334,7 @@ const RD_ITEMS = [
   { id: "21039",   name: "Evian - Natural Spring Water 24 Ct" },
 ];
 
-// Items sold individually at RD (not by case) — price shown is per-unit
-const RD_SINGLE_UNIT = new Set([
-  "42647",  // Herb - Mint - 1 lb
-  "55519",  // Micro Orchid Flowers - 4 oz
-]);
 
-// Max reasonable price per item — catches scraper bleed from adjacent items
-// If scraped price exceeds this, it's almost certainly a misread
-const RD_PRICE_MAX = {
-  "42647":  20,   // Mint 1 lb — should be ~$5-10
-  "55519":  25,   // Orchid Flowers — should be ~$5-15
-  "1070496": 20,  // Morton Salt 50lb — should be ~$8-12
-  "21051":   30,  // Sugar 25lb — should be ~$15-25
-  "2061212": 50,  // All Purpose Flour 25lb — should be ~$25-40
-  "42566":   30,  // Cilantro — should be ~$10-20
-  "42647":   15,  // Mint — should be ~$5-8
-};
 
 // ── Sysco Nick List: exact Sysco UPCs from Nick List PDF ─────────────────────
 // Prices from Sysco PDF: CS = case price
