@@ -490,7 +490,7 @@ async function scrapeRD() {
       "Monthly Flyer","Back to Home","Many in stock","Add","Skip","Show similar","Back",
       "Las Vegas","Pickup","Delivery","Order history","Account settings","Addresses",
       "Payment methods","Credits and promos","Your saved lists","Notification settings",
-      "Out of stock","See eligible items","Explore popular","Whole","Dairy free",
+      "Out of stock","Likely out of stock","Temporarily out of stock","Currently out of stock","Item unavailable","See eligible items","Explore popular","Whole","Dairy free",
       "Order approvals","Business settings","Log out","Restaurant Depot","Items","Members",
       "Settings","Delivery available","each (est.)","each (estimated)","Caffeinated",
       "Caffeine free","Gluten free","Sugar free","Alcohol free","In-Store","DietSugar free",
@@ -556,24 +556,45 @@ async function scrapeRD() {
       }
     }
 
-    // Detect OOS items: scan lines for "Out of stock" that appears DIRECTLY under a product name
-    // (within 3 lines), with NO "Current price" between them — meaning it truly has no price
+    // Detect OOS items — catch all RD out-of-stock phrasings:
+    // "Out of stock", "Likely out of stock", "Temporarily out of stock", etc.
+    const OOS_PATTERNS = [
+      /^out of stock$/i,
+      /^likely out of stock$/i,
+      /^temporarily out of stock$/i,
+      /^currently out of stock$/i,
+      /^item unavailable$/i,
+      /^unavailable$/i,
+    ];
+
+    function isOosLine(line) {
+      return OOS_PATTERNS.some(p => p.test(line.trim()));
+    }
+
     const oosNames = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (line !== "Out of stock") continue;
-      // Search backward up to 6 lines for the nearest product name
-      // Stop early if we hit another "Current price" (that would be a different item)
+      if (!isOosLine(line)) continue;
+      // Search backward up to 8 lines for the nearest product name
+      // Stop early if we hit another "Current price" (that belongs to a different item)
       let foundName = null;
-      for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
+      for (let j = i - 1; j >= Math.max(0, i - 8); j--) {
         const prev = lines[j].trim();
-        if (/Current price/i.test(prev)) break; // different item's price line — stop
+        if (/Current price/i.test(prev)) break;
         if (isProductName(prev)) { foundName = prev; break; }
+      }
+      // Also search forward up to 4 lines (sometimes name comes after OOS label)
+      if (!foundName) {
+        for (let j = i + 1; j <= Math.min(lines.length - 1, i + 4); j++) {
+          const next = lines[j].trim();
+          if (/Current price/i.test(next)) break;
+          if (isProductName(next)) { foundName = next; break; }
+        }
       }
       if (foundName && !seen.has(foundName)) {
         oosNames.push(foundName);
         seen.add(foundName);
-        log("RD: OOS confirmed: " + foundName);
+        log("RD: OOS confirmed [" + line.trim() + "]: " + foundName);
       }
     }
     log("RD: out-of-stock names found (" + oosNames.length + "): " + oosNames.join(", "));
