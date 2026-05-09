@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname, "../build")));
 
 // ── Price store — persisted to disk so Railway restarts keep data ─────────────
 const fs = require("fs");
-const PRICES_FILE = "/tmp/nc_prices.json";
+const PRICES_FILE = "/data/nc_prices.json";
 
 function loadPrices() {
   try {
@@ -35,11 +35,96 @@ function savePrices() {
   } catch(e) { console.log("Could not save prices:", e.message); }
 }
 
+// ── GitHub backup — commits prices.json to repo after every scrape ────────────
+// Requires GITHUB_TOKEN and GITHUB_REPO env vars in Railway
+// GITHUB_REPO format: "username/repo-name"
+async function backupToGitHub() {
+  const token = process.env.GITHUB_TOKEN;
+  const repo  = process.env.GITHUB_REPO;
+  if (!token || !repo) { log("GitHub backup: skipped (no GITHUB_TOKEN or GITHUB_REPO)"); return; }
+
+  try {
+    const data = {
+      rd: priceStore.rd,
+      sysco: priceStore.sysco,
+      lastUpdated: priceStore.lastUpdated,
+      oos: priceStore.oos || { rd: [], sysco: [] },
+      matchCache: matchCache,
+      crossVendor: SYSCO_TO_RD,
+    };
+
+    const content = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
+    const path = "backup/prices.json";
+    const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + path;
+    const headers = {
+      "Authorization": "token " + token,
+      "Content-Type": "application/json",
+      "User-Agent": "naan-curry-price-tracker",
+    };
+
+    // Get current file SHA (needed to update existing file)
+    let sha = null;
+    try {
+      const get = await fetch(apiBase, { headers });
+      if (get.ok) { const j = await get.json(); sha = j.sha; }
+    } catch {}
+
+    // Commit the file
+    const body = {
+      message: "Price backup " + new Date().toISOString().slice(0, 10),
+      content,
+      ...(sha ? { sha } : {}),
+    };
+
+    const put = await fetch(apiBase, { method: "PUT", headers, body: JSON.stringify(body) });
+    if (put.ok) {
+      log("✅ GitHub backup: prices.json committed to " + repo);
+    } else {
+      const err = await put.json();
+      log("❌ GitHub backup failed: " + (err.message || put.status));
+    }
+  } catch(e) { log("GitHub backup error: " + e.message); }
+}
+
+// ── Restore from GitHub backup on startup (if local files missing) ────────────
+async function restoreFromGitHub() {
+  const token = process.env.GITHUB_TOKEN;
+  const repo  = process.env.GITHUB_REPO;
+  if (!token || !repo) return;
+
+  // Only restore if local prices are empty (fresh deploy)
+  const hasLocal = Object.keys(priceStore.rd).length > 0;
+  if (hasLocal) { log("Restore: local prices exist, skipping GitHub restore"); return; }
+
+  try {
+    log("Restore: no local prices, fetching from GitHub backup...");
+    const apiBase = "https://api.github.com/repos/" + repo + "/contents/backup/prices.json";
+    const r = await fetch(apiBase, {
+      headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" }
+    });
+    if (!r.ok) { log("Restore: no backup found on GitHub (" + r.status + ")"); return; }
+    const j = await r.json();
+    const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
+
+    if (data.rd) { priceStore.rd = data.rd; }
+    if (data.sysco) { priceStore.sysco = data.sysco; }
+    if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
+    if (data.oos) { priceStore.oos = data.oos; }
+    if (data.matchCache) { matchCache = data.matchCache; }
+    if (data.crossVendor) { Object.assign(SYSCO_TO_RD, data.crossVendor); }
+
+    savePrices();
+    saveCache();
+    saveCrossVendor();
+    log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
+  } catch(e) { log("Restore error: " + e.message); }
+}
+
 const _loaded = loadPrices();
 let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
 
 // ── Match cache — persists learned name→ID mappings forever ──────────────────
-const CACHE_FILE = "/tmp/nc_match_cache.json";
+const CACHE_FILE = "/data/nc_match_cache.json";
 let matchCache = { rd: {}, sysco: {} }; // { "scraped name": "item_id" }
 
 // Seed cache — known scraped-name → item-id mappings, never lost on restart
@@ -229,7 +314,7 @@ const SYSCO_TO_RD_SEED = {
   "3355757": "1020152", "4063095": "55523",   "1543164": "42725",
 };
 
-const CROSS_VENDOR_FILE = "/tmp/nc_cross_vendor.json";
+const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
 let SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED };
 
 function loadCrossVendor() {
@@ -995,6 +1080,9 @@ async function runScrape(source = "all") {
     } catch(e) { log("❌ Sysco: " + e.message); }
   }
   priceStore.lastUpdated = new Date().toISOString();
+  savePrices();
+  // Backup everything to GitHub after each full scrape
+  backupToGitHub().catch(e => log("Backup error: " + e.message));
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
@@ -1098,5 +1186,8 @@ app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../build/index.htm
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   log("🚀 Server port " + PORT);
-  setTimeout(() => runScrape("all").catch(console.error), 15000);
+  // Restore from GitHub backup first if local data is empty, then scrape
+  restoreFromGitHub()
+    .catch(e => log("Restore error: " + e.message))
+    .finally(() => setTimeout(() => runScrape("all").catch(console.error), 5000));
 });
