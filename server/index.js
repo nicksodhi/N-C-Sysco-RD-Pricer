@@ -398,8 +398,7 @@ async function scrapeRD() {
         log("RD: OOS confirmed: " + foundName);
       }
     }
-    if (oosNames.length) log("RD: out-of-stock items: " + oosNames.join(", "));
-    else log("RD: no out-of-stock items detected");
+    log("RD: out-of-stock names found (" + oosNames.length + "): " + oosNames.join(", "));
 
     log("RD: " + items.length + " items extracted: " + JSON.stringify(items.slice(0, 10)));
     return { success: true, items, oosNames };
@@ -622,32 +621,33 @@ async function runScrape(source = "all") {
         matched.forEach(({ id, price }) => {
           if (id && price > 0) priceStore.rd[id] = { price, date: new Date().toISOString() };
         });
-        // Match OOS names to RD item IDs using AI matches as lookup
+        // Match OOS scraped names to RD item IDs using simple word-overlap scoring
         const oosIds = [];
         if (result.oosNames && result.oosNames.length > 0) {
-          // Use AI to match OOS names to item IDs
-          const oosPrompt = "Match these out-of-stock product names to item IDs.\n\nOOS NAMES:\n" +
-            result.oosNames.join("\n") + "\n\nITEM LIST:\n" +
-            RD_ITEMS.map(i => i.id + ": " + i.name).join("\n") +
-            "\n\nReturn ONLY JSON array: [{id:ITEM_ID}]. Only confident matches.";
-          try {
-            const oosR = await fetch("https://api.anthropic.com/v1/messages", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-              body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 500, messages: [{ role: "user", content: oosPrompt }] }),
+          log("RD: matching OOS names: " + JSON.stringify(result.oosNames));
+          result.oosNames.forEach(oosName => {
+            const oosLower = oosName.toLowerCase();
+            let bestId = null, bestScore = 0;
+            RD_ITEMS.forEach(item => {
+              const iLower = item.name.toLowerCase();
+              let score = 0;
+              // Word overlap scoring
+              iLower.split(" ").forEach(w => { if (w.length > 3 && oosLower.includes(w)) score += w.length; });
+              oosLower.split(" ").forEach(w => { if (w.length > 3 && iLower.includes(w)) score += w.length; });
+              if (score > bestScore) { bestScore = score; bestId = item.id; }
             });
-            const oosData = await oosR.json();
-            const oosText = oosData.content?.find(b => b.type === "text")?.text || "[]";
-            const oosM = oosText.match(/\[[\s\S]*\]/);
-            if (oosM) {
-              JSON.parse(oosM[0]).forEach(({ id }) => { if (id && !oosIds.includes(id)) oosIds.push(id); });
+            if (bestId && bestScore >= 4) {
+              oosIds.push(bestId);
+              log("RD: OOS matched '" + oosName + "' → " + bestId + " (score=" + bestScore + ")");
+            } else {
+              log("RD: OOS no match for '" + oosName + "' (best score=" + bestScore + ")");
             }
-          } catch(e) { log("OOS match error: " + e.message); }
+          });
         }
         if (!priceStore.oos) priceStore.oos = { rd: [], sysco: [] };
         priceStore.oos.rd = oosIds;
-        if (oosIds.length) log("RD: out-of-stock IDs: " + oosIds.join(", "));
-        else log("RD: no out-of-stock items to store");
+        if (oosIds.length) log("RD: ✅ out-of-stock IDs stored: " + oosIds.join(", "));
+        else log("RD: no out-of-stock items matched");
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
         savePrices();
       } else { log("❌ RD: " + (result.error || "no items")); }
