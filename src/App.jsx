@@ -357,16 +357,7 @@ function CompareView({ rd, sc }) {
       </div>
 
       <textarea value={list} onChange={e => setList(e.target.value)}
-        placeholder={"Paste your order list:
-
-Chicken leg quarters
-Yellow onions
-Heavy cream
-Russet potato
-Liquid butter
-Sugar
-All purpose flour
-..."}
+        placeholder="Paste your order list: Chicken leg quarters, Yellow onions, Heavy cream, Russet potato, Liquid butter, Sugar..."
         style={{ width: "100%", minHeight: 160, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
 
       <button onClick={analyze} disabled={!list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: !list.trim() ? "#F0F0EC" : "#111", color: !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
@@ -483,7 +474,7 @@ function OrderView({ rd, sc }) {
       </div>
 
       <textarea value={list} onChange={e => setList(e.target.value)}
-        placeholder={"Type your order...\n\nExamples:\n5 cases chicken leg quarters\nyellow onions\nheavy cream\nrusset potatoes"}
+        placeholder="Type your order... e.g. chicken leg quarters, yellow onions, heavy cream"
         style={{ width: "100%", minHeight: 140, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
 
       <button onClick={go} disabled={loading || !list.trim()} style={{ width: "100%", marginTop: 8, padding: "14px", border: "none", borderRadius: 12, background: loading || !list.trim() ? "#F0F0EC" : "#111", color: loading || !list.trim() ? "#AAA" : "#fff", fontSize: 14, fontWeight: 600, cursor: loading || !list.trim() ? "default" : "pointer", transition: "all .2s" }}>
