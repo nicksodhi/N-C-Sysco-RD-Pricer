@@ -362,9 +362,9 @@ async function scrapeRD() {
   }
 }
 
-// ── Sysco Scraper — search each item by UPC ─────────────────────────────────
+// ── Sysco Scraper — search each item within Nick List ────────────────────────
 async function scrapeSysco() {
-  log("🔵 Sysco: starting UPC search scrape...");
+  log("🔵 Sysco: starting Nick List search scrape...");
   let browser;
   try {
     browser = await launchBrowser();
@@ -400,54 +400,104 @@ async function scrapeSysco() {
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
 
-    // Search each item by UPC and extract CS price
-    const items = [];
+    // Go to lists page and click Nick List
+    await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, 4000));
+
+    // Click Nick List LI
+    let nickClicked = null;
+    for (let attempt = 0; attempt < 15; attempt++) {
+      nickClicked = await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll("li, a, button, div, span"));
+        for (const el of all) {
+          if (el.children.length > 5) continue;
+          const t = el.textContent.trim();
+          if (t.toLowerCase().includes("nick list") && t.length < 30) {
+            el.click();
+            return el.tagName + ": " + t;
+          }
+        }
+        return null;
+      });
+      if (nickClicked) { log("Sysco: Nick List=" + nickClicked); break; }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    if (!nickClicked) throw new Error("Nick List not found");
+
+    // Wait for Nick List to load with items
+    await new Promise(r => setTimeout(r, 4000));
+    let rows = 0;
+    for (let w = 0; w < 15; w++) {
+      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
+      if (rows > 0) { log("Sysco: Nick List loaded, " + rows + " rows visible"); break; }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    // Find the "Search List" input inside Nick List
+    const searchInput = await page.$('input[placeholder*="Search List"], input[placeholder*="search list"], [data-id="myProductSearch"], input[aria-label*="Search List"]');
+    if (!searchInput) {
+      // Log all inputs to find the right one
+      const inputs = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name }))
+      );
+      log("Sysco: inputs on page: " + JSON.stringify(inputs));
+      throw new Error("Search List input not found");
+    }
+    log("Sysco: Search List input found");
+
+    // Search each item by name keyword and extract price
+    const allItems = new Map();
+
     for (const item of SYSCO_ITEMS) {
       try {
-        const searchUrl = "https://shop.sysco.com/app/search?searchTerm=" + item.id;
-        await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
-        await new Promise(r => setTimeout(r, 3000));
+        // Clear search and type keyword (use first distinctive word of product name)
+        const keyword = item.name.split(" ").slice(0, 2).join(" ");
+        await searchInput.click({ clickCount: 3 }); // select all
+        await page.keyboard.type(keyword, { delay: 50 });
+        await new Promise(r => setTimeout(r, 2000));
 
-        // Extract price from search results — look for CS price
-        const result = await page.evaluate((upc, itemName) => {
-          // Try product card price
-          const cards = document.querySelectorAll("[class*='product-card'], [class*='product-tile'], [class*='search-result'], [class*='product-item']");
-          for (const card of cards) {
-            const text = card.innerText;
-            // Check it's the right product (UPC match)
-            if (!text.includes(upc)) continue;
-            const csM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:CS|Case)/i);
-            const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
+        // Extract visible rows after search
+        const results = await page.evaluate((upc) => {
+          const rows = document.querySelectorAll("[class*='product-item-row']");
+          const found = [];
+          rows.forEach(row => {
+            const text = row.innerText;
+            const nameEl = row.querySelector("[class*='item-details-col']");
+            const priceEl = row.querySelector("[class*='price-col']");
+            if (!nameEl || !priceEl) return;
+            const name = nameEl.innerText.trim().split("\n")[0].trim();
+            const priceText = priceEl.innerText.trim();
+            // Check UPC appears in row
+            const hasUpc = text.includes(upc);
+            const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+            const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
             const m = csM || anyM;
-            if (m) return { price: parseFloat(m[1].replace(",", "")), raw: text.slice(0, 100), src: "card" };
-          }
+            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc });
+          });
+          return found;
+        }, item.id);
 
-          // Fallback: scan all text for UPC then nearby price
-          const allText = document.body.innerText;
-          const upcIdx = allText.indexOf(upc);
-          if (upcIdx < 0) return { notFound: true };
-
-          // Search for price near the UPC
-          const nearby = allText.slice(Math.max(0, upcIdx - 200), upcIdx + 400);
-          const csM = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-          const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
-          const m = csM || anyM;
-          if (m) return { price: parseFloat(m[1].replace(",", "")), raw: nearby.slice(0, 150), src: "text" };
-          return { notFound: true, nearby: nearby.slice(0, 200) };
-        }, item.id, item.name);
-
-        if (result.notFound) {
-          log("Sysco: " + item.name + " (" + item.id + ") not found. nearby=" + (result.nearby || ""));
+        // Prefer row where UPC matches exactly
+        const exact = results.find(r => r.hasUpc);
+        const best = exact || results[0];
+        if (best) {
+          log("Sysco: " + item.name + " → $" + best.price + " (upc match=" + !!exact + ")");
+          allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
         } else {
-          log("Sysco: " + item.name + " = $" + result.price + " [" + result.src + "]");
-          items.push({ name: item.name, price: result.price, upc: item.id, raw: result.raw });
+          log("Sysco: " + item.name + " (" + item.id + ") no results for keyword '" + keyword + "'");
         }
+
+        // Clear search for next item
+        await searchInput.click({ clickCount: 3 });
+        await page.keyboard.press("Backspace");
+        await new Promise(r => setTimeout(r, 500));
       } catch(e) {
-        log("Sysco: error searching " + item.id + ": " + e.message);
+        log("Sysco: error on " + item.name + ": " + e.message);
       }
     }
 
-    log("Sysco: found " + items.length + "/" + SYSCO_ITEMS.length + " items via search");
+    const items = Array.from(allItems.values());
+    log("Sysco: " + items.length + "/" + SYSCO_ITEMS.length + " items found: " + JSON.stringify(items));
     return { success: true, items };
   } catch(e) {
     log("Sysco FATAL: " + e.message);
