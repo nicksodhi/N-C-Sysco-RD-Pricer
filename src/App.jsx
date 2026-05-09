@@ -458,7 +458,7 @@ ${rows.map(r => `<tr>
                       const rdDiff = nextEntry?.rd && entry.rd ? entry.rd - nextEntry.rd : null;
                       return (
                         <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "9px 14px", borderBottom: i < arr.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center" }}>
-                          <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+                          <div style={{ fontSize: 12, color: "#555" }}>{new Date(entry.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
                           <div style={{ textAlign: "right" }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: entry.rd ? "#111" : "#CCC" }}>{entry.rd ? "$" + entry.rd.toFixed(2) : "—"}</div>
                             {rdDiff !== null && Math.abs(rdDiff) > 0.005 && (
