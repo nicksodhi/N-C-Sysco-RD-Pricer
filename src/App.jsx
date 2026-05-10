@@ -11,6 +11,7 @@ const ITEMS = [
   { id:"42647",   name:"Mint",                 emoji:"🌿", cat:"Produce"  },
   { id:"44146",   name:"Peeled Garlic",         emoji:"🧄", cat:"Produce"  },
   { id:"42513",   name:"Ginger",               emoji:"🫚", cat:"Produce"  },
+
   { id:"44137",   name:"Serrano Peppers",      emoji:"🌶️", cat:"Produce"  },
   { id:"42504",   name:"Cucumbers",            emoji:"🥒", cat:"Produce"  },
   { id:"42570",   name:"Lemons",               emoji:"🍋", cat:"Produce"  },
@@ -53,6 +54,8 @@ const ITEMS = [
   { id:"1020075", name:"Soybean Oil",          emoji:"🫙", cat:"Oils"     },
   { id:"1020077", name:"Fry Oil",              emoji:"🫙", cat:"Oils"     },
   { id:"45900",   name:"White Vinegar",        emoji:"🫙", cat:"Oils"     },
+  { id:"40212",   name:"Shrimp 16/20",          emoji:"🍤", cat:"Seafood"  },
+  { id:"2550012", name:"Yellow Food Coloring",  emoji:"🟡", cat:"Other"    },
   { id:"2550014", name:"Red Food Color",       emoji:"🔴", cat:"Oils"     },
   { id:"12728",   name:"Pan Spray",            emoji:"🥫", cat:"Other"    },
   { id:"21039",   name:"Evian Water",          emoji:"💧", cat:"Other"    },
@@ -632,7 +635,7 @@ Return ONLY this JSON structure:
         if (!item) { unmatched.push(line); return; }
         const rdP = rd[item.id]?.price, scP = sc[item.id]?.price;
         const q = Math.max(1, parseInt(qty) || 1);
-        if (rdP && scP) bothItems.push({ ...item, rdPrice: rdP, scPrice: scP, qty: q, line });
+        if (rdP && scP) bothItems.push({ ...item, rdPrice: rdP, scPrice: scP, qty: q, line, rdMult: rd[item.id]?.rdMult || 1 });
         else skipped.push({ ...item, rdPrice: rdP||null, scPrice: scP||null, qty: q, line,
           reason: !rdP&&!scP ? "No pricing from either vendor" : !rdP ? "No RD pricing" : "No Sysco pricing" });
       });
@@ -734,6 +737,7 @@ Return ONLY this JSON structure:
                     <div style={{ fontSize: 13, fontWeight: 700, color: rdWins ? "#16A34A" : "#888", textAlign: "right" }}>
                       {fmt2(item.rdPrice * item.qty)}
                       {item.qty > 1 && <div style={{ fontSize: 9, color: "#AAA", fontWeight: 500 }}>{fmt2(item.rdPrice)} ea</div>}
+
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: !rdWins ? "#2563EB" : "#888", textAlign: "right" }}>
                       {fmt2(item.scPrice * item.qty)}
