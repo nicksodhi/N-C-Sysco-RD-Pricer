@@ -9,6 +9,8 @@ const ITEMS = [
   { id:"42566",   name:"Cilantro",             emoji:"🌿", cat:"Produce"  },
   { id:"42606",   name:"Cauliflower",           emoji:"🥦", cat:"Produce"  },
   { id:"42647",   name:"Mint",                 emoji:"🌿", cat:"Produce"  },
+  { id:"44146",   name:"Peeled Garlic",         emoji:"🧄", cat:"Produce"  },
+  { id:"42513",   name:"Ginger",               emoji:"🫚", cat:"Produce"  },
   { id:"44137",   name:"Serrano Peppers",      emoji:"🌶️", cat:"Produce"  },
   { id:"42504",   name:"Cucumbers",            emoji:"🥒", cat:"Produce"  },
   { id:"42570",   name:"Lemons",               emoji:"🍋", cat:"Produce"  },
