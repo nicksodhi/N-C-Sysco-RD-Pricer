@@ -361,14 +361,7 @@ ${rows.map(r => `<tr>
                         <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdBest ? "#F7FEF9" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdBest ? "✓ " : ""}Restaurant Depot</div>
                           <div style={{ fontSize: 17, fontWeight: 700, color: rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
-                          <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
-                            <div style={{ fontSize: 9, color: "#AAA" }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
-                            {rd[item.id]?.confidence && <div style={{ fontSize: 8, fontWeight:700, padding:"1px 5px", borderRadius:99,
-                              background: rd[item.id].confidence==="high" ? "#DCFCE7" : rd[item.id].confidence==="medium" ? "#FEF9C3" : "#FEE2E2",
-                              color: rd[item.id].confidence==="high" ? "#16A34A" : rd[item.id].confidence==="medium" ? "#CA8A04" : "#DC2626"
-                            }}>{rd[item.id].confidence==="high" ? "✓ verified" : rd[item.id].confidence==="medium" ? "~ scraped" : "⚠ stale"}</div>}
-                            {rd[item.id]?.crossValidationFlag && <div style={{ fontSize:8, color:"#DC2626" }} title={rd[item.id].crossValidationFlag}>🚨</div>}
-                          </div>
+                          <div style={{ fontSize: 9, color: "#AAA", marginTop: 2 }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
                         </div>
                         <div style={{ padding: "10px 14px", background: !rdBest ? "#F0F6FF" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{!rdBest ? "✓ " : ""}Sysco</div>
