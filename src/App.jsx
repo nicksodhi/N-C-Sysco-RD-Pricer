@@ -80,6 +80,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [auditItem, setAuditItem] = useState(null); // item being audited
   const [history, setHistory] = useState({}); // { itemId: [{date, rd, sc}] }
 
   useEffect(() => {
@@ -128,6 +129,37 @@ export default function App() {
   const rdOnly = filtered.filter(i => rd[i.id] && !sc[i.id]);
   const noPrice = filtered.filter(i => !rd[i.id] && !sc[i.id]);
 
+  const confColor = c => c==="high"?"#16A34A":c==="medium"?"#CA8A04":"#DC2626";
+  const AuditModal = () => {
+    if (!auditItem) return null;
+    const rdE = rd[auditItem.id]; const scE = sc[auditItem.id];
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setAuditItem(null)}>
+        <div style={{background:"#fff",borderRadius:16,padding:20,maxWidth:460,width:"100%",maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>{auditItem.emoji} {auditItem.name} — Audit Trail</div>
+          {[["Restaurant Depot","#F8F8F6",rdE],["Sysco","#F0F6FF",scE]].filter(([,,e])=>e).map(([label,bg,entry])=>(
+            <div key={label} style={{background:bg,borderRadius:8,padding:10,marginBottom:10,fontSize:11}}>
+              <div style={{fontWeight:700,marginBottom:4}}>{label}</div>
+              <div>Price: <b>${entry.price}</b> · Confidence: <b style={{color:confColor(entry.confidence)}}>{entry.confidence||"unknown"}</b></div>
+              <div>Source: {entry.source||"unknown"}</div>
+              {entry.scrapedAt&&<div>Scraped: {new Date(entry.scrapedAt).toLocaleString()}</div>}
+              {entry.prevPrice&&<div>Previous: ${entry.prevPrice}</div>}
+              {entry.crossValidationFlag&&<div style={{color:"#DC2626",marginTop:4}}>🚨 {entry.crossValidationFlag}</div>}
+              {entry.stale&&<div style={{color:"#CA8A04",marginTop:4}}>⚠️ Stale: {entry.staleReason}</div>}
+              {entry.auditLog?.length>0&&<>
+                <div style={{fontWeight:600,marginTop:6,marginBottom:2}}>Audit log:</div>
+                {entry.auditLog.slice().reverse().map((e,i)=>(
+                  <div key={i} style={{color:"#666"}}>{new Date(e.date).toLocaleDateString()} · ${e.price} · {e.confidence} · {e.source||e.event||""}</div>
+                ))}
+              </>}
+            </div>
+          ))}
+          <button onClick={()=>setAuditItem(null)} style={{width:"100%",padding:10,border:"none",borderRadius:8,background:"#111",color:"#fff",fontWeight:600,cursor:"pointer"}}>Close</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ background: "#F7F7F5", minHeight: "100vh", maxWidth: 430, margin: "0 auto", fontFamily: "'Inter', system-ui, sans-serif", paddingBottom: 80 }}>
       <style>{`
@@ -162,6 +194,21 @@ export default function App() {
         </div>
       </div>
 
+      {/* Confidence + stale warning banners */}
+      {Object.values(rd).some(e => e?.stale) && (
+        <div style={{ background:"#FEF9C3",border:"1px solid #FDE68A",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#92400E" }}>
+          ⚠️ Some prices are from yesterday — partial scrape detected today
+        </div>
+      )}
+      {(() => {
+        const all = [...Object.values(rd),...Object.values(sc)].filter(Boolean);
+        const flagged = all.filter(e=>e?.confidence==="low"||e?.crossValidationFlag).length;
+        const verified = all.filter(e=>e?.confidence==="high").length;
+        if(flagged>0) return <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#991B1B"}}>🚨 {flagged} price{flagged>1?"s":""} flagged — tap item for details before ordering</div>;
+        if(verified>5) return <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#166534"}}>✅ {verified} prices AI-verified today</div>;
+        return null;
+      })()}
+
       {/* PRICES VIEW */}
       {view === "prices" && (
         <PricesView
@@ -170,7 +217,7 @@ export default function App() {
           history={history} synced={synced}
           pricesView={pricesView} setPricesView={setPricesView}
           both={both} rdOnly={rdOnly} noPrice={noPrice}
-          oos={oos}
+          oos={oos} setAuditItem={setAuditItem}
         />
       )}
 
@@ -194,7 +241,7 @@ export default function App() {
 }
 
 // ── PricesView ────────────────────────────────────────────────────────────────
-function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos }) {
+function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos, setAuditItem }) {
   const [historySearch, setHistorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -317,7 +364,7 @@ ${rows.map(r => `<tr>
                 {both.map((item, i) => {
                   const r = rd[item.id].price, s = sc[item.id].price, rdBest = r <= s;
                   return (
-                    <div key={item.id} className="fi" style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms" }}>
+                    <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}>{item.emoji}</span>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
@@ -329,7 +376,14 @@ ${rows.map(r => `<tr>
                         <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdBest ? "#F7FEF9" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdBest ? "✓ " : ""}Restaurant Depot</div>
                           <div style={{ fontSize: 17, fontWeight: 700, color: rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
-                          <div style={{ fontSize: 9, color: "#AAA", marginTop: 2 }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
+                          <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
+                            <div style={{ fontSize: 9, color: "#AAA" }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
+                            {rd[item.id]?.confidence && <div style={{ fontSize: 8, fontWeight:700, padding:"1px 5px", borderRadius:99,
+                              background: rd[item.id].confidence==="high" ? "#DCFCE7" : rd[item.id].confidence==="medium" ? "#FEF9C3" : "#FEE2E2",
+                              color: rd[item.id].confidence==="high" ? "#16A34A" : rd[item.id].confidence==="medium" ? "#CA8A04" : "#DC2626"
+                            }}>{rd[item.id].confidence==="high" ? "✓ verified" : rd[item.id].confidence==="medium" ? "~ scraped" : "⚠ stale"}</div>}
+                            {rd[item.id]?.crossValidationFlag && <div style={{ fontSize:8, color:"#DC2626" }} title={rd[item.id].crossValidationFlag}>🚨</div>}
+                          </div>
                         </div>
                         <div style={{ padding: "10px 14px", background: !rdBest ? "#F0F6FF" : "transparent" }}>
                           <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{!rdBest ? "✓ " : ""}Sysco</div>
@@ -346,7 +400,7 @@ ${rows.map(r => `<tr>
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>RESTAURANT DEPOT ONLY</div>
                 {rdOnly.map((item, i) => (
-                  <div key={item.id} className="fi" style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, animationDelay: i * 10 + "ms" }}>
+                  <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, animationDelay: i * 10 + "ms", cursor:"pointer" }}>
                     <span style={{ fontSize: 20 }}>{item.emoji}</span>
                     <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>{fmt(rd[item.id]?.price)}</div>
