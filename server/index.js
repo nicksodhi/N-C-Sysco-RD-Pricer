@@ -125,8 +125,17 @@ async function restoreFromGitHub() {
     const j = await r.json();
     const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
 
-    if (data.rd) { priceStore.rd = data.rd; }
-    if (data.sysco) { priceStore.sysco = data.sysco; }
+    if (data.rd) {
+      // Mark all restored prices as "low" confidence until re-scraped
+      priceStore.rd = Object.fromEntries(Object.entries(data.rd).map(([id, entry]) => [
+        id, { ...entry, confidence: entry.confidence === "high" ? "medium" : "low", source: entry.source || "restored" }
+      ]));
+    }
+    if (data.sysco) {
+      priceStore.sysco = Object.fromEntries(Object.entries(data.sysco).map(([id, entry]) => [
+        id, { ...entry, confidence: entry.confidence === "high" ? "medium" : "low", source: entry.source || "restored" }
+      ]));
+    }
     if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
     if (data.oos) { priceStore.oos = data.oos; }
     if (data.matchCache) { matchCache = data.matchCache; }
@@ -206,6 +215,9 @@ const CACHE_SEED = {
     "Fresh Chicken Leg Quarters - 40 lbs": "77670",
     "Boneless Skinless Chicken Breasts": "77232",
     "Herb - Mint - 1 lb": "42647",
+    "Herb - Mint- 1 lb": "42647",
+    "Herb - Mint-1 lb": "42647",
+    "Herb Mint 1 lb": "42647",
     "Jumbo Chicken Party Wings 6-8 ct": "77200",
     "Thomas Farms - Bone in Goat Cube - #15": "1810019",
     "Frozen Halal Boneless Lamb Leg, Australia": "79042",
@@ -289,14 +301,72 @@ const CACHE_SEED = {
   }
 };
 
+// ── Scraper health monitoring ────────────────────────────────────────────────
+// Tracks expected item counts per vendor. If a scrape returns significantly fewer,
+// Claude flags it as partial and keeps yesterday's prices.
+const scraperHealth = {
+  rd:    { expectedItems: 59, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
+  sysco: { expectedItems: 29, minThreshold: 0.80, lastGoodCount: 0 },
+};
+
+async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
+  const health = scraperHealth[vendor];
+  const threshold = Math.floor(health.expectedItems * health.minThreshold);
+
+  if (matchedCount >= threshold) {
+    // Healthy scrape
+    health.lastGoodCount = matchedCount;
+    if (matchedCount > health.expectedItems) health.expectedItems = matchedCount; // auto-adjust upward
+    log("✅ Scraper health [" + vendor + "]: " + matchedCount + "/" + health.expectedItems + " items — healthy");
+    return { healthy: true, matchedCount };
+  }
+
+  // Partial scrape detected — ask Claude what to do
+  log("⚠️ Scraper health [" + vendor + "]: only " + matchedCount + "/" + health.expectedItems + " items scraped (threshold: " + threshold + ")");
+
+  const prompt = `A web scraper returned fewer items than expected for a restaurant price tracker.
+
+Vendor: ${vendor === "rd" ? "Restaurant Depot" : "Sysco"}
+Expected items: ${health.expectedItems}
+Items scraped today: ${matchedCount}
+Last good scrape: ${health.lastGoodCount} items
+
+This could mean:
+1. The vendor's website had a partial load / timeout
+2. The vendor changed their page layout
+3. Many items are genuinely out of stock
+
+Should we: (a) keep yesterday's prices for missing items and mark them as stale, or (b) accept partial data?
+
+Return ONLY JSON: {"action":"keep_yesterday|accept_partial","reason":"brief explanation","severity":"low|medium|high"}`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 300, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "{}";
+    const m = txt.match(/\{[\s\S]*\}/);
+    const decision = m ? JSON.parse(m[0]) : { action: "keep_yesterday", reason: "parse error", severity: "medium" };
+
+    log("🤖 Scraper health decision [" + vendor + "]: " + decision.action + " — " + decision.reason + " (severity: " + decision.severity + ")");
+    return { healthy: false, action: decision.action, reason: decision.reason, severity: decision.severity, matchedCount };
+  } catch(e) {
+    log("Scraper health check error: " + e.message);
+    return { healthy: false, action: "keep_yesterday", reason: "health check failed", matchedCount };
+  }
+}
+
 function loadCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
-      // Merge: seed first, then saved (saved overrides seed if conflict)
+      // Merge: learned cache first, then SEED always wins (seed is ground truth)
       matchCache = {
-        rd: { ...CACHE_SEED.rd, ...(saved.rd || {}) },
-        sysco: { ...CACHE_SEED.sysco, ...(saved.sysco || {}) },
+        rd:    { ...(saved.rd    || {}), ...CACHE_SEED.rd    }, // seed overrides learned
+        sysco: { ...(saved.sysco || {}), ...CACHE_SEED.sysco }, // seed overrides learned
       };
     } else {
       matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
@@ -308,6 +378,24 @@ function loadCache() {
     console.log("Cache load error:", e.message);
     matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
   }
+
+  // Force-correct any known bad cache entries that may have been learned incorrectly
+  const CACHE_CORRECTIONS = {
+    rd: {
+      "Herb - Mint- 1 lb":  "42647",  // was wrongly mapped to 42504 (Cucumbers)
+      "Herb - Mint - 1 lb": "42647",
+      "Herb - Mint-1 lb":   "42647",
+    }
+  };
+  let corrected = 0;
+  Object.entries(CACHE_CORRECTIONS.rd || {}).forEach(([name, correctId]) => {
+    if (matchCache.rd[name] && matchCache.rd[name] !== correctId) {
+      console.log("🔧 Cache correction: '" + name + "' " + matchCache.rd[name] + " → " + correctId);
+      matchCache.rd[name] = correctId;
+      corrected++;
+    }
+  });
+  if (corrected > 0) { saveCache(); console.log("✅ Fixed " + corrected + " bad cache entries"); }
 }
 
 function saveCache() {
@@ -1390,6 +1478,86 @@ function withTimeout(p, ms, name) {
     setTimeout(() => rej(new Error(name + " timed out")), ms))]);
 }
 
+// ── Feature 2: Cross-vendor price validation ─────────────────────────────────
+// After both scrapers finish, Claude compares prices for the same item across vendors
+async function crossValidatePrices() {
+  const paired = [];
+  Object.entries(SYSCO_TO_RD).forEach(([syscoId, mapping]) => {
+    const rdId = mapping.rdId || mapping;
+    const rdEntry = priceStore.rd[rdId];
+    const scEntry = priceStore.sysco[rdId];
+    if (!rdEntry?.price || !scEntry?.price) return;
+    const rdItem = RD_ITEMS.find(i => i.id === rdId);
+    const scItem = SYSCO_ITEMS.find(i => i.id === syscoId);
+    const ratio = rdEntry.price / scEntry.price;
+    // Flag if one vendor's price is more than 3× the other — almost certainly a scrape error
+    if (ratio > 3 || ratio < 0.33) {
+      paired.push({
+        rdId, syscoId,
+        rdName: rdItem?.name || rdId,
+        scName: scItem?.name || syscoId,
+        rdPrice: rdEntry.price,
+        scPrice: scEntry.price,
+        ratio: ratio.toFixed(2),
+      });
+    }
+  });
+
+  if (paired.length === 0) { log("Cross-validation: all vendor pairs look reasonable ✅"); return; }
+
+  log("Cross-validation: " + paired.length + " suspicious price pairs — asking Claude...");
+
+  const prompt = `You are validating wholesale grocery prices for a restaurant. The same product was scraped from two vendors. Flag any prices that are clearly wrong.
+
+SUSPICIOUS PRICE PAIRS (one vendor's price is 3× or more the other's):
+${paired.map(p => `${p.rdName}: RD=$${p.rdPrice} vs Sysco=$${p.scPrice} (ratio=${p.ratio}x)`).join("\n")}
+
+For each pair, which price is the error? Consider:
+- Typical wholesale prices for each product type
+- A 3× difference almost always means one price has a decimal error or is per-unit vs per-case
+- Chicken 40lb case: typically $40-$120
+- Produce per case: typically $5-$80
+- Dairy per case: typically $15-$60
+
+Return ONLY JSON array:
+[{"rdId":"RD_ID","errorVendor":"rd|sysco|none","reason":"brief explanation"}]`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "[]";
+    const m = txt.match(/\[[\s\S]*\]/);
+    if (!m) return;
+
+    JSON.parse(m[0]).forEach(({ rdId, errorVendor, reason }) => {
+      if (errorVendor === "rd" && priceStore.rd[rdId]) {
+        priceStore.rd[rdId].confidence = "low";
+        priceStore.rd[rdId].crossValidationFlag = reason;
+        priceStore.rd[rdId].auditLog = [...(priceStore.rd[rdId].auditLog || []), 
+          { date: new Date().toISOString(), event: "cross_validation_flagged", reason, errorVendor }];
+        log("🚨 Cross-validation: RD price for " + rdId + " flagged (" + reason + ")");
+      } else if (errorVendor === "sysco" && priceStore.sysco[rdId]) {
+        priceStore.sysco[rdId].confidence = "low";
+        priceStore.sysco[rdId].crossValidationFlag = reason;
+        priceStore.sysco[rdId].auditLog = [...(priceStore.sysco[rdId].auditLog || []),
+          { date: new Date().toISOString(), event: "cross_validation_flagged", reason, errorVendor }];
+        log("🚨 Cross-validation: Sysco price for " + rdId + " flagged (" + reason + ")");
+      } else if (errorVendor === "none") {
+        // Both confirmed reasonable — upgrade confidence
+        if (priceStore.rd[rdId]) priceStore.rd[rdId].confidence = "high";
+        if (priceStore.sysco[rdId]) priceStore.sysco[rdId].confidence = "high";
+        log("✅ Cross-validation confirmed: " + rdId + " (" + reason + ")");
+      }
+    });
+    savePrices();
+    log("Cross-validation complete");
+  } catch(e) { log("Cross-validation error: " + e.message); }
+}
+
 // ── Feature 1: AI Price Validation ───────────────────────────────────────────
 async function validatePricesWithAI(vendor) {
   const store = vendor === "rd" ? priceStore.rd : priceStore.sysco;
@@ -1457,6 +1625,16 @@ Return ONLY JSON array:
           log("🤖 Price validation: REVERTED " + id + " from $" + store[id]?.price + " → $" + prev + " (" + reason + ")");
         }
       } else {
+        // Confirmed valid — upgrade confidence to high
+        if (vendor === "rd" && priceStore.rd[id]) {
+          priceStore.rd[id].confidence = "high";
+          priceStore.rd[id].validatedBy = "claude_price_validation";
+          priceStore.rd[id].auditLog = [...(priceStore.rd[id].auditLog || []),
+            { date: new Date().toISOString(), event: "ai_validated", confidence: "high", reason }];
+        } else if (priceStore.sysco[id]) {
+          priceStore.sysco[id].confidence = "high";
+          priceStore.sysco[id].validatedBy = "claude_price_validation";
+        }
         log("🤖 Price validation: CONFIRMED " + id + " price change (" + reason + ")");
       }
     });
@@ -1533,6 +1711,20 @@ async function runScrape(source = "all") {
         const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
         // Auto-discover potentially new items not in our list
         autoDiscoverRDItems(result.items).catch(e => log("Auto-discover error: " + e.message));
+        // Health check — did we get enough items?
+        const rdHealth = await checkScraperHealth("rd", result.items.length, matched.length);
+        if (!rdHealth.healthy && rdHealth.action === "keep_yesterday") {
+          log("🛡️ Health guard: keeping yesterday's RD prices (partial scrape)");
+          // Mark existing prices as stale but don't overwrite with partial data
+          Object.keys(priceStore.rd).forEach(id => {
+            if (priceStore.rd[id]) {
+              priceStore.rd[id].stale = true;
+              priceStore.rd[id].staleReason = rdHealth.reason;
+            }
+          });
+          savePrices();
+          return; // skip saving this scrape's results
+        }
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
           // Sanity check against known max prices — catches adjacent-item bleed
@@ -1546,10 +1738,25 @@ async function runScrape(source = "all") {
             log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + price);
             return;
           }
+          const now = new Date().toISOString();
+          const prevEntry = priceStore.rd[id];
           priceStore.rd[id] = {
             price,
-            date: new Date().toISOString(),
-            unit: RD_SINGLE_UNIT.has(id) ? "each" : "case"
+            date: now,
+            unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
+            confidence: "medium",        // upgraded to "high" after AI validation
+            source: "scraped_rd",
+            rawScraped: items.find(i => {
+              const cacheId = matchCache.rd[i.name];
+              return cacheId === id;
+            })?.raw || null,
+            scrapedAt: now,
+            prevPrice: prevEntry?.price || null,
+            validatedBy: null,
+            auditLog: [
+              ...(prevEntry?.auditLog || []).slice(-9), // keep last 10 entries
+              { date: now, price, source: "scraped_rd", confidence: "medium" }
+            ],
           };
         });
         // Match OOS scraped names to RD item IDs using simple word-overlap scoring
@@ -1592,6 +1799,16 @@ async function runScrape(source = "all") {
       const result = await withTimeout(scrapeSysco(), 180000, "Sysco");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
+        // Health check
+        const scHealth = await checkScraperHealth("sysco", result.items.length, matched.length);
+        if (!scHealth.healthy && scHealth.action === "keep_yesterday") {
+          log("🛡️ Health guard: keeping yesterday's Sysco prices (partial scrape)");
+          Object.keys(priceStore.sysco).forEach(id => {
+            if (priceStore.sysco[id]) { priceStore.sysco[id].stale = true; priceStore.sysco[id].staleReason = scHealth.reason; }
+          });
+          savePrices();
+          return;
+        }
         let savedCount = 0;
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
@@ -1602,7 +1819,23 @@ async function runScrape(source = "all") {
           if (mapping) {
             const rdId = mapping.rdId || mapping;
             const rdMult = mapping.rdMult || 1;
-            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id, rdMult };
+            const nowSc = new Date().toISOString();
+            const prevSc = priceStore.sysco[rdId];
+            priceStore.sysco[rdId] = {
+              price,
+              date: nowSc,
+              syscoUpc: id,
+              rdMult,
+              confidence: "medium",
+              source: "scraped_sysco",
+              scrapedAt: nowSc,
+              prevPrice: prevSc?.price || null,
+              validatedBy: null,
+              auditLog: [
+                ...(prevSc?.auditLog || []).slice(-9),
+                { date: nowSc, price, source: "scraped_sysco", confidence: "medium" }
+              ],
+            };
           }
           savedCount++;
         });
@@ -1631,6 +1864,12 @@ async function runScrape(source = "all") {
   priceStore.lastUpdated = new Date().toISOString();
   savePrices();
   recordHistory(); // record today's prices to history
+
+  // Run cross-vendor validation only on full scrapes (both vendors)
+  if (source === "all") {
+    crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
+  }
+
   // Backup everything to GitHub after each full scrape
   backupToGitHub().catch(e => log("Backup error: " + e.message));
 }
