@@ -194,21 +194,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Confidence + stale warning banners */}
-      {Object.values(rd).some(e => e?.stale) && (
-        <div style={{ background:"#FEF9C3",border:"1px solid #FDE68A",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#92400E" }}>
-          ⚠️ Some prices are from yesterday — partial scrape detected today
-        </div>
-      )}
-      {(() => {
-        const all = [...Object.values(rd),...Object.values(sc)].filter(Boolean);
-        const flagged = all.filter(e=>e?.confidence==="low"||e?.crossValidationFlag).length;
-        const verified = all.filter(e=>e?.confidence==="high").length;
-        if(flagged>0) return <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#991B1B"}}>🚨 {flagged} price{flagged>1?"s":""} flagged — tap item for details before ordering</div>;
-        if(verified>5) return <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:10,padding:"8px 14px",margin:"8px 16px 0",fontSize:11,color:"#166534"}}>✅ {verified} prices AI-verified today</div>;
-        return null;
-      })()}
-
       {/* PRICES VIEW */}
       {view === "prices" && (
         <PricesView
