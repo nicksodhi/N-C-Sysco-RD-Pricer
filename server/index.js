@@ -139,15 +139,29 @@ async function restoreFromGitHub() {
     saveCrossVendor();
     log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
 
-    // Restore history FIRST, then record today on top of it
+    // Restore history — MERGE with local history, don't overwrite
+    // This preserves any local entries that didn't make it to GitHub backup
     try {
       const hBase = "https://api.github.com/repos/" + repo + "/contents/backup/history.json";
       const hR = await fetch(hBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
       if (hR.ok) {
         const hJ = await hR.json();
-        priceHistory = JSON.parse(Buffer.from(hJ.content, "base64").toString("utf8"));
+        const githubHistory = JSON.parse(Buffer.from(hJ.content, "base64").toString("utf8"));
+        // Merge: for each item, combine local + GitHub entries, dedup by date, keep all unique dates
+        Object.entries(githubHistory).forEach(([id, entries]) => {
+          if (!priceHistory[id]) {
+            priceHistory[id] = entries;
+          } else {
+            // Merge entries — keep all dates from both, prefer local if same date
+            const localDates = new Set(priceHistory[id].map(e => e.date));
+            const toAdd = entries.filter(e => !localDates.has(e.date));
+            priceHistory[id] = [...priceHistory[id], ...toAdd]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .slice(-90); // keep max 90 days
+          }
+        });
         saveHistory();
-        log("✅ Restore: history restored for " + Object.keys(priceHistory).length + " items");
+        log("✅ Restore: history merged for " + Object.keys(priceHistory).length + " items");
       }
     } catch(e) { log("History restore error: " + e.message); }
 
@@ -419,14 +433,47 @@ function loadHistory() {
     if (fs.existsSync(HISTORY_FILE)) {
       priceHistory = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8"));
       const count = Object.keys(priceHistory).length;
-      console.log("✅ History loaded: " + count + " items");
+      const dates = new Set();
+      Object.values(priceHistory).forEach(entries => entries.forEach(e => dates.add(e.date)));
+      console.log("✅ History loaded: " + count + " items, " + dates.size + " dates: " + [...dates].sort().join(", "));
     }
   } catch(e) { console.log("History load error:", e.message); }
 }
 
 function saveHistory() {
-  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(priceHistory)); }
+  try {
+    const data = JSON.stringify(priceHistory);
+    fs.writeFileSync(HISTORY_FILE, data);
+    // Also write to /tmp as secondary backup in case /data has issues
+    try { fs.writeFileSync("/tmp/nc_history_backup.json", data); } catch {}
+  }
   catch(e) { console.log("History save error:", e.message); }
+}
+
+function loadHistoryFallback() {
+  // Try /tmp backup if main history file is empty or missing
+  try {
+    if (fs.existsSync("/tmp/nc_history_backup.json")) {
+      const backup = JSON.parse(fs.readFileSync("/tmp/nc_history_backup.json", "utf8"));
+      const backupDates = new Set();
+      Object.values(backup).forEach(entries => entries.forEach(e => backupDates.add(e.date)));
+      // Merge backup into current history
+      let added = 0;
+      Object.entries(backup).forEach(([id, entries]) => {
+        if (!priceHistory[id]) { priceHistory[id] = entries; added += entries.length; return; }
+        const localDates = new Set(priceHistory[id].map(e => e.date));
+        const toAdd = entries.filter(e => !localDates.has(e.date));
+        if (toAdd.length > 0) {
+          priceHistory[id] = [...priceHistory[id], ...toAdd].sort((a,b) => a.date.localeCompare(b.date)).slice(-90);
+          added += toAdd.length;
+        }
+      });
+      if (added > 0) {
+        saveHistory();
+        console.log("✅ History fallback: merged " + added + " entries from /tmp backup");
+      }
+    }
+  } catch(e) { console.log("History fallback error:", e.message); }
 }
 
 function recordHistory() {
@@ -465,6 +512,7 @@ function recordHistory() {
 }
 
 loadHistory();
+loadHistoryFallback(); // merge any /tmp backup entries missed by main file
 cleanBadPrices(); // remove any previously stored bad prices
 
 // AI-powered cross-vendor linker — runs after both scrapers finish
