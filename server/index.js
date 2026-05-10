@@ -242,7 +242,7 @@ const CACHE_SEED = {
     "Chicken Cvp Leg Meat Boneless Skinless": "0868459",
     "Flour All Purpose Hotel Restaurant Bleached": "8379251",
     "Tomato Puree 1.06 Fancy California": "4002325",
-    "Cream Heavy 40% Extended Shelf Life": "6935464",
+    "Cream Heavy 40% Extended Shelf Life Stabilized": "6935464",
     "Milk Whole Gallon": "4676306",
     "Oil Soybean Vegetable Pure": "4119079",
     "Sugar Granulated Extra Fine Cane": "5087572",
@@ -254,8 +254,19 @@ const CACHE_SEED = {
     "Pan Coating Butter It": "6914451",
     "Pan Spray All Purpose": "6914451",
     "Cheese Cheddar Jack Fancy Shredded": "2822379",
-    "Salt Kosher Coarse": "4564894",
+    "Salt Granulated Plain": "4564894",
     "Cilantro Fresh": "7078475",
+    "Chicken Wings 1st And 2nd Joints Jumbo": "6344790",
+    "Onion Red Jumbo Bag": "1094663",
+    "Garlic Peeled Fresh": "1821537",
+    "Ginger Root Fresh": "1184902",
+    "Cauliflower Cello Wrapped Fresh": "1243724",
+    "Tilapia Fillet Boneless Skinless Iqf": "0496671",
+    "Pea Green Petit Grade A Packaged": "6409940",
+    "Milk Coconut Unsweetened": "1425982",
+    "Paste Chili Ground Sambal Oelek": "2638660",
+    "Vinegar White Distilled 50 Grain": "4113049",
+    "Water Spring In Plastic Bottle": "2886075",
   }
 };
 
@@ -374,7 +385,7 @@ const SYSCO_ITEMS = [
   { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4/10 LB" },
   { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",   pack: "1/25LB"  },
   { id: "4002325", name: "Tomato Puree 1.06 Fancy California",            pack: "6/#10"   },
-  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life",           pack: "12/32OZ" },
+  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life Stabilized",           pack: "12/32OZ" },
   { id: "4676306", name: "Milk Whole Gallon",                             pack: "4/1 GAL" },
   { id: "4119079", name: "Oil Soybean Vegetable Pure",                    pack: "1/35LB"  },
   { id: "5087572", name: "Sugar Granulated Extra Fine Cane",              pack: "1/25LB"  },
@@ -385,8 +396,19 @@ const SYSCO_ITEMS = [
   { id: "5231238", name: "Chicken Breast Boneless Skinless",              pack: "2/10 LB" },
   { id: "6914451", name: "Pan Coating Butter It",                          pack: "6/14 OZ"  },
   { id: "2822379", name: "Cheese Cheddar Jack Fancy Shredded",                    pack: "4/5 LB"   },
-  { id: "4564894", name: "Salt Kosher Coarse",                              pack: "1/50 LB"  },
+  { id: "4564894", name: "Salt Granulated Plain",                              pack: "1/50 LB"  },
   { id: "7078475", name: "Cilantro Fresh",                                  pack: "1 CS"     },
+  { id: "6344790", name: "Chicken Wings 1st And 2nd Joints Jumbo",          pack: "4/10 LB"  },
+  { id: "1094663", name: "Onion Red Jumbo Bag",                             pack: "1/25LB"   },
+  { id: "1821537", name: "Garlic Peeled Fresh",                             pack: "4/5LB"    },
+  { id: "1184902", name: "Ginger Root Fresh",                               pack: "1/30 LB"  },
+  { id: "1243724", name: "Cauliflower Cello Wrapped Fresh",                 pack: "12/1EA"   },
+  { id: "0496671", name: "Tilapia Fillet Boneless Skinless Iqf",            pack: "2/5LB"    },
+  { id: "6409940", name: "Pea Green Petit Grade A Packaged",                pack: "12/2.5LB" },
+  { id: "1425982", name: "Milk Coconut Unsweetened",                        pack: "24/13.5OZ"},
+  { id: "2638660", name: "Paste Chili Ground Sambal Oelek",                 pack: "3/136 OZ" },
+  { id: "4113049", name: "Vinegar White Distilled 50 Grain",                pack: "4/1 GAL"  },
+  { id: "2886075", name: "Water Spring In Plastic Bottle",                  pack: "24/500ML" },
 ];
 
 // ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
@@ -402,6 +424,17 @@ const SYSCO_TO_RD_SEED = {
   "2822379": "1440203", // Cheddar Jack Shredded → Fancy Shredded Cheddar Jack
   "4564894": "1070496", // Salt Kosher → Purex Salt 50lb
   "7078475": "42566",   // Cilantro Fresh → Bagged Cilantro
+  "6344790": "77200",   // Chicken Wings → Jumbo Chicken Party Wings
+  "1094663": "42658",   // Onion Red → Jumbo Red Onions
+  "1821537": "44146",   // Garlic Peeled Fresh → Peeled Garlic
+  "1184902": "42513",   // Ginger Root Fresh → Fresh Ginger
+  "1243724": "42606",   // Cauliflower → White Cauliflower
+  "0496671": "51457",   // Tilapia Fillet → Frozen Tilapia Fillets
+  "6409940": "86525",   // Peas → IQF Peas
+  "1425982": "2620442", // Coconut Milk → Coconut Milk Regular
+  "2638660": "13417",   // Sambal Oelek → Sambal Olek
+  "4113049": "45900",   // White Vinegar → White Vinegar
+  "2886075": "21039",   // Evian Water → Evian Natural Spring Water
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
