@@ -267,6 +267,25 @@ const CACHE_SEED = {
     "Paste Chili Ground Sambal Oelek": "2638660",
     "Vinegar White Distilled 50 Grain": "4113049",
     "Water Spring In Plastic Bottle": "2886075",
+    "Shrimp White Peeled And Deveined 16/20": "5106388",
+    "Coloring Food Egg Shade Yellow": "4112262",
+    "Oil Salad Canola Zero Trans Fat": "5061643",
+    "Corn Starch Food Grade": "4073441",
+    "Powder Baking Double Acting": "5517701",
+    "Broccoli Floret Poly Packaging Grade A": "6988158",
+    "Spinach Chopped Bag": "2523833",
+    "Demand Cheese Paneer": "7102961",
+    "Spinach Baby Fresh": "8474538",
+    "Carrots Loose Fresh": "3879962",
+    "Lemon Choice Fresh": "2252013",
+    "Cucumber Select Fresh": "7410640",
+    "Pepper Serrano Util": "7007376",
+    "Mint Fresh Herb": "2037125",
+    "Vegetable Mix 4-way": "3960200",
+    "Flour Wheat Whole Stone Ground": "4014684",
+    "Bean Garbanzo Fancy No Sulfite": "4062337",
+    "Bean Kidney Dark Red": "4014973",
+    "Tomato Diced Salsa Style": "5895750",
   }
 };
 
@@ -409,32 +428,85 @@ const SYSCO_ITEMS = [
   { id: "2638660", name: "Paste Chili Ground Sambal Oelek",                 pack: "3/136 OZ" },
   { id: "4113049", name: "Vinegar White Distilled 50 Grain",                pack: "4/1 GAL"  },
   { id: "2886075", name: "Water Spring In Plastic Bottle",                  pack: "24/500ML" },
+  { id: "5106388", name: "Shrimp White Peeled And Deveined 16/20", pack: "4/2.5 LB" },
+  { id: "4112262", name: "Coloring Food Egg Shade Yellow", pack: "4/1 GAL" },
+  { id: "5061643", name: "Oil Salad Canola Zero Trans Fat", pack: "1/35 LB" },
+  { id: "4073441", name: "Corn Starch Food Grade", pack: "24/1 LB" },
+  { id: "5517701", name: "Powder Baking Double Acting", pack: "6/5 LB" },
+  { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A", pack: "12/2 LB" },
+  { id: "2523833", name: "Spinach Chopped Bag", pack: "12/3LB" },
+  { id: "7102961", name: "Demand Cheese Paneer", pack: "2/5 LB" },
+  { id: "8474538", name: "Spinach Baby Fresh", pack: "1/4 LB" },
+  { id: "3879962", name: "Carrots Loose Fresh", pack: "1/10 LB" },
+  { id: "2252013", name: "Lemon Choice Fresh", pack: "1/115 CT" },
+  { id: "7410640", name: "Cucumber Select Fresh", pack: "1/5 LB" },
+  { id: "7007376", name: "Pepper Serrano Util", pack: "1/40 LB" },
+  { id: "2037125", name: "Mint Fresh Herb", pack: "1/1 LB" },
+  { id: "3960200", name: "Vegetable Mix 4-way", pack: "1/30 LB" },
+  { id: "4014684", name: "Flour Wheat Whole Stone Ground", pack: "1/50LB" },
+  { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite", pack: "6/#10" },
+  { id: "4014973", name: "Bean Kidney Dark Red", pack: "6/#10" },
+  { id: "5895750", name: "Tomato Diced Salsa Style", pack: "6/#10" },
 ];
 
 // ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
 // Seeded with known mappings, then auto-expanded by AI after each scrape
+// Cross-vendor map: Sysco UPC → { rdId, rdMult }
+// Both vendors show FULL CASE prices — rdMult is always 1
+// Sysco $43.87 heavy cream = full 12/32oz case price
+// RD $43.95 heavy cream = full case price
+// Direct comparison is apples-to-apples
 const SYSCO_TO_RD_SEED = {
-  "1048222": "42545",   "8053456": "77682",   "4418117": "77670",
-  "1803287": "77670",   "0868459": "77658",   "8379251": "2061212",
-  "4002325": "860044",  "6935464": "1530438", "4676306": "370496",
-  "4119079": "1020075", "5087572": "21051",   "4518403": "1020077",
-  "3355757": "1020152", "4063095": "55523",   "1543164": "42725",
-  "5231238": "77232",   // Chicken Breast Boneless Skinless → Boneless Skinless Chicken Breasts
-  "6914451": "12728",   // Pan Coating Butter It (Sysco) → Chef's Quality Pan Spray (RD)
-  "2822379": "1440203", // Cheddar Jack Shredded → Fancy Shredded Cheddar Jack
-  "4564894": "1070496", // Salt Kosher → Purex Salt 50lb
-  "7078475": "42566",   // Cilantro Fresh → Bagged Cilantro
-  "6344790": "77200",   // Chicken Wings → Jumbo Chicken Party Wings
-  "1094663": "42658",   // Onion Red → Jumbo Red Onions
-  "1821537": "44146",   // Garlic Peeled Fresh → Peeled Garlic
-  "1184902": "42513",   // Ginger Root Fresh → Fresh Ginger
-  "1243724": "42606",   // Cauliflower → White Cauliflower
-  "0496671": "51457",   // Tilapia Fillet → Frozen Tilapia Fillets
-  "6409940": "86525",   // Peas → IQF Peas
-  "1425982": "2620442", // Coconut Milk → Coconut Milk Regular
-  "2638660": "13417",   // Sambal Oelek → Sambal Olek
-  "4113049": "45900",   // White Vinegar → White Vinegar
-  "2886075": "21039",   // Evian Water → Evian Natural Spring Water
+  "1048222": { rdId: "42545",   rdMult: 1 }, // Yellow Onion
+  "8053456": { rdId: "77682",   rdMult: 1 }, // Chicken Thighs
+  "4418117": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters
+  "1803287": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Halal
+  "0868459": { rdId: "77658",   rdMult: 1 }, // Chicken Leg Meat
+  "5231238": { rdId: "77232",   rdMult: 1 }, // Chicken Breast
+  "6344790": { rdId: "77200",   rdMult: 1 }, // Chicken Wings
+  "8379251": { rdId: "2061212", rdMult: 1 }, // Flour
+  "4002325": { rdId: "860044",  rdMult: 1 }, // Tomato Puree
+  "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream
+  "4676306": { rdId: "370496",  rdMult: 1 }, // Whole Milk
+  "4119079": { rdId: "1020075", rdMult: 1 }, // Soybean Oil
+  "5087572": { rdId: "21051",   rdMult: 1 }, // Sugar
+  "4518403": { rdId: "1020077", rdMult: 1 }, // Fry Shortening
+  "3355757": { rdId: "1020152", rdMult: 1 }, // Butter Alternative
+  "4063095": { rdId: "55523",   rdMult: 1 }, // Lemon Juice
+  "1543164": { rdId: "42725",   rdMult: 1 }, // Russet Potato
+  "6914451": { rdId: "12728",   rdMult: 1 }, // Pan Spray
+  "4564894": { rdId: "1070496", rdMult: 1 }, // Salt
+  "7078475": { rdId: "42566",   rdMult: 1 }, // Cilantro
+  "2822379": { rdId: "1440203", rdMult: 1 }, // Cheddar Jack
+  "1821537": { rdId: "44146",   rdMult: 1 }, // Garlic Peeled
+  "1094663": { rdId: "42658",   rdMult: 1 }, // Red Onion
+  "1184902": { rdId: "42513",   rdMult: 1 }, // Ginger
+  "1243724": { rdId: "42606",   rdMult: 1 }, // Cauliflower
+  "0496671": { rdId: "51457",   rdMult: 1 }, // Tilapia
+  "6409940": { rdId: "86525",   rdMult: 1 }, // Peas
+  "1425982": { rdId: "2620442", rdMult: 1 }, // Coconut Milk
+  "2638660": { rdId: "13417",   rdMult: 1 }, // Sambal Oelek
+  "4113049": { rdId: "45900",   rdMult: 1 }, // White Vinegar
+  "2886075": { rdId: "21039",   rdMult: 1 }, // Evian Water
+  "5106388": { rdId: "40212", rdMult: 1 }, // Shrimp White Peeled And Deveined 16/20
+  "4112262": { rdId: "2550012", rdMult: 1 }, // Coloring Food Egg Shade Yellow
+  "5061643": { rdId: "1020079", rdMult: 1 }, // Oil Salad Canola Zero Trans Fat
+  "4073441": { rdId: "2910159", rdMult: 1 }, // Corn Starch Food Grade
+  "5517701": { rdId: "29268", rdMult: 1 }, // Powder Baking Double Acting
+  "6988158": { rdId: "64120", rdMult: 1 }, // Broccoli Floret Poly Packaging Grade A
+  "2523833": { rdId: "64046", rdMult: 1 }, // Spinach Chopped Bag
+  "7102961": { rdId: "1440528", rdMult: 1 }, // Demand Cheese Paneer
+  "8474538": { rdId: "44211", rdMult: 1 }, // Spinach Baby Fresh
+  "3879962": { rdId: "79152", rdMult: 1 }, // Carrots Loose Fresh
+  "2252013": { rdId: "42570", rdMult: 1 }, // Lemon Choice Fresh
+  "7410640": { rdId: "42504", rdMult: 1 }, // Cucumber Select Fresh
+  "7007376": { rdId: "44137", rdMult: 1 }, // Pepper Serrano Util
+  "2037125": { rdId: "42647", rdMult: 1 }, // Mint Fresh Herb
+  "3960200": { rdId: "86527", rdMult: 1 }, // Vegetable Mix 4-way
+  "4014684": { rdId: "53556", rdMult: 1 }, // Flour Wheat Whole Stone Ground
+  "4062337": { rdId: "16200", rdMult: 1 }, // Bean Garbanzo Fancy No Sulfite
+  "4014973": { rdId: "69810", rdMult: 1 }, // Bean Kidney Dark Red
+  "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -1526,9 +1598,11 @@ async function runScrape(source = "all") {
           // Save under Sysco UPC for reference
           priceStore.sysco[id] = { price, date: new Date().toISOString() };
           // ALSO save under RD equivalent ID for cross-vendor comparison
-          const rdId = SYSCO_TO_RD[id];
-          if (rdId) {
-            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id };
+          const mapping = SYSCO_TO_RD[id];
+          if (mapping) {
+            const rdId = mapping.rdId || mapping;
+            const rdMult = mapping.rdMult || 1;
+            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id, rdMult };
           }
           savedCount++;
         });
@@ -1538,14 +1612,17 @@ async function runScrape(source = "all") {
         // Re-apply cross-vendor links now that map may have grown
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
-          const rdId = SYSCO_TO_RD[id];
-          if (rdId && !priceStore.sysco[rdId]) {
-            priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id };
+          const mapping = SYSCO_TO_RD[id];
+          if (mapping) {
+            const rdId = mapping.rdId || mapping;
+            if (!priceStore.sysco[rdId]) {
+              priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id, rdMult: mapping.rdMult || 1 };
+            }
           }
         });
 
         log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " +
-          matched.filter(m => SYSCO_TO_RD[m.id]).map(m => m.id + "→" + SYSCO_TO_RD[m.id]).join(", "));
+          matched.filter(m => SYSCO_TO_RD[m.id]).map(m => { const mp = SYSCO_TO_RD[m.id]; return m.id + "→" + (mp.rdId || mp) + (mp.rdMult > 1 ? "(×"+mp.rdMult+")" : ""); }).join(", "));
         savePrices();
         validatePricesWithAI("sysco").catch(e => log("Sysco price validation error: " + e.message));
       } else { log("❌ Sysco: " + (result.error || "no items")); }
@@ -1666,7 +1743,8 @@ app.post("/api/grocery", async (req, res) => {
     }).filter(Boolean).join("\n");
     const scCtx = SYSCO_ITEMS.map(i => {
       // Try RD-mapped ID first (how Sysco prices are stored for comparison)
-      const rdId = SYSCO_TO_RD[i.id];
+      const mapping = SYSCO_TO_RD[i.id];
+      const rdId = mapping ? (mapping.rdId || mapping) : null;
       const p = (rdId && priceStore.sysco[rdId]) ? priceStore.sysco[rdId] : priceStore.sysco[i.id];
       return p ? i.name + " " + i.pack + ": $" + p.price + "/case (Sysco)" : null;
     }).filter(Boolean).join("\n");
