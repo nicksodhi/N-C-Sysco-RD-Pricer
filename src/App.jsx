@@ -3,8 +3,6 @@ import { useState, useMemo, useEffect } from "react";
 // Items where case VOLUMES genuinely differ between vendors — price not directly comparable
 // Whole Milk, Cauliflower, Ginger, Tilapia, Shrimp etc are excluded — same total volume
 const DIFFERENT_CASE_SIZES = new Set([
-  "42545",   // Yellow Onion: RD 50lb vs Sysco 25lb
-  "1530438", // Heavy Cream: RD 64oz vs Sysco 384oz
     "55523",   // Lemon Juice: RD 1gal vs Sysco 3gal
   "12728",   // Pan Spray: RD 102oz vs Sysco 84oz
     "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
