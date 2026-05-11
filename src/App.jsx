@@ -202,10 +202,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Claude recommendation */}
-            <div style={{background:"#FAFAFA",borderRadius:12,padding:"10px 14px",fontSize:12,color:"#555",lineHeight:1.5,borderLeft:"3px solid #DDD"}}>
-              🤖 {result.recommendation}
-            </div>
+
           </>)}
 
           <button onClick={()=>setUnitCompare(null)} style={{marginTop:14,width:"100%",padding:11,border:"none",borderRadius:10,background:"#111",color:"#fff",fontWeight:600,cursor:"pointer",fontSize:13}}>Close</button>
