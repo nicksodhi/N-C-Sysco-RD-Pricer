@@ -299,10 +299,6 @@ const CACHE_SEED = {
     "Broccoli Floret Poly Packaging Grade A": "6988158",
     "Spinach Chopped Bag": "2523833",
     "Demand Cheese Paneer": "7102961",
-    "Paneer": "7102961",
-    "Cheese Paneer": "7102961",
-    "Bharat Best Paneer": "7102961",
-    "Paneer Cheese": "7102961",
     "Spinach Baby Fresh": "8474538",
     "Carrots Loose Fresh": "3879962",
     "Lemon Choice Fresh": "2252013",
@@ -322,7 +318,7 @@ const CACHE_SEED = {
 // Claude flags it as partial and keeps yesterday's prices.
 const scraperHealth = {
   rd:    { expectedItems: 59, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
-  sysco: { expectedItems: 29, minThreshold: 0.80, lastGoodCount: 0 },
+  sysco: { expectedItems: 48, minThreshold: 0.80, lastGoodCount: 0 },
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -474,8 +470,8 @@ const RD_ITEMS = [
   { id: "44211",   name: "Cleaned Spinach - 2.5 lbs" },
   { id: "44137",   name: "Serrano Peppers" },
   { id: "42570",   name: "Lemons 71-115 ct" },
-  { id: "44146",   name: "Peeled Garlic" },
   { id: "42513",   name: "Fresh Ginger - 30 lbs" },
+  { id: "44146",   name: "Peeled Garlic" },
   { id: "42504",   name: "Cucumbers - 6 ct" },
   { id: "43431",   name: "Green Bell Peppers - 9 ct" },
   { id: "42566",   name: "Taylor Farms - Bagged Cilantro" },
@@ -1150,12 +1146,16 @@ async function scrapeRD() {
       }
 
       if (bestName && pl.price > 0) {
+        // Before accepting this name+price combo, check if the name belongs
+        // to a known single-unit item and the price exceeds its max
+        // If so, don't assign — let a later price line with correct value claim the name
         const tentativeId = Object.entries(matchCache.rd || {}).find(([k]) => k === bestName)?.[1];
         const priceMax = tentativeId ? RD_PRICE_MAX[tentativeId] : null;
         if (priceMax && pl.price > priceMax) {
           log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item) — will try to match name to correct price");
+          // Don't add to seen — allow the correct lower price line to claim this name
         } else {
-          items.push({ name: bestName, price: pl.price, raw: pl.raw, ctx: pl.ctx }); // store ctx for KB
+          items.push({ name: bestName, price: pl.price, raw: pl.raw });
           seen.add(bestName);
         }
       } else {
@@ -1217,17 +1217,14 @@ async function scrapeRD() {
         if (foundPrice) {
           const itemName = lineText.trim();
           if (isProductName(itemName) && !seen.has(itemName)) {
-            // Gather ctx around found line
-            const tCtx = lines.slice(Math.max(0, li-8), Math.min(lines.length, li+8)).join(" | ");
-            items.push({ name: itemName, price: foundPrice, raw: "targeted scan: $" + foundPrice, ctx: tCtx });
+            items.push({ name: itemName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
             seen.add(itemName);
             log("RD: 🎯 Targeted scan found " + itemId + " '" + itemName + "' = $" + foundPrice);
           } else {
             // Use the name from cache seed instead
             const cacheName = Object.entries(matchCache.rd || {}).find(([k, v]) => v === itemId)?.[0];
             if (cacheName && !seen.has(cacheName)) {
-              const tCtx2 = lines.slice(Math.max(0, li-8), Math.min(lines.length, li+8)).join(" | ");
-              items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice, ctx: tCtx2 });
+              items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
               seen.add(cacheName);
               log("RD: 🎯 Targeted scan found " + itemId + " (cache name) = $" + foundPrice);
             }
@@ -1435,10 +1432,10 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        // Override search keywords for items where first 2 words give bad results
+        // Override search terms for items where first 2 words give bad Sysco results
         const SEARCH_OVERRIDES = {
-          "7102961": "Paneer",           // "Demand Cheese" → search "Paneer" instead
-          "8053456": "Chicken Thighs",
+          "7102961": "Paneer",          // "Demand Cheese" finds nothing
+          "8053456": "Chicken Thighs",  // "Chicken Cvp" is internal code
           "0868459": "Chicken Leg Meat",
           "1803287": "Chicken Leg Quarter Halal",
           "5231238": "Chicken Breast Boneless",
@@ -1460,18 +1457,10 @@ async function scrapeSysco() {
             const name = nameEl.innerText.trim().split("\n")[0].trim();
             const priceText = priceEl.innerText.trim();
             const hasUpc = text.includes(upc);
-            // Always prefer CS (case) price over any other price
             const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
             const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
             const m = csM || anyM;
-            const isCS = !!csM;
-            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc, isCS });
-          });
-          // Sort: exact UPC match first, then CS price, then any
-          found.sort((a, b) => {
-            if (a.hasUpc !== b.hasUpc) return a.hasUpc ? -1 : 1;
-            if (a.isCS !== b.isCS) return a.isCS ? -1 : 1;
-            return 0;
+            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc });
           });
           return found;
         }, item.id);
@@ -1608,7 +1597,8 @@ async function validatePricesWithAI(vendor) {
     const changePct = Math.abs((entry.price - prevPrice) / prevPrice) * 100;
     // Flag if price changed more than 20% overnight
     if (changePct > 20) {
-      const item = items.find(i => i.id === id);
+      const itemList = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
+      const item = itemList.find(i => i.id === id);
       suspicious.push({
         id,
         name: item?.name || id,
@@ -1771,16 +1761,13 @@ async function runScrape(source = "all") {
           }
           const now = new Date().toISOString();
           const prevEntry = priceStore.rd[id];
-          // Find scraped item for this id to get raw + ctx
-          const scrapedItem = result.items.find(i => (matchCache.rd[i.name] === id));
           priceStore.rd[id] = {
             price,
             date: now,
             unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
-            confidence: "medium",
+            confidence: "medium",        // upgraded to "high" after AI validation
             source: "scraped_rd",
-            rawScraped: scrapedItem?.raw || null,
-            scrapedCtx: scrapedItem?.ctx ? scrapedItem.ctx.slice(0, 800) : null,
+            rawScraped: null,
             scrapedAt: now,
             prevPrice: prevEntry?.price || null,
             validatedBy: null,
@@ -1843,8 +1830,7 @@ async function runScrape(source = "all") {
         let savedCount = 0;
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
-          // Sysco Paneer (7102961) is priced per lb — case = 2×5lb = 10lb total
-          // Multiply by 10 to get case price for apples-to-apples comparison with RD
+          // Paneer (7102961): Sysco shows per-lb price, case = 2x5lb = 10lb total
           let adjustedPrice = price;
           if (id === "7102961" && price < 20) {
             adjustedPrice = Math.round(price * 10 * 100) / 100;
@@ -1938,50 +1924,103 @@ function saveItemKnowledge() {
   catch(e) { console.log("Item KB save error:", e.message); }
 }
 
-// Patch KB entries where we have verified data from scraping or confirmed specs
+// Patch KB entries — every confirmed fact from vendor research and user verification
+// These override Claude's KB guesses with ground truth. More facts = more accurate comparisons.
 function patchItemKnowledge() {
   const patches = {
-    // Chicken: all 40lb cases at RD, confirmed from scraper
-    "77200":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77232":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 20, syscoContents: "2 x 10 lb bags" },
-    "77658":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77670":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77682":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    // Peeled Garlic: RD 30lb bag, Sysco 4x5lb=20lb
-    "44146":  { rdTotal: 30, rdContents: "1 x 30 lb bag",              unit: "lb", syscoTotal: 20, syscoContents: "4 x 5 lb bags" },
-    // Shrimp: both 10lb
-    "40212":  { rdTotal: 10, rdContents: "1 x 10 lb box",              unit: "lb", syscoTotal: 10, syscoContents: "4 x 2.5 lb bags" },
-    // Cauliflower: both 12-head cases
-    "42606":  { rdTotal: 12, rdContents: "12-head case",               unit: "each", syscoTotal: 12, syscoContents: "12 x 1 head (cello wrapped)" },
-    // Pan Spray: RD 6x17oz, Sysco 6x14oz
-    "12728":  { rdTotal: 102, rdContents: "6 x 17 oz cans (102 oz)",   unit: "oz", syscoTotal: 84, syscoContents: "6 x 14 oz cans (84 oz)" },
-    // Paneer: RD 4x5lb=20lb case, Sysco 2x5lb=10lb case (Sysco shows per-lb price, stored as case)
-    "1440528":{ rdTotal: 20, rdContents: "4 x 5 lb loaves (20 lb)",    unit: "lb", syscoTotal: 10, syscoContents: "2 x 5 lb blocks (10 lb)" },
+    // ── CHICKEN — all 40lb cases at both vendors ──────────────────────────────
+    "77200":  { rdTotal: 40,  rdContents: "1 x 40 lb case",                    unit: "lb",   syscoTotal: 40,  syscoContents: "4 x 10 lb bags (40 lb total)" },
+    "77232":  { rdTotal: 40,  rdContents: "1 x 40 lb case",                    unit: "lb",   syscoTotal: 20,  syscoContents: "2 x 10 lb bags (20 lb total)" },
+    "77658":  { rdTotal: 40,  rdContents: "1 x 40 lb case",                    unit: "lb",   syscoTotal: 40,  syscoContents: "4 x 10 lb bags (40 lb total)" },
+    "77670":  { rdTotal: 40,  rdContents: "1 x 40 lb case",                    unit: "lb",   syscoTotal: 40,  syscoContents: "4 x 10 lb bags (40 lb total)" },
+    "77682":  { rdTotal: 40,  rdContents: "1 x 40 lb case",                    unit: "lb",   syscoTotal: 40,  syscoContents: "4 x 10 lb bags (40 lb total)" },
+    // ── PRODUCE ──────────────────────────────────────────────────────────────
+    "44146":  { rdTotal: 30,  rdContents: "6 x 5 lb bags (30 lb total)",       unit: "lb",   syscoTotal: 20,  syscoContents: "4 x 5 lb bags (20 lb total)" },   // Peeled Garlic — confirmed by user
+    "42513":  { rdTotal: 30,  rdContents: "1 x 30 lb bulk case",               unit: "lb",   syscoTotal: 30,  syscoContents: "1 x 30 lb bulk bag" },             // Ginger — both 30lb
+    "42545":  { rdTotal: 50,  rdContents: "1 x 50 lb bag",                     unit: "lb",   syscoTotal: 25,  syscoContents: "1 x 25 lb bag" },                  // Yellow Onion — RD double Sysco
+    "42658":  { rdTotal: 25,  rdContents: "1 x 25 lb bag",                     unit: "lb",   syscoTotal: 25,  syscoContents: "1 x 25 lb bag" },                  // Red Onion — same
+    "42725":  { rdTotal: 50,  rdContents: "1 x 50 lb bag",                     unit: "lb",   syscoTotal: 50,  syscoContents: "1 x 50 lb bag" },                  // Russet Potato — same
+    "42570":  { rdTotal: 115, rdContents: "1 x 115 count case",                unit: "each", syscoTotal: 115, syscoContents: "1 x 115 count case" },             // Lemons — same
+    "44137":  { rdTotal: 40,  rdContents: "1 x 40 lb box",                     unit: "lb",   syscoTotal: 40,  syscoContents: "1 x 40 lb case" },                 // Serrano Peppers — same
+    "79152":  { rdTotal: 10,  rdContents: "1 x 10 lb bag",                     unit: "lb",   syscoTotal: 10,  syscoContents: "1 x 10 lb bag" },                  // Carrots — same
+    "42606":  { rdTotal: 12,  rdContents: "12-head case",                      unit: "each", syscoTotal: 12,  syscoContents: "12 x 1 head cello wrapped" },      // Cauliflower — both 12-head
+    "44211":  { rdTotal: 2.5, rdContents: "1 x 2.5 lb bag",                   unit: "lb",   syscoTotal: 4,   syscoContents: "1 x 4 lb bag" },                   // Baby Spinach
+    "42566":  { rdTotal: 21,  rdContents: "6 x 3.5 oz bags (21 oz total)",    unit: "oz",   syscoTotal: 21,  syscoContents: "6 x 3.5 oz bags (21 oz total)" },  // Cilantro — same
+    "42647":  { rdTotal: 1,   rdContents: "1 x 1 lb package",                 unit: "lb",   syscoTotal: 1,   syscoContents: "1 x 1 lb package" },               // Mint — both 1lb
+    "42504":  { rdTotal: 6,   rdContents: "6 count bag",                       unit: "each", syscoTotal: 5,   syscoContents: "1 x 5 lb case" },                  // Cucumbers — OOS at RD
+    // ── DAIRY ────────────────────────────────────────────────────────────────
+    "1530438":{ rdTotal: 64,  rdContents: "1 x 64 oz jug",                    unit: "oz",   syscoTotal: 384, syscoContents: "12 x 32 oz bottles (384 oz total)"},// Heavy Cream — big diff
+    "370496": { rdTotal: 4,   rdContents: "4 x 1 gallon jugs",                unit: "gallon",syscoTotal: 4,  syscoContents: "4 x 1 gallon jugs" },               // Whole Milk — both 4/1gal
+    "1440203":{ rdTotal: 20,  rdContents: "4 x 5 lb bags (20 lb total)",      unit: "lb",   syscoTotal: 20,  syscoContents: "4 x 5 lb bags (20 lb total)" },     // Cheddar Jack — both 20lb confirmed
+    "1440528":{ rdTotal: 20,  rdContents: "4 x 5 lb loaves (20 lb total)",    unit: "lb",   syscoTotal: 10,  syscoContents: "2 x 5 lb blocks (10 lb total)" },   // Paneer — RD 20lb Sysco 10lb
+    "14785":  { rdTotal: 32,  rdContents: "1 x 32 lb container",              unit: "lb",   syscoTotal: null, syscoContents: null },                             // Yogurt — RD only
+    // ── OILS & LIQUIDS ────────────────────────────────────────────────────────
+    "1020077":{ rdTotal: 35,  rdContents: "1 x 35 lb bag",                    unit: "lb",   syscoTotal: 35,  syscoContents: "1 x 35 lb bag" },                  // Fry Oil — same
+    "1020079":{ rdTotal: 35,  rdContents: "1 x 35 lb container",              unit: "lb",   syscoTotal: 35,  syscoContents: "1 x 35 lb container" },             // Canola Oil — same
+    "1020075":{ rdTotal: 35,  rdContents: "1 x 35 lb container",              unit: "lb",   syscoTotal: 35,  syscoContents: "1 x 35 lb container" },             // Soybean Oil — same
+    "1020152":{ rdTotal: 3,   rdContents: "3 x 1 gallon jugs",                unit: "gallon",syscoTotal: 3,  syscoContents: "3 x 1 gallon jugs" },              // Butter Alt — both 3/1gal confirmed
+    "55523":  { rdTotal: 1,   rdContents: "1 x 1 gallon jug",                 unit: "gallon",syscoTotal: 3,  syscoContents: "6 x 0.5 gallon jugs (3 gal total)"},// Lemon Juice — RD 1gal Sysco 3gal
+    "45900":  { rdTotal: 4,   rdContents: "4 x 1 gallon jugs",                unit: "gallon",syscoTotal: 4,  syscoContents: "4 x 1 gallon jugs" },              // White Vinegar — both 4/1gal confirmed
+    // ── DRY GOODS ─────────────────────────────────────────────────────────────
+    "21051":  { rdTotal: 25,  rdContents: "1 x 25 lb bag",                    unit: "lb",   syscoTotal: 25,  syscoContents: "1 x 25 lb bag" },                  // Sugar — same
+    "1070496":{ rdTotal: 50,  rdContents: "1 x 50 lb bag",                    unit: "lb",   syscoTotal: 50,  syscoContents: "1 x 50 lb bag" },                  // Salt — same
+    "2061212":{ rdTotal: 25,  rdContents: "1 x 25 lb bag",                    unit: "lb",   syscoTotal: 25,  syscoContents: "1 x 25 lb bag" },                  // All Purpose Flour — same
+    "53556":  { rdTotal: 40,  rdContents: "2 x 20 lb bags (40 lb total)",     unit: "lb",   syscoTotal: 50,  syscoContents: "1 x 50 lb bag" },                  // Atta Flour — diff product & size
+    "2910159":{ rdTotal: 3,   rdContents: "1 x 3 lb box",                     unit: "lb",   syscoTotal: 24,  syscoContents: "24 x 1 lb boxes (24 lb total)" },  // Cornstarch — big diff
+    "29268":  { rdTotal: 5,   rdContents: "1 x 5 lb can",                     unit: "lb",   syscoTotal: 30,  syscoContents: "6 x 5 lb cans (30 lb total)" },    // Baking Powder — big diff
+    "16200":  { rdTotal: 54,  rdContents: "6 x #10 cans (~9 lb each)",        unit: "lb",   syscoTotal: 54,  syscoContents: "6 x #10 cans (~9 lb each)" },       // Garbanzo Beans — same
+    "69810":  { rdTotal: 60,  rdContents: "6 x #10 cans (~10 lb each)",       unit: "lb",   syscoTotal: 60,  syscoContents: "6 x #10 cans (~10 lb each)" },      // Kidney Beans — same
+    "860135": { rdTotal: 102, rdContents: "6 x #10 cans",                     unit: "oz",   syscoTotal: 102, syscoContents: "6 x #10 cans" },                   // Diced Tomatoes — same
+    "860044": { rdTotal: 102, rdContents: "6 x #10 cans (tomato sauce)",      unit: "oz",   syscoTotal: 102, syscoContents: "6 x #10 cans (tomato puree ⚠️ different product)" }, // Different products
+    "490266": { rdTotal: 40,  rdContents: "1 x 40 lb bag",                    unit: "lb",   syscoTotal: null, syscoContents: null },                            // Basmati Rice — RD only
+    // ── FROZEN ────────────────────────────────────────────────────────────────
+    "86525":  { rdTotal: 2.5, rdContents: "1 x 2.5 lb bag",                  unit: "lb",   syscoTotal: 30,  syscoContents: "12 x 2.5 lb bags (30 lb total)" }, // Peas — big diff
+    "64120":  { rdTotal: 2,   rdContents: "1 x 2 lb bag",                    unit: "lb",   syscoTotal: 24,  syscoContents: "12 x 2 lb bags (24 lb total)" },   // Broccoli — big diff
+    "64046":  { rdTotal: 36,  rdContents: "12 x 3 lb bags (36 lb total)",    unit: "lb",   syscoTotal: 36,  syscoContents: "12 x 3 lb bags (36 lb total)" },   // Chopped Spinach — both 36lb confirmed
+    "86527":  { rdTotal: 25,  rdContents: "10 x 2.5 lb bags (25 lb total)",  unit: "lb",   syscoTotal: 30,  syscoContents: "1 x 30 lb bag" },                  // Mixed Veg — slight diff
+    "51457":  { rdTotal: 10,  rdContents: "1 x 10 lb box",                   unit: "lb",   syscoTotal: 10,  syscoContents: "2 x 5 lb boxes (10 lb total)" },   // Tilapia — same total
+    "40212":  { rdTotal: 10,  rdContents: "1 x 10 lb box",                   unit: "lb",   syscoTotal: 10,  syscoContents: "4 x 2.5 lb bags (10 lb total)" },  // Shrimp — same total
+    // ── SPECIALTY / CONDIMENTS ────────────────────────────────────────────────
+    "13417":  { rdTotal: 408, rdContents: "3 x 136 oz containers (408 oz)",  unit: "oz",   syscoTotal: 408, syscoContents: "3 x 136 oz containers (408 oz)" }, // Sambal Oelek — same
+    "2620442":{ rdTotal: 4800,rdContents: "12 x 400 ml cans (4800 ml)",      unit: "ml",   syscoTotal: 9720,syscoContents: "24 x 13.5 oz cans (9720 ml)" },    // Coconut Milk — Sysco double
+    "12728":  { rdTotal: 102, rdContents: "6 x 17 oz cans (102 oz total)",   unit: "oz",   syscoTotal: 84,  syscoContents: "6 x 14 oz cans (84 oz total)" },   // Pan Spray — same count diff size
+    "2550012":{ rdTotal: 4,   rdContents: "4 x 1 gallon jugs",               unit: "gallon",syscoTotal: 4,  syscoContents: "4 x 1 gallon jugs" },              // Yellow Food Coloring — both 4/1gal confirmed
+    "2550014":{ rdTotal: 4,   rdContents: "4 x 1 gallon jugs",               unit: "gallon",syscoTotal: null, syscoContents: null },                           // Red Food Coloring — RD only
+    "21039":  { rdTotal: 12000,rdContents: "24 x 500 ml bottles",            unit: "ml",   syscoTotal: 12000,syscoContents: "24 x 500 ml bottles" },           // Evian Water — same
+    // ── MEAT (RD only) ────────────────────────────────────────────────────────
+    "1810019":{ rdTotal: 15,  rdContents: "1 x 15 lb box (bone-in cubes)",   unit: "lb",   syscoTotal: null, syscoContents: null },                            // Goat — RD only
+    "79042":  { rdTotal: 42,  rdContents: "variable weight ~40-42 lb each",  unit: "lb",   syscoTotal: null, syscoContents: null },                            // Lamb — RD only, by weight
+    "25267":  { rdTotal: 4.4, rdContents: "1 x 2 kg container (4.4 lb)",     unit: "lb",   syscoTotal: null, syscoContents: null },                            // Eggplant Pulp — RD only
+    // ── SEAFOOD ───────────────────────────────────────────────────────────────
+    "1440528":{ rdTotal: 20,  rdContents: "4 x 5 lb loaves (20 lb total)",   unit: "lb",   syscoTotal: 10,  syscoContents: "2 x 5 lb blocks (10 lb total)" },  // Paneer
   };
 
   let patched = 0;
   Object.entries(patches).forEach(([id, p]) => {
-    if (!itemKnowledge[id]) return;
+    if (!itemKnowledge[id]) {
+      // Create entry even if KB hasn't been built yet
+      itemKnowledge[id] = { rd: {}, sysco: p.syscoTotal ? {} : null, comparison: {}, rdItemId: id, lastUpdated: new Date().toISOString() };
+    }
     if (itemKnowledge[id].rd) {
       itemKnowledge[id].rd.totalUnits    = p.rdTotal;
       itemKnowledge[id].rd.caseContents  = p.rdContents;
       itemKnowledge[id].rd.unitOfMeasure = p.unit;
     }
-    if (itemKnowledge[id].sysco && p.syscoTotal) {
+    if (p.syscoTotal && itemKnowledge[id].sysco) {
       itemKnowledge[id].sysco.totalUnits    = p.syscoTotal;
       itemKnowledge[id].sysco.caseContents  = p.syscoContents;
       itemKnowledge[id].sysco.unitOfMeasure = p.unit;
     }
-    if (itemKnowledge[id].comparison) {
-      itemKnowledge[id].comparison.rdTotalUnits    = p.rdTotal;
-      itemKnowledge[id].comparison.syscoTotalUnits = p.syscoTotal || null;
-      itemKnowledge[id].comparison.unitOfMeasure   = p.unit;
-    }
+    if (!itemKnowledge[id].comparison) itemKnowledge[id].comparison = {};
+    itemKnowledge[id].comparison.rdTotalUnits    = p.rdTotal;
+    itemKnowledge[id].comparison.syscoTotalUnits = p.syscoTotal || null;
+    itemKnowledge[id].comparison.unitOfMeasure   = p.unit;
     patched++;
   });
+
   if (patched > 0) {
     saveItemKnowledge();
-    console.log("✅ Item KB: patched " + patched + " entries with verified data");
+    console.log("✅ Item KB: " + patched + " items patched with verified facts");
   }
 }
 
@@ -2094,7 +2133,6 @@ Return ONLY JSON:
   }
 }
 
-// Build knowledge base for all items — runs authenticated using existing browser session
 async function buildItemKnowledgeBase(forceRefresh = false) {
   const needsUpdate = [];
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -2106,7 +2144,6 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
   }
   if (needsUpdate.length === 0) { log("Item KB: all items up to date ✅"); return; }
   log("Item KB: building knowledge for " + needsUpdate.length + " items...");
-
   let processed = 0;
   for (const rdItem of needsUpdate) {
     try {
@@ -2114,14 +2151,10 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       log("Item KB: researching " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / RD only") + ")");
-
-      // Pull stored scrape data — real context from the RD order guide page
       const rdEntry = priceStore.rd[rdItem.id];
       const rdScrapedCtx = rdEntry?.scrapedCtx || "";
       const rdScrapedRaw = rdEntry?.rawScraped || "";
       const rdPrice = rdEntry?.price || null;
-
-      // Also try public RD product page
       let rdPageText = "";
       try {
         const rdResp = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, {
@@ -2133,95 +2166,39 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
           rdPageText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 2000);
         }
       } catch(e) { /* page may require auth */ }
-
       const syscoKnown = syscoItem ? syscoItem.name + " | Pack: " + syscoItem.pack : null;
-
       const prompt = `You are building a wholesale grocery product knowledge base for Naan & Curry restaurant in Las Vegas.
-
-ITEM:
-Restaurant Depot ID: ${rdItem.id}
-RD Name: ${rdItem.name}
+ITEM: ${rdItem.name} (RD ID: ${rdItem.id})
 ${rdPrice ? "Current RD Price: $" + rdPrice : ""}
-${rdScrapedRaw ? "RD Price Format (from order guide): " + rdScrapedRaw : ""}
-${rdScrapedCtx ? "\nRD ORDER GUIDE CONTEXT (raw page text around this item):\n" + rdScrapedCtx : ""}
-${rdPageText ? "\nRD PRODUCT PAGE DATA:\n" + rdPageText : ""}
-${syscoKnown ? "\nSysco Name: " + syscoItem.name + "\nSysco UPC: " + syscoUpc + "\nSysco Pack: " + syscoItem.pack : "No Sysco equivalent on Nick List"}
-
-The RD order guide context shows real data from the actual page. Key clues:
-- "128 z" after item = 128 oz = 1 gallon jug
-- "32#" = 32 lbs total weight
-- "64 z" = 64 oz total
-- Price format "$422-$1612" = unit $4.22, case $16.12 → 4 units per case
-- Price format "$784-$4395" = unit $7.84, case $43.95 → divide to find count
-- "About X.X lb each" = individual item weight (by-weight product)
-- "Buy X lb or more for $Y/lb" = sold by weight not fixed case
-- "Bin - XXXX" = bin location at Las Vegas RD store
-- "Many in stock" = in stock, "Likely out of stock" = OOS
-
-Using ALL available data above, determine PRECISELY:
-- What comes in one case from Restaurant Depot (count x size each, total weight)
-- What comes in one case from Sysco (if applicable)
-- Best unit for per-unit price comparison (lb, oz, each, gallon, ml)
-
-Return ONLY this JSON (no markdown, no extra text):
-{
-  "rd": {
-    "name": "${rdItem.name}",
-    "caseContents": "exact e.g. 4 x 1 gallon jugs or 1 x 40 lb case",
-    "totalUnits": 4,
-    "unitOfMeasure": "gallon",
-    "binLocation": "bin number if visible in context",
-    "stockStatus": "in stock or out of stock if visible"
-  },
-  "sysco": ${syscoItem ? `{
-    "name": "${syscoItem.name}",
-    "pack": "${syscoItem.pack}",
-    "caseContents": "exact description",
-    "totalUnits": 4,
-    "unitOfMeasure": "gallon"
-  }` : "null"},
-  "comparison": {
-    "rdTotalUnits": 4,
-    "syscoTotalUnits": 4,
-    "unitOfMeasure": "gallon",
-    "sameProduct": true,
-    "notes": "any important spec differences between vendors"
-  }
-}`;
-
+${rdScrapedRaw ? "RD Price Format: " + rdScrapedRaw : ""}
+${rdScrapedCtx ? "\nRD ORDER GUIDE CONTEXT:\n" + rdScrapedCtx : ""}
+${rdPageText ? "\nRD PAGE DATA:\n" + rdPageText : ""}
+${syscoKnown ? "\nSysco: " + syscoItem.name + " | UPC: " + syscoUpc + " | Pack: " + syscoItem.pack : "No Sysco equivalent"}
+Key RD context clues: "$422-$1612" = unit $4.22 case $16.12 (4 per case); "128 z" = 128oz = 1 gallon; "32#" = 32lbs; "About X lb each" = by-weight item.
+Return ONLY JSON: {"rd":{"name":"${rdItem.name}","caseContents":"exact e.g. 4 x 1 gallon jugs","totalUnits":4,"unitOfMeasure":"gallon","binLocation":"bin if visible"},"sysco":${syscoItem ? '{"name":"' + syscoItem.name + '","pack":"' + syscoItem.pack + '","caseContents":"exact","totalUnits":4,"unitOfMeasure":"gallon"}' : "null"},"comparison":{"rdTotalUnits":4,"syscoTotalUnits":4,"unitOfMeasure":"gallon","sameProduct":true,"notes":""}}`;
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
       });
       const data = await r.json();
       const txt = data.content?.find(b => b.type === "text")?.text || "{}";
       const m = txt.match(/\{[\s\S]*\}/);
       if (m) {
         const knowledge = JSON.parse(m[0]);
-        itemKnowledge[rdItem.id] = {
-          ...knowledge,
-          lastUpdated: new Date().toISOString(),
-          rdItemId: rdItem.id,
-          syscoUpc: syscoUpc || null,
-        };
+        itemKnowledge[rdItem.id] = { ...knowledge, lastUpdated: new Date().toISOString(), rdItemId: rdItem.id, syscoUpc: syscoUpc || null };
         processed++;
-        log("✅ Item KB: " + rdItem.name + " — RD: " + knowledge.rd?.caseContents + (knowledge.sysco ? " | Sysco: " + knowledge.sysco?.caseContents : ""));
-      } else {
-        log("⚠️ Item KB: no JSON for " + rdItem.name);
-      }
+        log("✅ Item KB: " + rdItem.name + " — " + knowledge.rd?.caseContents);
+      } else { log("⚠️ Item KB: no JSON for " + rdItem.name); }
       if (processed % 10 === 0) { saveItemKnowledge(); patchItemKnowledge(); }
       await new Promise(res => setTimeout(res, 600));
-    } catch(e) {
-      log("❌ Item KB error for " + rdItem.name + ": " + e.message);
-    }
+    } catch(e) { log("❌ Item KB error for " + rdItem.name + ": " + e.message); }
   }
   saveItemKnowledge();
   patchItemKnowledge();
   log("✅ Item KB complete: " + processed + "/" + needsUpdate.length + " items learned");
   backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
 }
-
 
 // Backup item knowledge to GitHub
 async function backupItemKnowledgeToGitHub() {
@@ -2253,7 +2230,7 @@ const PACK_SIZES = {
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
+  "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
   "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
@@ -2442,60 +2419,73 @@ app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
   try {
-    const rdCtx = RD_ITEMS.map(i => {
-      const p = priceStore.rd[i.id];
-      return p ? i.name + ": $" + p.price + " (RD)" : null;
-    }).filter(Boolean).join("\n");
-    const scCtx = SYSCO_ITEMS.map(i => {
-      // Try RD-mapped ID first (how Sysco prices are stored for comparison)
-      const mapping = SYSCO_TO_RD[i.id];
-      const rdId = mapping ? (mapping.rdId || mapping) : null;
-      const p = (rdId && priceStore.sysco[rdId]) ? priceStore.sysco[rdId] : priceStore.sysco[i.id];
-      return p ? i.name + " " + i.pack + ": $" + p.price + "/case (Sysco)" : null;
-    }).filter(Boolean).join("\n");
-    const prompt = `You are the purchasing assistant for Naan & Curry Las Vegas.
+    // Build rich catalog with both vendor prices, pack sizes, and case diff flags
+    const DIFF_SIZES = new Set(["42545","1530438","55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268"]);
+    const catalog = [];
+    RD_ITEMS.forEach(rdItem => {
+      const rdPrice = priceStore.rd[rdItem.id]?.price;
+      if (!rdPrice) return;
+      const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
+      const syscoUpc = syscoEntry?.[0];
+      const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
+      const syscoPrice = syscoUpc ? (priceStore.sysco[rdItem.id]?.price || priceStore.sysco[syscoUpc]?.price) : null;
+      const kb = itemKnowledge[rdItem.id];
+      const rdPack  = kb?.rd?.caseContents  || PACK_SIZES[rdItem.id]?.rd  || "1 case";
+      const scPack  = kb?.sysco?.caseContents || (syscoItem ? syscoItem.pack : null) || PACK_SIZES[rdItem.id]?.sysco || "1 case";
+      const shortName = rdItem.name
+        .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - /gi, "")
+        .replace(/ - \d+.*$/, "").trim();
+      const cheaper = syscoPrice ? (rdPrice <= syscoPrice ? "RD" : "Sysco") : "RD";
+      let line = shortName + ": RD $" + rdPrice + " (" + rdPack + ")";
+      if (syscoPrice) line += " | Sysco $" + syscoPrice + " (" + scPack + ")";
+      else line += " | Sysco: not carried";
+      if (DIFF_SIZES.has(rdItem.id)) line += " ⚠️ DIFF CASE SIZE";
+      line += " → CHEAPER: " + cheaper;
+      catalog.push(line);
+    });
 
-RD PRICES:
-${rdCtx || "none"}
+    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
+Parse the chef's order list and produce an accurate vendor breakdown using ONLY the prices below.
 
-SYSCO PRICES:
-${scCtx || "none"}
+TODAY'S PRICES:
+${catalog.join("\n")}
 
-Order list:
+CHEF'S ORDER LIST:
 ${list}
 
-Return a clean, minimal breakdown. Use SHORT common names only (e.g. "Russet Potato" not "Russet Potato - 50 lb Crtn, 90 cnt, US #1"). No markdown, no asterisks, no headers, no dashes in separators.
+INSTRUCTIONS:
+1. Match each item to the closest catalog entry. Use common sense abbreviations: LQ=Leg Quarters, chx=chicken, WM=whole milk, HWC=heavy cream, etc.
+2. If a quantity is mentioned (e.g. "2 cases", "x3", "3 bags") multiply the price by that quantity.
+3. Always assign to the CHEAPER vendor. If ⚠️ DIFF CASE SIZE, note it after the price.
+4. Items not in the catalog go to ORDER MANUALLY.
+5. Math must be exact. Show calculation when qty > 1.
 
-Strict format — follow exactly:
+OUTPUT — follow this exact format, no markdown, no asterisks:
 
 🟢 RESTAURANT DEPOT
 Item Name — $price
-Item Name (x2) — $price
+Item Name x2 (2 × $price) — $total
 RD Cart Total: $XX.XX
 
-🔵 SYSCO
+🔵 SYSCO  
 Item Name — $price
 Sysco Cart Total: $XX.XX
 
 ⚠️ ORDER MANUALLY
-Item name
+Item name — reason
 
-💰 TOTAL ORDER COST: $XX.XX
+💰 TOTAL ORDER COST: $XX.XX`;
 
-Rules:
-- Use shortest recognizable name for each item
-- If quantity not specified assume 1 case
-- Assign each item to the cheaper vendor when both carry it
-- No explanations, no markdown formatting, no bold, no extra lines`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
     });
     const data = await r.json();
     res.json({ result: data.content?.find(b => b.type === "text")?.text || "Error" });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+
 
 app.get("/api/browser-test", async (req, res) => {
   try {
