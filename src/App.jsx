@@ -80,7 +80,27 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
 
   const [loading, setLoading] = useState(true);
-  const [auditItem, setAuditItem] = useState(null); // item being audited
+  const [auditItem, setAuditItem] = useState(null);
+  const [unitCompare, setUnitCompare] = useState(null);   // { item, loading, result, error }
+
+  async function fetchUnitCompare(item) {
+    const rdP = rd[item.id]?.price;
+    const scP = sc[item.id]?.price;
+    if (!rdP || !scP) return; // need both prices
+    setUnitCompare({ item, loading: true, result: null, error: null });
+    try {
+      const r = await fetch("/api/unit-compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id, itemName: item.name, rdPrice: rdP, scPrice: scP }),
+      });
+      const data = await r.json();
+      if (data.error) setUnitCompare(p => ({ ...p, loading: false, error: data.error }));
+      else setUnitCompare(p => ({ ...p, loading: false, result: data }));
+    } catch(e) {
+      setUnitCompare(p => ({ ...p, loading: false, error: e.message }));
+    }
+  }
   const [history, setHistory] = useState({}); // { itemId: [{date, rd, sc}] }
 
   useEffect(() => {
@@ -130,6 +150,71 @@ export default function App() {
   const noPrice = filtered.filter(i => !rd[i.id] && !sc[i.id]);
 
   const confColor = c => c==="high"?"#16A34A":c==="medium"?"#CA8A04":"#DC2626";
+
+  // Unit price comparison modal — shows per-unit/lb/oz breakdown via Claude
+  const UnitCompareModal = () => {
+    if (!unitCompare) return null;
+    const { item, loading, result, error } = unitCompare;
+    const rdP = rd[item.id]?.price;
+    const scP = sc[item.id]?.price;
+    const fmt2 = n => "$" + (n||0).toFixed(2);
+    const cheaperColor = v => v === "rd" ? "#16A34A" : v === "sysco" ? "#2563EB" : "#888";
+    const cheaperLabel = v => v === "rd" ? "Restaurant Depot" : v === "sysco" ? "Sysco" : "Same price";
+
+    return (
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setUnitCompare(null)}>
+        <div style={{background:"#fff",borderRadius:20,padding:22,maxWidth:400,width:"100%"}} onClick={e=>e.stopPropagation()}>
+          <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{item.emoji} {item.name}</div>
+          <div style={{fontSize:12,color:"#888",marginBottom:16}}>Unit price comparison</div>
+
+          {loading && (
+            <div style={{textAlign:"center",padding:"32px 0",color:"#888"}}>
+              <div style={{fontSize:24,marginBottom:8}}>⏳</div>
+              <div style={{fontSize:13}}>Claude is calculating...</div>
+            </div>
+          )}
+
+          {error && <div style={{color:"#DC2626",fontSize:13,padding:"16px 0"}}>{error}</div>}
+
+          {result && (<>
+            {/* Per-unit comparison */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {[["Restaurant Depot","#F8F8F6","#111",result.rdPerUnit,result.rdPack,result.cheaper==="rd"],
+                ["Sysco","#EFF6FF","#2563EB",result.scPerUnit,result.scPack,result.cheaper==="sysco"]
+              ].map(([vendor,bg,color,perUnit,pack,isCheaper])=>(
+                <div key={vendor} style={{background:bg,borderRadius:12,padding:12,border:isCheaper?"2px solid "+color:"1px solid #eee"}}>
+                  <div style={{fontSize:11,fontWeight:600,color:isCheaper?color:"#888",marginBottom:6}}>{vendor}{isCheaper?" ✓":""}</div>
+                  <div style={{fontSize:11,color:"#666",marginBottom:6}}>{pack}</div>
+                  <div style={{fontSize:22,fontWeight:700,color:isCheaper?color:"#555"}}>{fmt2(perUnit)}</div>
+                  <div style={{fontSize:10,color:"#999"}}>per {result.unit}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#888",marginTop:4}}>Case: {fmt2(isCheaper?(result.cheaper==="rd"?rd[item.id]?.price:sc[item.id]?.price):(result.cheaper==="rd"?sc[item.id]?.price:rd[item.id]?.price))}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Savings callout */}
+            {result.cheaper !== "same" && (
+              <div style={{background:result.cheaper==="rd"?"#F0FDF4":"#EFF6FF",borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:18}}>💰</div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:cheaperColor(result.cheaper)}}>{cheaperLabel(result.cheaper)} saves {result.savingsPct}% per {result.unit}</div>
+                  <div style={{fontSize:11,color:"#666"}}>{fmt2(result.savingsPerUnit)} cheaper per {result.unit}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Claude recommendation */}
+            <div style={{background:"#FAFAFA",borderRadius:12,padding:"10px 14px",fontSize:12,color:"#555",lineHeight:1.5,borderLeft:"3px solid #DDD"}}>
+              🤖 {result.recommendation}
+            </div>
+          </>)}
+
+          <button onClick={()=>setUnitCompare(null)} style={{marginTop:14,width:"100%",padding:11,border:"none",borderRadius:10,background:"#111",color:"#fff",fontWeight:600,cursor:"pointer",fontSize:13}}>Close</button>
+        </div>
+      </div>
+    );
+  };
+
   const AuditModal = () => {
     if (!auditItem) return null;
     const rdE = rd[auditItem.id]; const scE = sc[auditItem.id];
@@ -202,7 +287,7 @@ export default function App() {
           history={history} synced={synced}
           pricesView={pricesView} setPricesView={setPricesView}
           both={both} rdOnly={rdOnly} noPrice={noPrice}
-          oos={oos} setAuditItem={setAuditItem}
+          oos={oos} setAuditItem={setAuditItem} onUnitCompare={fetchUnitCompare}
         />
       )}
 
@@ -226,7 +311,7 @@ export default function App() {
 }
 
 // ── PricesView ────────────────────────────────────────────────────────────────
-function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos, setAuditItem }) {
+function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos, setAuditItem, onUnitCompare }) {
   const [historySearch, setHistorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -368,6 +453,11 @@ ${rows.map(r => `<tr>
                           <div style={{ fontSize: 17, fontWeight: 700, color: !rdBest ? "#2563EB" : "#555" }}>{fmt(s)}</div>
                         </div>
                       </div>
+                      {onUnitCompare && (
+                        <button onClick={e=>{e.stopPropagation();onUnitCompare(item);}} style={{width:"100%",padding:"7px 0",border:"none",borderTop:"1px solid #F3F3EF",background:"#FAFAF8",color:"#666",fontSize:11,fontWeight:600,cursor:"pointer",letterSpacing:.3}}>
+                          📦 COMPARE BY UNIT / WEIGHT
+                        </button>
+                      )}
                     </div>
                   );
                 })}
