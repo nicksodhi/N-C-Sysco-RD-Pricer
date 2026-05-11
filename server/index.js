@@ -1900,6 +1900,54 @@ function loadItemKnowledge() {
       console.log("✅ Item knowledge base loaded: " + count + " items");
     }
   } catch(e) { console.log("Item KB load error:", e.message); }
+  patchItemKnowledge();
+}
+
+// Patch KB entries where Claude guessed wrong — we know the correct values from scraping
+function patchItemKnowledge() {
+  const patches = {
+    // All chicken at RD is sold as 40lb cases (confirmed from scraper logs)
+    "77200": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77232": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 20, syscoContents: "2 x 10 lb bags" },
+    "77658": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77670": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77682": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    // Peeled Garlic — RD name says 30lb, Sysco is 4x5lb=20lb
+    "44146": { rdTotal: 30, rdContents: "1 x 30 lb bag", unit: "lb", syscoTotal: 20, syscoContents: "4 x 5 lb bags" },
+    // Shrimp — RD sells 10lb box
+    "40212": { rdTotal: 10, rdContents: "1 x 10 lb box", unit: "lb", syscoTotal: 10, syscoContents: "4 x 2.5 lb bags" },
+    // Cauliflower — RD sells by the case of 12 heads (same as Sysco 12/1EA)
+    "42606": { rdTotal: 12, rdContents: "12-head case", unit: "each", syscoTotal: 12, syscoContents: "12 x 1 head (cello wrapped)" },
+    // Pan Spray — RD sells 6x17oz case (same count as Sysco 6/14oz, just larger cans)
+    "12728": { rdTotal: 102, rdContents: "6 x 17 oz cans", unit: "oz", syscoTotal: 84, syscoContents: "6 x 14 oz cans" },
+    // Paneer — RD is 5lb single loaf, Sysco is 2x5lb=10lb
+    "1440528": { rdTotal: 5, rdContents: "1 x 5 lb loaf", unit: "lb", syscoTotal: 10, syscoContents: "2 x 5 lb blocks" },
+  };
+
+  let patched = 0;
+  Object.entries(patches).forEach(([id, p]) => {
+    if (!itemKnowledge[id]) return; // not built yet, skip
+    if (itemKnowledge[id].rd) {
+      itemKnowledge[id].rd.totalUnits = p.rdTotal;
+      itemKnowledge[id].rd.caseContents = p.rdContents;
+      itemKnowledge[id].rd.unitOfMeasure = p.unit;
+    }
+    if (itemKnowledge[id].sysco && p.syscoTotal) {
+      itemKnowledge[id].sysco.totalUnits = p.syscoTotal;
+      itemKnowledge[id].sysco.caseContents = p.syscoContents;
+      itemKnowledge[id].sysco.unitOfMeasure = p.unit;
+    }
+    if (itemKnowledge[id].comparison) {
+      itemKnowledge[id].comparison.rdTotalUnits = p.rdTotal;
+      itemKnowledge[id].comparison.syscoTotalUnits = p.syscoTotal || null;
+      itemKnowledge[id].comparison.unitOfMeasure = p.unit;
+    }
+    patched++;
+  });
+  if (patched > 0) {
+    saveItemKnowledge();
+    console.log("✅ Item KB: patched " + patched + " entries with verified data");
+  }
 }
 
 function saveItemKnowledge() {
@@ -2016,7 +2064,7 @@ Return ONLY JSON:
   }
 }
 
-// Build knowledge base — Claude uses product names + pack sizes to research each item
+// Build knowledge base — Claude researches each item using product names + pack sizes
 async function buildItemKnowledgeBase(forceRefresh = false) {
   const needsUpdate = [];
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -2037,7 +2085,6 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       log("Item KB: researching " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / RD only") + ")");
 
-      // Try public RD product page for extra detail (no auth needed for basic info)
       let rdPageText = "";
       try {
         const rdResp = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, {
@@ -2048,10 +2095,9 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
           const html = await rdResp.text();
           rdPageText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3000);
         }
-      } catch(e) { /* page may require auth, continue without it */ }
+      } catch(e) { /* page may require auth */ }
 
       const syscoKnown = syscoItem ? syscoItem.name + " | Pack: " + syscoItem.pack : null;
-
       const prompt = `You are building a wholesale grocery product knowledge base for Naan & Curry restaurant in Las Vegas.
 
 ITEM:
@@ -2066,7 +2112,7 @@ Using your knowledge of wholesale grocery products, determine PRECISELY:
 - Total weight or volume per case for each vendor
 - Best unit for per-unit price comparison (lb, oz, each, gallon, ml)
 
-Return ONLY this JSON (no markdown, no explanation):
+Return ONLY this JSON (no markdown):
 {
   "rd": {
     "name": "${rdItem.name}",
@@ -2094,24 +2140,20 @@ Return ONLY this JSON (no markdown, no explanation):
       const m = txt.match(/\{[\s\S]*\}/);
       if (m) {
         const knowledge = JSON.parse(m[0]);
-        itemKnowledge[rdItem.id] = {
-          ...knowledge,
-          lastUpdated: new Date().toISOString(),
-          rdItemId: rdItem.id,
-          syscoUpc: syscoUpc || null,
-        };
+        itemKnowledge[rdItem.id] = { ...knowledge, lastUpdated: new Date().toISOString(), rdItemId: rdItem.id, syscoUpc: syscoUpc || null };
         processed++;
-        log("✅ Item KB: " + rdItem.name + " — RD: " + knowledge.rd?.caseContents + (knowledge.sysco ? " | Sysco: " + knowledge.sysco?.caseContents : ""));
+        log("✅ Item KB: " + rdItem.name + " — " + knowledge.rd?.caseContents);
       } else {
         log("⚠️ Item KB: no JSON for " + rdItem.name);
       }
-      if (processed % 10 === 0) saveItemKnowledge();
+      if (processed % 10 === 0) { saveItemKnowledge(); patchItemKnowledge(); }
       await new Promise(res => setTimeout(res, 600));
     } catch(e) {
       log("❌ Item KB error for " + rdItem.name + ": " + e.message);
     }
   }
   saveItemKnowledge();
+  patchItemKnowledge(); // apply corrections after build
   log("✅ Item KB complete: " + processed + "/" + needsUpdate.length + " items learned");
   backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
 }
@@ -2146,7 +2188,7 @@ const PACK_SIZES = {
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
+  "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
   "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
