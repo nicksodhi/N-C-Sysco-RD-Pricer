@@ -5,22 +5,17 @@ import { useState, useMemo, useEffect } from "react";
 const DIFFERENT_CASE_SIZES = new Set([
   "42545",   // Yellow Onion: RD 50lb vs Sysco 25lb
   "1530438", // Heavy Cream: RD 64oz vs Sysco 384oz
-  "1020152", // Butter Alt: RD 1gal vs Sysco 3gal
-  "55523",   // Lemon Juice: RD 1gal vs Sysco 3gal
+    "55523",   // Lemon Juice: RD 1gal vs Sysco 3gal
   "12728",   // Pan Spray: RD 102oz vs Sysco 84oz
-  "1440203", // Cheddar Jack: RD 5lb vs Sysco 20lb
-  "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
+    "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
   "86525",   // Peas: RD 2.5lb vs Sysco 30lb
   "2620442", // Coconut Milk: RD 162oz vs Sysco 324oz
-  "45900",   // White Vinegar: RD 1gal vs Sysco 4gal
-  "64120",   // Broccoli: RD 2lb vs Sysco 24lb
-  "64046",   // Chopped Spinach: RD 3lb vs Sysco 36lb
-  "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
+    "64120",   // Broccoli: RD 2lb vs Sysco 24lb
+    "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
   "1440528", // Paneer: RD 20lb vs Sysco 10lb
   "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
   "29268",   // Baking Powder: RD 5lb vs Sysco 30lb
-  "2550012", // Yellow Coloring: RD 1gal vs Sysco 4gal
-]);
+  ]);
 
 const ITEMS = [
   { id:"42545",   name:"Yellow Onions", cat:"Produce"  },
