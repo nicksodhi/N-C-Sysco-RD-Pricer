@@ -184,6 +184,7 @@ async function restoreFromGitHub() {
       if (kbR.ok) {
         const kbJ = await kbR.json();
         itemKnowledge = JSON.parse(Buffer.from(kbJ.content, "base64").toString("utf8"));
+        patchItemKnowledge(); // apply verified facts over any stale KB data
         saveItemKnowledge();
         log("✅ Restore: item knowledge base restored for " + Object.keys(itemKnowledge).length + " items");
       }
@@ -1909,14 +1910,13 @@ function saveItemKnowledge() {
 }
 
 function patchItemKnowledge() {
-  // Ground-truth facts — override any KB guesses with verified data
   const P = {
     "77200":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
     "77232":  [40,"1 x 40 lb case","lb",20,"2 x 10 lb bags (20 lb)"],
     "77658":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
     "77670":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
     "77682":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
-    "44146":  [30,"6 x 5 lb bags (30 lb total)","lb",20,"4 x 5 lb bags (20 lb total)"],
+    "44146":  [30,"6 x 5 lb bags (30 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
     "42513":  [30,"1 x 30 lb bulk case","lb",30,"1 x 30 lb bag"],
     "42545":  [50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
     "42658":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
@@ -1925,42 +1925,42 @@ function patchItemKnowledge() {
     "44137":  [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"],
     "79152":  [10,"1 x 10 lb bag","lb",10,"1 x 10 lb bag"],
     "42606":  [12,"12-head case","each",12,"12 x 1 head cello wrapped"],
-    "42566":  [21,"6 x 3.5 oz bags (30 ct)","oz",21,"6 x 3.5 oz bags (30 ct)"],
+    "42566":  [21,"6 x 3.5 oz bags","oz",21,"6 x 3.5 oz bags (30 ct)"],
     "42647":  [1,"1 x 1 lb package","lb",1,"1 x 1 lb package"],
-    "1530438":[384,"6 x 64 oz jugs (384 oz total)","oz",384,"6 x 64 oz jugs (384 oz total)"],
+    "1530438":[384,"6 x 64 oz jugs (384 oz)","oz",384,"6 x 64 oz jugs (384 oz)"],
     "370496": [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
-    "1440203":[20,"4 x 5 lb bags (20 lb total)","lb",20,"4 x 5 lb bags (20 lb total)"],
-    "1440528":[20,"4 x 5 lb loaves (20 lb total)","lb",10,"2 x 5 lb blocks (10 lb total)"],
+    "1440203":[20,"4 x 5 lb bags (20 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
+    "1440528":[20,"4 x 5 lb loaves (20 lb)","lb",10,"2 x 5 lb blocks (10 lb)"],
     "14785":  [32,"1 x 32 lb container","lb",null,null],
     "1020077":[35,"1 x 35 lb bag","lb",35,"1 x 35 lb bag"],
     "1020079":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020075":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020152":[3,"3 x 1 gallon jugs","gallon",3,"3 x 1 gallon jugs"],
-    "55523":  [1,"1 x 1 gallon jug","gallon",3,"6 x 0.5 gallon jugs (3 gal total)"],
+    "55523":  [1,"1 x 1 gallon jug","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
     "45900":  [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "21051":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
     "1070496":[50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
     "2061212":[25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
-    "53556":  [40,"2 x 20 lb bags (40 lb total)","lb",50,"1 x 50 lb bag"],
-    "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes (24 lb total)"],
-    "29268":  [5,"1 x 5 lb can","lb",30,"6 x 5 lb cans (30 lb total)"],
+    "53556":  [40,"2 x 20 lb bags (40 lb)","lb",50,"1 x 50 lb bag"],
+    "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes"],
+    "29268":  [5,"1 x 5 lb can","lb",30,"6 x 5 lb cans (30 lb)"],
     "16200":  [54,"6 x #10 cans","lb",54,"6 x #10 cans"],
     "69810":  [60,"6 x #10 cans","lb",60,"6 x #10 cans"],
     "860135": [102,"6 x #10 cans","oz",102,"6 x #10 cans"],
     "490266": [40,"1 x 40 lb bag","lb",null,null],
-    "86525":  [2.5,"1 x 2.5 lb bag","lb",30,"12 x 2.5 lb bags (30 lb total)"],
-    "64120":  [2,"1 x 2 lb bag","lb",24,"12 x 2 lb bags (24 lb total)"],
-    "64046":  [36,"12 x 3 lb bags (36 lb total)","lb",36,"12 x 3 lb bags (36 lb total)"],
-    "86527":  [25,"10 x 2.5 lb bags (25 lb total)","lb",30,"1 x 30 lb bag"],
-    "51457":  [10,"1 x 10 lb box","lb",10,"2 x 5 lb boxes (10 lb total)"],
-    "40212":  [10,"1 x 10 lb box","lb",10,"4 x 2.5 lb bags (10 lb total)"],
+    "86525":  [2.5,"1 x 2.5 lb bag","lb",30,"12 x 2.5 lb bags (30 lb)"],
+    "64120":  [2,"1 x 2 lb bag","lb",24,"12 x 2 lb bags (24 lb)"],
+    "64046":  [36,"12 x 3 lb bags (36 lb)","lb",36,"12 x 3 lb bags (36 lb)"],
+    "86527":  [25,"10 x 2.5 lb bags (25 lb)","lb",30,"1 x 30 lb bag"],
+    "51457":  [10,"1 x 10 lb box","lb",10,"2 x 5 lb boxes"],
+    "40212":  [10,"1 x 10 lb box","lb",10,"4 x 2.5 lb bags"],
     "13417":  [408,"3 x 136 oz containers","oz",408,"3 x 136 oz containers"],
     "2620442":[4800,"12 x 400 ml cans","ml",9720,"24 x 13.5 oz cans"],
-    "12728":  [102,"6 x 17 oz cans (102 oz total)","oz",84,"6 x 14 oz cans (84 oz total)"],
+    "12728":  [102,"6 x 17 oz cans (102 oz)","oz",84,"6 x 14 oz cans (84 oz)"],
     "2550012":[4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "21039":  [12000,"24 x 500 ml bottles","ml",12000,"24 x 500 ml bottles"],
     "1810019":[15,"1 x 15 lb box","lb",null,null],
-    "79042":  [42,"variable weight ~40-42 lb each","lb",null,null],
+    "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
   };
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
@@ -1971,7 +1971,7 @@ function patchItemKnowledge() {
     Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
     n++;
   });
-  if (n > 0) { saveItemKnowledge(); console.log("Item KB patched: " + n + " items"); }
+  if (n > 0) { saveItemKnowledge(); console.log("Item KB patched: " + n + " items with verified facts"); }
 }
 
 loadItemKnowledge();
@@ -2090,26 +2090,26 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
     const existing = itemKnowledge[item.id];
     if (!existing || forceRefresh || new Date(existing.lastUpdated).getTime() < sevenDaysAgo) needsUpdate.push(item);
   }
-  if (needsUpdate.length === 0) { log("Item KB: all items up to date"); return; }
-  log("Item KB: building knowledge for " + needsUpdate.length + " items...");
+  if (needsUpdate.length === 0) { log("Item KB: all up to date"); return; }
+  log("Item KB: building " + needsUpdate.length + " items...");
   let processed = 0;
   for (const rdItem of needsUpdate) {
     try {
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
-      const rdEntry = priceStore.rd[rdItem.id];
-      const rdCtx2 = rdEntry?.scrapedCtx || "";
-      const rdRaw = rdEntry?.rawScraped || "";
-      const rdPrice = rdEntry?.price || null;
-      let rdPageText = "";
+      const rdE = priceStore.rd[rdItem.id];
+      const rdCtx2 = rdE?.scrapedCtx || "";
+      const rdRaw = rdE?.rawScraped || "";
+      const rdPrice = rdE?.price || null;
+      let rdPage = "";
       try {
-        const resp = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(8000) });
-        if (resp.ok) rdPageText = (await resp.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 2000);
+        const rr = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(8000) });
+        if (rr.ok) rdPage = (await rr.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 1500);
       } catch(e) {}
       const sysLine = syscoItem ? "Sysco: " + syscoItem.name + " | UPC: " + syscoUpc + " | Pack: " + syscoItem.pack : "No Sysco equivalent";
       const ctxLine = rdCtx2 ? "RD page context: " + rdCtx2 : "";
-      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD: " + rdItem.id + ")" + (rdPrice ? "\nPrice: $" + rdPrice : "") + (rdRaw ? "\nFormat: " + rdRaw : "") + (ctxLine ? "\n" + ctxLine : "") + (rdPageText ? "\nPage: " + rdPageText.slice(0,1500) : "") + "\n" + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\"" + rdItem.name + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\"" + syscoItem.name + "\",\"pack\":\"" + syscoItem.pack + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
+      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD: " + rdItem.id + ")" + (rdPrice ? "\nPrice: $" + rdPrice : "") + (rdRaw ? "\nFormat: " + rdRaw : "") + (ctxLine ? "\n" + ctxLine : "") + (rdPage ? "\nPage: " + rdPage : "") + "\n" + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\"" + rdItem.name + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\"" + syscoItem.name + "\",\"pack\":\"" + syscoItem.pack + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
@@ -2125,11 +2125,11 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       }
       if (processed % 10 === 0) { saveItemKnowledge(); patchItemKnowledge(); }
       await new Promise(res => setTimeout(res, 600));
-    } catch(e) { log("Item KB error for " + rdItem.name + ": " + e.message); }
+    } catch(e) { log("Item KB error " + rdItem.name + ": " + e.message); }
   }
   saveItemKnowledge(); patchItemKnowledge();
-  log("Item KB complete: " + processed + "/" + needsUpdate.length + " items");
-  backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
+  log("Item KB complete: " + processed + "/" + needsUpdate.length);
+  backupItemKnowledgeToGitHub().catch(e => log("KB backup error: " + e.message));
 }
 
 // Backup item knowledge to GitHub
@@ -2352,58 +2352,99 @@ app.post("/api/grocery", async (req, res) => {
   if (!list) return res.status(400).json({ error: "No list" });
   try {
     const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268"]);
+
+    // Build the richest possible catalog — everything Claude needs to be accurate
     const catalog = [];
     RD_ITEMS.forEach(rdItem => {
-      const rdEntry = priceStore.rd[rdItem.id];
-      if (!rdEntry?.price) return;
+      const rdE = priceStore.rd[rdItem.id];
+      if (!rdE?.price) return;
+
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
-      const syscoPrice = syscoUpc ? (priceStore.sysco[rdItem.id]?.price || priceStore.sysco[syscoUpc]?.price) : null;
+      const syscoE = syscoUpc ? (priceStore.sysco[rdItem.id] || priceStore.sysco[syscoUpc]) : null;
+
+      // Pack info from KB (ground truth) or PACK_SIZES
       const kb = itemKnowledge[rdItem.id];
-      const rdPack = kb?.rd?.caseContents || PACK_SIZES[rdItem.id]?.rd || "1 case";
-      const scPack = kb?.sysco?.caseContents || syscoItem?.pack || PACK_SIZES[rdItem.id]?.sysco || "1 case";
+      const rdPack  = kb?.rd?.caseContents  || PACK_SIZES[rdItem.id]?.rd  || "1 case";
+      const scPack  = kb?.sysco?.caseContents || syscoItem?.pack || PACK_SIZES[rdItem.id]?.sysco || "";
+
+      // Short name
       const shortName = rdItem.name
         .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen /gi, "")
         .replace(/ - \d+.*$/, "").trim();
-      const cheaper = syscoPrice ? (rdEntry.price <= syscoPrice ? "RD" : "Sysco") : "RD only";
-      let line = shortName + ": RD $" + rdEntry.price + " (" + rdPack + ")";
-      if (syscoPrice) line += " | Sysco $" + syscoPrice + " (" + scPack + ")";
-      else line += " | Sysco: not on Nick List";
-      if (DIFF_SIZES.has(rdItem.id)) line += " [CHECK CASE SIZE]";
-      line += " | CHEAPER: " + cheaper;
+
+      // Raw scrape data — bin, stock status, price format
+      const rdCtx = rdE.scrapedCtx || "";
+      const rdBin = rdCtx.match(/Bin - (\d+)/)?.[1];
+      const rdStock = rdCtx.includes("Many in stock") ? "In stock" : rdCtx.includes("out of stock") ? "OUT OF STOCK" : "";
+      const rdRaw = rdE.rawScraped || "";
+
+      const cheaper = syscoE?.price ? (rdE.price <= syscoE.price ? "RD" : "Sysco") : "RD only";
+      const diffSize = DIFF_SIZES.has(rdItem.id);
+
+      // Build catalog line with all available data
+      let line = shortName;
+      line += " | RD: $" + rdE.price + " — " + rdPack;
+      if (rdBin) line += " (Bin " + rdBin + ")";
+      if (rdStock) line += " [" + rdStock + "]";
+      if (rdRaw && rdRaw !== "null") line += " {format: " + rdRaw + "}";
+      if (syscoE?.price) {
+        line += " | Sysco: $" + syscoE.price + " — " + scPack;
+        line += " | CHEAPER: " + cheaper;
+      } else {
+        line += " | Sysco: not on Nick List";
+      }
+      if (diffSize) line += " *** DIFF CASE SIZE — compare per unit ***";
       catalog.push(line);
     });
-    if (catalog.length === 0) return res.status(500).json({ error: "No price data — run a scrape first at /api/trigger" });
-    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
-Parse the order list and build an accurate vendor breakdown using ONLY today's prices.
 
-TODAY'S PRICES (${catalog.length} items tracked):
+    if (catalog.length === 0) return res.status(500).json({ error: "No price data — run scrape first at /api/trigger" });
+
+    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
+You have complete knowledge of every item tracked, with today's live prices, pack sizes, bin locations, and stock status.
+Parse the order list and produce a clean, accurate vendor breakdown.
+
+TODAY'S COMPLETE PRICE CATALOG (${catalog.length} items):
 ${catalog.join("\n")}
 
-ORDER LIST:
+ORDER LIST FROM CHEF:
 ${list}
 
-RULES:
-1. Match to closest catalog entry. Shortcuts: LQ=Leg Quarters, chx=Chicken Breast, WM=Whole Milk, HWC=Heavy Cream, cream=Heavy Cream.
-2. Multiply price by quantity when specified. Show math: "x2 (2 x $30.80) — $61.60"
-3. Assign to CHEAPER vendor. Note [CHECK CASE SIZE] items so buyer can verify volume.
-4. Anything not in catalog → ORDER MANUALLY with reason.
+MATCHING GUIDE:
+LQ / leg quarters = Fresh Chicken Leg Quarters
+chx breast / chicken breast = Boneless Skinless Chicken Breast  
+WM / whole milk = Whole Milk
+HWC / heavy cream / cream = Heavy Cream Whipping 40%
+wings = Chicken Wings
+leg meat = Chicken Leg Meat Boneless
+garlic = Peeled Garlic
+onion (without red/yellow) = Yellow Onion (most common)
 
-OUTPUT — exact format, no markdown, no asterisks:
+RULES:
+1. Every item in the order list must appear in the output — either assigned to a vendor or in ORDER MANUALLY
+2. Assign to CHEAPER vendor always
+3. If quantity given (x2, 2 cases, etc.) multiply and show math
+4. Items marked DIFF CASE SIZE: assign to cheaper but add note "(verify case volume)"
+5. OUT OF STOCK items at RD → check Sysco, else ORDER MANUALLY
+6. Use short clean names — no brand names, no SKU numbers
+
+OUTPUT — follow exactly, no markdown, no asterisks, no explanations:
 
 🟢 RESTAURANT DEPOT
-Item Name — $price
-RD Cart Total: $XX.XX
+[Item] — $[price]
+[Item] x[n] ([n] × $[unit]) — $[total]
+RD Cart Total: $[total]
 
 🔵 SYSCO
-Item Name — $price
-Sysco Cart Total: $XX.XX
+[Item] — $[price]
+Sysco Cart Total: $[total]
 
 ⚠️ ORDER MANUALLY
-Item name — reason
+[Item] — [reason]
 
-💰 TOTAL ORDER COST: $XX.XX`;
+💰 TOTAL ORDER COST: $[grand total]`;
+
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
