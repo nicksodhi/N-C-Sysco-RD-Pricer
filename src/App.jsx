@@ -311,10 +311,10 @@ export default function App() {
 
       {/* BOTTOM NAV */}
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #EEEEE9", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", zIndex: 100 }}>
-        {[["prices", "📊", "Prices"], ["compare", "⚖️", "Compare"], ["order", "🛒", "Breakdown"]].map(([id, icon, lbl]) => (
-          <button key={id} onClick={() => setView(id)} style={{ padding: "12px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
-            <div style={{ fontSize: 18, marginBottom: 2 }}>{icon}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: .3 }}>{lbl}</div>
+        {[["prices", "Prices"], ["compare", "Compare"], ["order", "Breakdown"]].map(([id, lbl]) => (
+          <button key={id} onClick={() => setView(id)} style={{ padding: "14px 8px 16px", border: "none", background: "none", color: view === id ? "#111" : "#AAA", cursor: "pointer", transition: "color .15s" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: .5 }}>{lbl}</div>
+            <div style={{ height: 2, borderRadius: 1, background: view === id ? "#111" : "transparent", marginTop: 4 }} />
           </button>
         ))}
       </div>
@@ -458,7 +458,7 @@ ${rows.map(r => `<tr>
                           border: DIFFERENT_CASE_SIZES.has(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
                           title: DIFFERENT_CASE_SIZES.has(item.id) ? "Case sizes differ — tap Compare for details" : ""
                         }}>
-                          {rdBest ? "Buy at RD" : "Buy at Sysco"}{DIFFERENT_CASE_SIZES.has(item.id) ? " ⚖" : ""}
+                          {rdBest ? "Buy at RD" : "Buy at Sysco"}
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid #F3F3EF" }}>
@@ -811,7 +811,7 @@ Return ONLY this JSON structure:
 
   return (
     <div style={{ padding: "16px 12px 0" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>⚖️ Vendor Cost Comparison</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>Vendor Cost Comparison</div>
       <textarea value={list} onChange={e => setList(e.target.value)}
         placeholder="Paste list here..."
         style={{ width: "100%", minHeight: 160, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
@@ -1006,7 +1006,7 @@ function OrderView({ rd, sc }) {
 
   return (
     <div style={{ padding: "16px 12px 0" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>🛒 Vendor Cost Breakdown</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 12 }}>Vendor Cost Breakdown</div>
       <textarea value={list} onChange={e => setList(e.target.value)}
         placeholder="Paste your order list, one item per line..."
         style={{ width: "100%", minHeight: 130, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "12px 14px", color: "#111", fontSize: 14, lineHeight: 1.7, resize: "none", outline: "none" }} />
