@@ -1,0 +1,1447 @@
+{
+  "12728": {
+    "rd": {
+      "name": "Chef's Quality - All Purpose Pan Spray - 17 oz",
+      "caseContents": "12 x 17 oz cans",
+      "totalUnits": 204,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": {
+      "name": "Pan Coating Butter It",
+      "pack": "6/14 OZ",
+      "caseContents": "6 x 14 oz cans",
+      "totalUnits": 84,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 204,
+      "syscoTotalUnits": 84,
+      "unitOfMeasure": "oz",
+      "sameProduct": false,
+      "notes": "RD case contains 12 cans at 17 oz each (204 oz total). Sysco case contains 6 cans at 14 oz each (84 oz total). RD provides more volume per case and larger individual can size."
+    },
+    "lastUpdated": "2026-05-11T03:05:05.015Z",
+    "rdItemId": "12728",
+    "syscoUpc": "6914451"
+  },
+  "13417": {
+    "rd": {
+      "name": "Huy Fong - Sambal Olek - 3/136 oz",
+      "caseContents": "3 x 136 oz bottles",
+      "totalUnits": 408,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": {
+      "name": "Paste Chili Ground Sambal Oelek",
+      "pack": "3/136 OZ",
+      "caseContents": "3 x 136 oz containers",
+      "totalUnits": 408,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 408,
+      "syscoTotalUnits": 408,
+      "unitOfMeasure": "oz",
+      "sameProduct": true,
+      "notes": "Identical pack configuration. Both are Huy Fong sambal oelek. Compare pricing per ounce for best unit cost analysis."
+    },
+    "lastUpdated": "2026-05-11T03:05:29.912Z",
+    "rdItemId": "13417",
+    "syscoUpc": "2638660"
+  },
+  "14785": {
+    "rd": {
+      "name": "James Farm - Plain Yogurt - 32 lbs",
+      "caseContents": "1 x 32 lb container",
+      "totalUnits": 32,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 32,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent identified on Nick List"
+    },
+    "lastUpdated": "2026-05-11T03:06:18.496Z",
+    "rdItemId": "14785",
+    "syscoUpc": null
+  },
+  "16200": {
+    "rd": {
+      "name": "Chef's Quality - Garbanzo Beans - #10 can",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 54,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Bean Garbanzo Fancy No Sulfite",
+      "pack": "6/#10",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 54,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 54,
+      "syscoTotalUnits": 54,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Both vendors supply identical pack configuration (6/#10 cans per case). Sysco product specifies 'Fancy No Sulfite' grade. A #10 can of garbanzo beans weighs approximately 9 lbs per can (54 lbs total per case)."
+    },
+    "lastUpdated": "2026-05-11T03:05:17.793Z",
+    "rdItemId": "16200",
+    "syscoUpc": "4062337"
+  },
+  "21039": {
+    "rd": {
+      "name": "Evian - Natural Spring Water 24 Ct",
+      "caseContents": "24 x 500ml bottles",
+      "totalUnits": 12000,
+      "unitOfMeasure": "ml"
+    },
+    "sysco": {
+      "name": "Water Spring In Plastic Bottle",
+      "pack": "24/500ML",
+      "caseContents": "24 x 500ml bottles",
+      "totalUnits": 12000,
+      "unitOfMeasure": "ml"
+    },
+    "comparison": {
+      "rdTotalUnits": 12000,
+      "syscoTotalUnits": 12000,
+      "unitOfMeasure": "ml",
+      "sameProduct": true,
+      "notes": "Identical pack structure. Compare pricing per case or per 500ml bottle. RD and Sysco listings appear to be the same product."
+    },
+    "lastUpdated": "2026-05-11T03:07:37.220Z",
+    "rdItemId": "21039",
+    "syscoUpc": "2886075"
+  },
+  "21051": {
+    "rd": {
+      "name": "C&H - Granulated Sugar - 25 lbs",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Sugar Granulated Extra Fine Cane",
+      "pack": "1/25LB",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 25,
+      "syscoTotalUnits": 25,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical pack size. Sysco product specifies 'Extra Fine Cane' which may indicate slightly different crystal texture than standard C&H granulated sugar, but both are granulated cane sugar in 25 lb bags."
+    },
+    "lastUpdated": "2026-05-11T03:05:39.937Z",
+    "rdItemId": "21051",
+    "syscoUpc": "5087572"
+  },
+  "25267": {
+    "rd": {
+      "name": "Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg",
+      "caseContents": "1 x 2 kg container",
+      "totalUnits": 4.41,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 4.41,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent identified. Restaurant Depot carries Athena brand fire roasted grilled eggplant pulp in 2 kg format."
+    },
+    "lastUpdated": "2026-05-11T03:05:14.857Z",
+    "rdItemId": "25267",
+    "syscoUpc": null
+  },
+  "29268": {
+    "rd": {
+      "name": "Clabber Girl - Baking Powder - 5 lbs",
+      "caseContents": "1 x 5 lb container",
+      "totalUnits": 5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Powder Baking Double Acting",
+      "pack": "6/5 LB",
+      "caseContents": "6 x 5 lb containers",
+      "totalUnits": 30,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 5,
+      "syscoTotalUnits": 30,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Sysco case is 6 containers (30 lbs total) vs RD single 5 lb container. Both are double-acting baking powder suitable for restaurant use."
+    },
+    "lastUpdated": "2026-05-11T03:05:45.061Z",
+    "rdItemId": "29268",
+    "syscoUpc": "5517701"
+  },
+  "40212": {
+    "rd": {
+      "name": "SHRP P&D TF 16-20 FROZEN SEAFOOD",
+      "caseContents": "Unknown - insufficient packaging information provided",
+      "totalUnits": null,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Shrimp White Peeled And Deveined 16/20",
+      "pack": "4/2.5 LB",
+      "caseContents": "4 x 2.5 lb bags",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": null,
+      "syscoTotalUnits": 10,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD case structure unknown - only Sysco pack detail available (4/2.5 LB = 10 lbs per case). Both products are 16-20 count white shrimp, peeled and deveined, frozen. RD case quantity cannot be determined from provided data."
+    },
+    "lastUpdated": "2026-05-11T03:06:21.741Z",
+    "rdItemId": "40212",
+    "syscoUpc": "5106388"
+  },
+  "42504": {
+    "rd": {
+      "name": "Cucumbers - 6 ct",
+      "caseContents": "6 x 1 each (individual cucumbers)",
+      "totalUnits": 6,
+      "unitOfMeasure": "each"
+    },
+    "sysco": {
+      "name": "Cucumber Select Fresh",
+      "pack": "1/5 LB",
+      "caseContents": "1 x 5 lb case",
+      "totalUnits": 5,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 6,
+      "syscoTotalUnits": 5,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "RD lists by count (6 cucumbers), Sysco by weight (5 lb case). Average cucumber weighs approximately 0.67-0.83 lb, so 6 ct RD pack is roughly 4-5 lbs. Similar quantities but different presentation. RD pack size more suitable for portioning by count."
+    },
+    "lastUpdated": "2026-05-11T03:06:54.948Z",
+    "rdItemId": "42504",
+    "syscoUpc": "7410640"
+  },
+  "42513": {
+    "rd": {
+      "name": "Fresh Ginger - 30 lbs",
+      "caseContents": "1 x 30 lb bulk case",
+      "totalUnits": 30,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Ginger Root Fresh",
+      "pack": "1/30 LB",
+      "caseContents": "1 x 30 lb bulk case",
+      "totalUnits": 30,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 30,
+      "syscoTotalUnits": 30,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product specifications and case sizes. Compare pricing and supplier delivery reliability."
+    },
+    "lastUpdated": "2026-05-11T03:06:49.076Z",
+    "rdItemId": "42513",
+    "syscoUpc": "1184902"
+  },
+  "42545": {
+    "rd": {
+      "name": "Jumbo Spanish Onions - 50 lbs",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Onion Yellow Jumbo Bag",
+      "pack": "1/25 LB",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 50,
+      "syscoTotalUnits": 25,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD case is 50 lbs (1 bag). Sysco case is 25 lbs (1 bag). RD provides double the quantity per case. Both are jumbo yellow onions; compare per-pound pricing for best value."
+    },
+    "lastUpdated": "2026-05-11T03:07:13.562Z",
+    "rdItemId": "42545",
+    "syscoUpc": "1048222"
+  },
+  "42566": {
+    "rd": {
+      "name": "Taylor Farms - Bagged Cilantro",
+      "caseContents": "6 x 3.5 oz bags",
+      "totalUnits": 21,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": {
+      "name": "Cilantro Fresh",
+      "pack": "1 CS",
+      "caseContents": "6 x 3.5 oz bags",
+      "totalUnits": 21,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 21,
+      "syscoTotalUnits": 21,
+      "unitOfMeasure": "oz",
+      "sameProduct": true,
+      "notes": "Appears to be identical product. Compare price per ounce and vendor delivery terms."
+    },
+    "lastUpdated": "2026-05-11T03:06:59.671Z",
+    "rdItemId": "42566",
+    "syscoUpc": "7078475"
+  },
+  "42570": {
+    "rd": {
+      "name": "Lemons 71-115 ct",
+      "caseContents": "1 x 115 count",
+      "totalUnits": 115,
+      "unitOfMeasure": "each"
+    },
+    "sysco": {
+      "name": "Lemon Choice Fresh",
+      "pack": "1/115 CT",
+      "caseContents": "1 x 115 count",
+      "totalUnits": 115,
+      "unitOfMeasure": "each"
+    },
+    "comparison": {
+      "rdTotalUnits": 115,
+      "syscoTotalUnits": 115,
+      "unitOfMeasure": "each",
+      "sameProduct": true,
+      "notes": "Both vendors supply identical quantity (115 count per case). Size designation '71-115 ct' indicates lemon diameter range. Compare on per-unit price basis."
+    },
+    "lastUpdated": "2026-05-11T03:06:43.423Z",
+    "rdItemId": "42570",
+    "syscoUpc": "2252013"
+  },
+  "42606": {
+    "rd": {
+      "name": "White Cauliflower - 1 ct",
+      "caseContents": "1 x whole cauliflower head",
+      "totalUnits": 1,
+      "unitOfMeasure": "each",
+      "estimatedWeight": "2.0-2.5 lb"
+    },
+    "sysco": {
+      "name": "Cauliflower Cello Wrapped Fresh",
+      "pack": "12/1EA",
+      "caseContents": "12 x 1 whole cauliflower head",
+      "totalUnits": 12,
+      "unitOfMeasure": "each",
+      "estimatedWeight": "24-30 lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 1,
+      "syscoTotalUnits": 12,
+      "unitOfMeasure": "each",
+      "bestComparison": "lb",
+      "sameProduct": true,
+      "notes": "RD appears to be single-unit retail or small order; Sysco pack (12/1EA) is standard wholesale case. Compare per-pound pricing for accurate cost analysis. Both are fresh, cello-wrapped whole heads."
+    },
+    "lastUpdated": "2026-05-11T03:07:02.940Z",
+    "rdItemId": "42606",
+    "syscoUpc": "1243724"
+  },
+  "42647": {
+    "rd": {
+      "name": "Herb - Mint - 1 lb",
+      "caseContents": "1 x 1 lb package",
+      "totalUnits": 1,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Mint Fresh Herb",
+      "pack": "1/1 LB",
+      "caseContents": "1 x 1 lb package",
+      "totalUnits": 1,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 1,
+      "syscoTotalUnits": 1,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Both vendors appear to sell fresh mint by the individual 1 lb package rather than case packs. Verify actual case pack quantities with vendors as fresh herbs are sometimes sold by the case with multiple 1 lb units per case."
+    },
+    "lastUpdated": "2026-05-11T03:07:05.890Z",
+    "rdItemId": "42647",
+    "syscoUpc": "2037125"
+  },
+  "42658": {
+    "rd": {
+      "name": "Jumbo Red Onions - 25 lbs",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Onion Red Jumbo Bag",
+      "pack": "1/25LB",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 25,
+      "syscoTotalUnits": 25,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product specifications. Compare pricing per lb for best value."
+    },
+    "lastUpdated": "2026-05-11T03:07:16.072Z",
+    "rdItemId": "42658",
+    "syscoUpc": "1094663"
+  },
+  "42725": {
+    "rd": {
+      "name": "Russet Potato - 50 lb",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Potato Baking Russet 40 Count Fresh",
+      "pack": "1/50LB",
+      "caseContents": "1 x 50 lb bag (40 count potatoes)",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 50,
+      "syscoTotalUnits": 50,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Sysco specifies 40 count (individual potato count per bag), RD does not. Both are 50 lb bags of russet baking potatoes. Sysco count specification useful for portion planning."
+    },
+    "lastUpdated": "2026-05-11T03:07:10.859Z",
+    "rdItemId": "42725",
+    "syscoUpc": "1543164"
+  },
+  "43431": {
+    "rd": {
+      "name": "Green Bell Peppers - 9 ct",
+      "caseContents": "9 x 1 each (medium)",
+      "totalUnits": 9,
+      "unitOfMeasure": "each",
+      "estimatedWeight": "13.5 lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 9,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "each",
+      "sameProduct": null,
+      "notes": "No Sysco equivalent found on Nick List. RD case contains 9 medium green bell peppers, approximately 1.5 lb per pepper"
+    },
+    "lastUpdated": "2026-05-11T03:06:57.333Z",
+    "rdItemId": "43431",
+    "syscoUpc": null
+  },
+  "44137": {
+    "rd": {
+      "name": "Serrano Peppers",
+      "caseContents": "1 x 40 lb box",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Pepper Serrano Util",
+      "pack": "1/40 LB",
+      "caseContents": "1 x 40 lb case",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 40,
+      "syscoTotalUnits": 40,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product and pack size from both vendors. Price comparison should be per pound."
+    },
+    "lastUpdated": "2026-05-11T03:06:40.766Z",
+    "rdItemId": "44137",
+    "syscoUpc": "7007376"
+  },
+  "44146": {
+    "rd": {
+      "name": "Peeled Garlic",
+      "caseContents": "unknown - insufficient data",
+      "totalUnits": null,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Garlic Peeled Fresh",
+      "pack": "4/5LB",
+      "caseContents": "4 x 5 lb bags",
+      "totalUnits": 20,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": null,
+      "syscoTotalUnits": 20,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Restaurant Depot case configuration unknown - contact RD or check product specifications. Sysco pack is 4/5LB = 20 lbs total per case."
+    },
+    "lastUpdated": "2026-05-11T03:06:51.720Z",
+    "rdItemId": "44146",
+    "syscoUpc": "1821537"
+  },
+  "44211": {
+    "rd": {
+      "name": "Cleaned Spinach - 2.5 lbs",
+      "caseContents": "1 x 2.5 lb bag",
+      "totalUnits": 2.5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Spinach Baby Fresh",
+      "pack": "1/4 LB",
+      "caseContents": "16 x 0.25 lb units",
+      "totalUnits": 4,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 2.5,
+      "syscoTotalUnits": 4,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "RD case is smaller (2.5 lb single bag). Sysco case contains 16 quarter-pound units totaling 4 lbs. Different formats - RD is bulk bag, Sysco appears to be portioned units. RD offers better value per lb if price justifies single larger pack."
+    },
+    "lastUpdated": "2026-05-11T03:06:38.487Z",
+    "rdItemId": "44211",
+    "syscoUpc": "8474538"
+  },
+  "45900": {
+    "rd": {
+      "name": "Chef's Quality - White Vinegar - gallon",
+      "caseContents": "4 x 1 gallon jugs",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": {
+      "name": "Vinegar White Distilled 50 Grain",
+      "pack": "4/1 GAL",
+      "caseContents": "4 x 1 gallon jugs",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "comparison": {
+      "rdTotalUnits": 4,
+      "syscoTotalUnits": 4,
+      "unitOfMeasure": "gallon",
+      "sameProduct": true,
+      "notes": "Identical pack configuration. Both are 50 grain white distilled vinegar in gallon jugs. Compare pricing per gallon or per case."
+    },
+    "lastUpdated": "2026-05-11T03:05:02.494Z",
+    "rdItemId": "45900",
+    "syscoUpc": "4113049"
+  },
+  "51457": {
+    "rd": {
+      "name": "Frozen Tilapia Fillets - 3-5 oz - 10 lbs",
+      "caseContents": "1 x 10 lb bag",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Tilapia Fillet Boneless Skinless Iqf",
+      "pack": "2/5LB",
+      "caseContents": "2 x 5 lb bags",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 10,
+      "syscoTotalUnits": 10,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Both cases contain 10 lbs total. RD ships as single bag; Sysco ships as 2x5lb bags. Individual fillet size 3-5 oz. Compare per-pound pricing for cost analysis."
+    },
+    "lastUpdated": "2026-05-11T03:06:24.380Z",
+    "rdItemId": "51457",
+    "syscoUpc": "0496671"
+  },
+  "53556": {
+    "rd": {
+      "name": "Golden Temple - Durum Atta Flour - 2/20 lb Bag",
+      "caseContents": "2 x 20 lb bags",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Flour Wheat Whole Stone Ground",
+      "pack": "1/50LB",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 40,
+      "syscoTotalUnits": 50,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "RD product is Durum Atta (semolina wheat flour), Sysco is whole wheat stone ground flour - different flour types. RD case = 40 lb, Sysco case = 50 lb. Price comparison should be per pound."
+    },
+    "lastUpdated": "2026-05-11T03:05:50.344Z",
+    "rdItemId": "53556",
+    "syscoUpc": "4014684"
+  },
+  "55519": {
+    "rd": {
+      "name": "Micro Orchid Flowers - 4 oz",
+      "caseContents": "6 x 4 oz packages",
+      "totalUnits": 24,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 24,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "oz",
+      "sameProduct": false,
+      "notes": "Edible microflower specialty item - no Sysco equivalent available on Nick List. Compare per-ounce pricing if alternative microflower products sourced."
+    },
+    "lastUpdated": "2026-05-11T03:07:08.217Z",
+    "rdItemId": "55519",
+    "syscoUpc": null
+  },
+  "55523": {
+    "rd": {
+      "name": "Chef's Quality - Lemon Juice - gallon",
+      "caseContents": "1 x 1 gallon",
+      "totalUnits": 1,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": {
+      "name": "Juice Lemon Pasteurized Ultra Premium",
+      "pack": "6/.5 GAL",
+      "caseContents": "6 x 0.5 gallon",
+      "totalUnits": 3,
+      "unitOfMeasure": "gallon"
+    },
+    "comparison": {
+      "rdTotalUnits": 1,
+      "syscoTotalUnits": 3,
+      "unitOfMeasure": "gallon",
+      "sameProduct": true,
+      "notes": "Sysco case provides 3x more product per case. Both pasteurized lemon juice. Best price comparison unit: gallon or per fluid ounce"
+    },
+    "lastUpdated": "2026-05-11T03:06:04.076Z",
+    "rdItemId": "55523",
+    "syscoUpc": "4063095"
+  },
+  "64046": {
+    "rd": {
+      "name": "Frozen James Farm - Frozen Chopped Spinach - 3 lbs",
+      "caseContents": "1 x 3 lb bag",
+      "totalUnits": 3,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Spinach Chopped Bag",
+      "pack": "12/3LB",
+      "caseContents": "12 x 3 lb bags",
+      "totalUnits": 36,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 3,
+      "syscoTotalUnits": 36,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Sysco case contains 12 bags vs RD single bag listing. Price comparison should be per lb or per 3 lb bag unit."
+    },
+    "lastUpdated": "2026-05-11T03:06:30.189Z",
+    "rdItemId": "64046",
+    "syscoUpc": "2523833"
+  },
+  "64120": {
+    "rd": {
+      "name": "Frozen James Farm - IQF Broccoli Florets - 2 lbs",
+      "caseContents": "1 x 2 lb bag",
+      "totalUnits": 2,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Broccoli Floret Poly Packaging Grade A",
+      "pack": "12/2 LB",
+      "caseContents": "12 x 2 lb bags",
+      "totalUnits": 24,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 2,
+      "syscoTotalUnits": 24,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Sysco case contains 12 individual 2 lb units; Restaurant Depot listing appears to be single unit pricing. Both are IQF frozen broccoli florets Grade A quality."
+    },
+    "lastUpdated": "2026-05-11T03:06:27.259Z",
+    "rdItemId": "64120",
+    "syscoUpc": "6988158"
+  },
+  "69778": {
+    "rd": {
+      "name": "Rice Flour - 50 lbs",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 50,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent found on Nick List. Recommend searching Sysco catalog for Rice Flour or Flour - Rice alternatives for price comparison."
+    },
+    "lastUpdated": "2026-05-11T03:05:52.444Z",
+    "rdItemId": "69778",
+    "syscoUpc": null
+  },
+  "69810": {
+    "rd": {
+      "name": "Chef's Quality - Dark Red Kidney Beans - #10 cans",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 60,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Bean Kidney Dark Red",
+      "pack": "6/#10",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 60,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 60,
+      "syscoTotalUnits": 60,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical pack configuration (6/#10 cans per case). #10 can of cooked kidney beans = ~10 lb drained weight (~106 oz). RD and Sysco appear to be the same product with different branding."
+    },
+    "lastUpdated": "2026-05-11T03:05:20.514Z",
+    "rdItemId": "69810",
+    "syscoUpc": "4014973"
+  },
+  "77200": {
+    "rd": {
+      "name": "Jumbo Chicken Party Wings 6-8 ct",
+      "caseContents": "Unknown - RD product code insufficient data",
+      "totalUnits": null,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Chicken Wings 1st And 2nd Joints Jumbo",
+      "pack": "4/10 LB",
+      "caseContents": "4 x 10 lb packages",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": null,
+      "syscoTotalUnits": 40,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD product code 77200 name indicates 6-8 ct (count per pound specification for jumbo wings) but case pack quantity cannot be determined from provided information. Sysco pack is 4/10 LB = 40 lbs per case. Unable to complete precise comparison without RD case pack details."
+    },
+    "lastUpdated": "2026-05-11T03:07:19.064Z",
+    "rdItemId": "77200",
+    "syscoUpc": "6344790"
+  },
+  "77232": {
+    "rd": {
+      "name": "Boneless Skinless Chicken Breasts",
+      "caseContents": "Unknown - Restaurant Depot case pack not specified in provided data",
+      "totalUnits": null,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Chicken Breast Boneless Skinless",
+      "pack": "2/10 LB",
+      "caseContents": "2 x 10 lb bags",
+      "totalUnits": 20,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": null,
+      "syscoTotalUnits": 20,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Restaurant Depot case pack information not provided. Sysco pack is 2/10 LB (20 lbs total per case). Unable to complete comparison without RD case pack details."
+    },
+    "lastUpdated": "2026-05-11T03:07:27.412Z",
+    "rdItemId": "77232",
+    "syscoUpc": "5231238"
+  },
+  "77658": {
+    "rd": {
+      "name": "Fresh Boneless Skinless Chicken Leg Meat",
+      "caseContents": "Unknown - Restaurant Depot case configuration not provided",
+      "totalUnits": null,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Chicken Cvp Leg Meat Boneless Skinless",
+      "pack": "4/10 LB",
+      "caseContents": "4 x 10 lb packages",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": null,
+      "syscoTotalUnits": 40,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Restaurant Depot case configuration unknown. Sysco case = 40 lb total (4 x 10 lb). Sysco ID 0868459. Both appear to be identical chicken leg meat products - need RD case size to complete comparison."
+    },
+    "lastUpdated": "2026-05-11T03:07:24.858Z",
+    "rdItemId": "77658",
+    "syscoUpc": "0868459"
+  },
+  "77670": {
+    "rd": {
+      "name": "Fresh Chicken Leg Quarters - 40 lbs",
+      "caseContents": "1 x 40 lb box",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Chicken Cvp Leg Quarter Small Halal",
+      "pack": "4/10LB",
+      "caseContents": "4 x 10 lb bags",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 40,
+      "syscoTotalUnits": 40,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Same total weight per case. RD is bulk box format; Sysco is bagged format (4 bags). Sysco specifies Halal certification and CVP (Cut, Cleaned, Packaged). RD name does not specify Halal or processing method."
+    },
+    "lastUpdated": "2026-05-11T03:07:22.034Z",
+    "rdItemId": "77670",
+    "syscoUpc": "1803287"
+  },
+  "79042": {
+    "rd": {
+      "name": "Frozen Halal Boneless Lamb Leg Australia",
+      "caseContents": "2 x 10 lb vacuum-sealed pieces",
+      "totalUnits": 20,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 20,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent on Nick List. Restaurant Depot product is Australian halal-certified boneless lamb leg in frozen format."
+    },
+    "lastUpdated": "2026-05-11T03:07:34.176Z",
+    "rdItemId": "79042",
+    "syscoUpc": null
+  },
+  "79152": {
+    "rd": {
+      "name": "Carrots - 10 lb",
+      "caseContents": "1 x 10 lb bag",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Carrots Loose Fresh",
+      "pack": "1/10 LB",
+      "caseContents": "1 x 10 lb bag",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 10,
+      "syscoTotalUnits": 10,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical pack size and weight. RD lists as pre-packaged bag, Sysco lists as loose fresh. Compare pricing per pound for best value."
+    },
+    "lastUpdated": "2026-05-11T03:07:29.858Z",
+    "rdItemId": "79152",
+    "syscoUpc": "3879962"
+  },
+  "86525": {
+    "rd": {
+      "name": "Frozen James Farm - IQF Peas - 2.5 lbs",
+      "caseContents": "1 x 2.5 lb bag",
+      "totalUnits": 2.5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Pea Green Petit Grade A Packaged",
+      "pack": "12/2.5LB",
+      "caseContents": "12 x 2.5 lb bags",
+      "totalUnits": 30,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 2.5,
+      "syscoTotalUnits": 30,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD listing appears to be single unit; Sysco pack is case quantity (12 bags per case). For fair comparison, multiply RD price by 12 to get equivalent case cost."
+    },
+    "lastUpdated": "2026-05-11T03:06:32.816Z",
+    "rdItemId": "86525",
+    "syscoUpc": "6409940"
+  },
+  "86527": {
+    "rd": {
+      "name": "Frozen James Farm - IQF Mixed Vegetables - 2.5 lbs",
+      "caseContents": "10 x 2.5 lb bags",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Vegetable Mix 4-way",
+      "pack": "1/30 LB",
+      "caseContents": "1 x 30 lb bag",
+      "totalUnits": 30,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 25,
+      "syscoTotalUnits": 30,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD comes in 10 smaller bags (2.5 lb each) vs Sysco single 30 lb bag. RD provides better portion control; Sysco offers 5 lb more per case. Compare per-pound pricing to determine value."
+    },
+    "lastUpdated": "2026-05-11T03:06:35.516Z",
+    "rdItemId": "86527",
+    "syscoUpc": "3960200"
+  },
+  "370496": {
+    "rd": {
+      "name": "MILK WHL GAL GS/AN",
+      "caseContents": "4 x 1 gallon",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": {
+      "name": "Milk Whole Gallon",
+      "pack": "4/1 GAL",
+      "caseContents": "4 x 1 gallon",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "comparison": {
+      "rdTotalUnits": 4,
+      "syscoTotalUnits": 4,
+      "unitOfMeasure": "gallon",
+      "sameProduct": true,
+      "notes": "Identical pack configuration. Use per-gallon pricing for comparison. GS/AN designation likely indicates glass or plastic gallon jug, standard whole milk."
+    },
+    "lastUpdated": "2026-05-11T03:06:12.124Z",
+    "rdItemId": "370496",
+    "syscoUpc": "4676306"
+  },
+  "440038": {
+    "rd": {
+      "name": "Coca-Cola Bottles 16.9 fl oz 24 Pack",
+      "caseContents": "24 x 16.9 fl oz bottles",
+      "totalUnits": 405.6,
+      "unitOfMeasure": "fl oz"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 405.6,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "fl oz",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent available on Nick List. Best unit for price comparison: per bottle (each) or per fl oz"
+    },
+    "lastUpdated": "2026-05-11T03:05:59.677Z",
+    "rdItemId": "440038",
+    "syscoUpc": null
+  },
+  "440039": {
+    "rd": {
+      "name": "Diet Coke Bottles 16.9 fl oz 24 Pack",
+      "caseContents": "24 x 16.9 fl oz bottles",
+      "totalUnits": 405.6,
+      "unitOfMeasure": "fl oz"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 405.6,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "fl oz",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent on Nick List. Best per-unit price comparison: per bottle (each) or per fl oz"
+    },
+    "lastUpdated": "2026-05-11T03:05:54.771Z",
+    "rdItemId": "440039",
+    "syscoUpc": null
+  },
+  "440040": {
+    "rd": {
+      "name": "Sprite Bottles 16.9 fl oz 4 Pack",
+      "caseContents": "6 x 4-pack (24 bottles total)",
+      "totalUnits": 405.6,
+      "unitOfMeasure": "fl oz"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 24,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "each",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent on Nick List. RD case contains 24 individual 16.9 fl oz bottles (405.6 fl oz total per case). Recommend comparing per-bottle pricing in 'each' units."
+    },
+    "lastUpdated": "2026-05-11T03:05:57.456Z",
+    "rdItemId": "440040",
+    "syscoUpc": null
+  },
+  "490266": {
+    "rd": {
+      "name": "Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs",
+      "caseContents": "1 x 40 lb bag",
+      "totalUnits": 40,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 40,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent identified on Nick List"
+    },
+    "lastUpdated": "2026-05-11T03:05:24.123Z",
+    "rdItemId": "490266",
+    "syscoUpc": null
+  },
+  "860043": {
+    "rd": {
+      "name": "Chef's Quality - Tomato Puree - 6 lb Can",
+      "caseContents": "6 x 6 lb cans",
+      "totalUnits": 36,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 36,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent on Nick List. Restaurant Depot case contains 6 cans at 6 lbs each for total of 36 lbs per case. Price comparison should use per-pound basis."
+    },
+    "lastUpdated": "2026-05-11T03:04:57.466Z",
+    "rdItemId": "860043",
+    "syscoUpc": null
+  },
+  "860044": {
+    "rd": {
+      "name": "Chef's Quality - Tomato Sauce - #10 cans",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 102,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": {
+      "name": "Tomato Puree 1.06 Fancy California",
+      "pack": "6/#10",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 102,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 102,
+      "syscoTotalUnits": 102,
+      "unitOfMeasure": "oz",
+      "sameProduct": false,
+      "notes": "Both are 6/#10 cans per case. RD lists as tomato sauce; Sysco lists as tomato puree. These are different products - puree is thicker/more concentrated than sauce."
+    },
+    "lastUpdated": "2026-05-11T03:05:00.030Z",
+    "rdItemId": "860044",
+    "syscoUpc": "4002325"
+  },
+  "860135": {
+    "rd": {
+      "name": "Isabella - Petite Diced Tomatoes -#10 cans",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 102,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Tomato Diced Salsa Style",
+      "pack": "6/#10",
+      "caseContents": "6 x #10 cans",
+      "totalUnits": 102,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 102,
+      "syscoTotalUnits": 102,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Both are 6/#10 cans per case. RD product specifies 'Petite Diced' while Sysco specifies 'Salsa Style' - minor cut/flavor profile difference. Standard #10 can = 6.5 lbs net weight (approximately 102 lbs per case total)."
+    },
+    "lastUpdated": "2026-05-11T03:04:55.165Z",
+    "rdItemId": "860135",
+    "syscoUpc": "5895750"
+  },
+  "1020077": {
+    "rd": {
+      "name": "Chef's Quality - Clear Liquid Fry Oil - 35 lbs",
+      "caseContents": "1 x 35 lb bag",
+      "totalUnits": 35,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Shortening Fry Liquid Clear Zero Trans Fat",
+      "pack": "1/35LB",
+      "caseContents": "1 x 35 lb bag",
+      "totalUnits": 35,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 35,
+      "syscoTotalUnits": 35,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product specs - same weight per case. Compare price per pound for best value."
+    },
+    "lastUpdated": "2026-05-11T03:05:12.672Z",
+    "rdItemId": "1020077",
+    "syscoUpc": "4518403"
+  },
+  "1020079": {
+    "rd": {
+      "name": "Chef's Quality - 100% Canola Salad Oil - 35 lbs",
+      "caseContents": "1 x 35 lb container",
+      "totalUnits": 35,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Oil Salad Canola Zero Trans Fat",
+      "pack": "1/35 LB",
+      "caseContents": "1 x 35 lb container",
+      "totalUnits": 35,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 35,
+      "syscoTotalUnits": 35,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product and pack size; compare pricing per lb for cost analysis"
+    },
+    "lastUpdated": "2026-05-11T03:05:10.238Z",
+    "rdItemId": "1020079",
+    "syscoUpc": "5061643"
+  },
+  "1020152": {
+    "rd": {
+      "name": "Chef's Quality - Liquid Butter Alternative - gallon",
+      "caseContents": "1 x 1 gallon",
+      "totalUnits": 1,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": {
+      "name": "Butter-it Alternative Liquid Zero Trans Fat",
+      "pack": "3/1 GAL",
+      "caseContents": "3 x 1 gallon",
+      "totalUnits": 3,
+      "unitOfMeasure": "gallon"
+    },
+    "comparison": {
+      "rdTotalUnits": 1,
+      "syscoTotalUnits": 3,
+      "unitOfMeasure": "gallon",
+      "sameProduct": true,
+      "notes": "Sysco case contains 3x the quantity per case. RD appears to be single gallon unit pricing. Both are liquid butter alternatives, zero trans fat. Compare per-gallon pricing for accurate cost analysis."
+    },
+    "lastUpdated": "2026-05-11T03:05:07.854Z",
+    "rdItemId": "1020152",
+    "syscoUpc": "3355757"
+  },
+  "1070125": {
+    "rd": {
+      "name": "Dry Chile Japones - 5 lb",
+      "caseContents": "1 x 5 lb bag",
+      "totalUnits": 5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 5,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent available on Nick List"
+    },
+    "lastUpdated": "2026-05-11T03:05:22.323Z",
+    "rdItemId": "1070125",
+    "syscoUpc": null
+  },
+  "1070496": {
+    "rd": {
+      "name": "Morton - Purex Salt - 50lb",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Salt Granulated Plain",
+      "pack": "1/50 LB",
+      "caseContents": "1 x 50 lb bag",
+      "totalUnits": 50,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 50,
+      "syscoTotalUnits": 50,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Identical product specifications from both vendors"
+    },
+    "lastUpdated": "2026-05-11T03:05:37.087Z",
+    "rdItemId": "1070496",
+    "syscoUpc": "4564894"
+  },
+  "1440203": {
+    "rd": {
+      "name": "James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs",
+      "caseContents": "1 x 5 lb bag",
+      "totalUnits": 5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Cheese Cheddar Jack Fancy Shredded",
+      "pack": "4/5 LB",
+      "caseContents": "4 x 5 lb bags",
+      "totalUnits": 20,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 5,
+      "syscoTotalUnits": 20,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Sysco case contains 4x the product of RD single unit. RD appears to be individual bag pricing; Sysco is standard case format. Compare per-pound pricing for accurate cost analysis."
+    },
+    "lastUpdated": "2026-05-11T03:06:09.527Z",
+    "rdItemId": "1440203",
+    "syscoUpc": "2822379"
+  },
+  "1440528": {
+    "rd": {
+      "name": "Royal Mahout - Paneer Loaf - 5 lbs",
+      "caseContents": "1 x 5 lb loaf",
+      "totalUnits": 5,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Demand Cheese Paneer",
+      "pack": "2/5 LB",
+      "caseContents": "2 x 5 lb blocks",
+      "totalUnits": 10,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 5,
+      "syscoTotalUnits": 10,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD case is single 5 lb loaf; Sysco case contains 2 x 5 lb blocks (double the quantity per case). Both are paneer cheese products suitable for restaurant use."
+    },
+    "lastUpdated": "2026-05-11T03:06:06.800Z",
+    "rdItemId": "1440528",
+    "syscoUpc": "7102961"
+  },
+  "1530438": {
+    "rd": {
+      "name": "James Farm - Heavy Cream 40% - 64 oz",
+      "caseContents": "1 x 64 oz bottle",
+      "totalUnits": 64,
+      "unitOfMeasure": "oz"
+    },
+    "sysco": {
+      "name": "Cream Heavy 40% Extended Shelf Life Stabilized",
+      "pack": "12/32OZ",
+      "caseContents": "12 x 32 oz containers",
+      "totalUnits": 384,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 64,
+      "syscoTotalUnits": 384,
+      "unitOfMeasure": "oz",
+      "sameProduct": true,
+      "notes": "RD is single 64 oz unit vs Sysco case of 12x32 oz. Sysco product specifies Extended Shelf Life and Stabilized formulation. Compare per-ounce pricing; Sysco case yields 6x more product."
+    },
+    "lastUpdated": "2026-05-11T03:06:14.895Z",
+    "rdItemId": "1530438",
+    "syscoUpc": "6935464"
+  },
+  "1810019": {
+    "rd": {
+      "name": "Thomas Farms - Bone in Goat Cube - #15",
+      "caseContents": "1 x 15 lb box",
+      "totalUnits": 15,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 15,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "lb",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent available on Nick List. Product is bone-in goat meat cubes, Restaurant Depot exclusive."
+    },
+    "lastUpdated": "2026-05-11T03:07:32.010Z",
+    "rdItemId": "1810019",
+    "syscoUpc": null
+  },
+  "2061212": {
+    "rd": {
+      "name": "Chef's Quality - All Purpose Flour - 25 lb Bag",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Flour All Purpose Hotel Restaurant Bleached",
+      "pack": "1/25LB",
+      "caseContents": "1 x 25 lb bag",
+      "totalUnits": 25,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 25,
+      "syscoTotalUnits": 25,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "Equivalent products - same size and weight. Both are bleached all-purpose flour in 25 lb bags suitable for restaurant use."
+    },
+    "lastUpdated": "2026-05-11T03:05:47.673Z",
+    "rdItemId": "2061212",
+    "syscoUpc": "8379251"
+  },
+  "2550012": {
+    "rd": {
+      "name": "Felbro - Egg Yellow Food Coloring - gallon",
+      "caseContents": "1 x 1 gallon",
+      "totalUnits": 1,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": {
+      "name": "Coloring Food Egg Shade Yellow",
+      "pack": "4/1 GAL",
+      "caseContents": "4 x 1 gallon",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "comparison": {
+      "rdTotalUnits": 1,
+      "syscoTotalUnits": 4,
+      "unitOfMeasure": "gallon",
+      "sameProduct": true,
+      "notes": "RD appears to be single unit purchase; Sysco pack is standard case of 4 gallons. Recommend comparing per-gallon pricing. Both are liquid food coloring in egg yellow shade."
+    },
+    "lastUpdated": "2026-05-11T03:05:35.014Z",
+    "rdItemId": "2550012",
+    "syscoUpc": "4112262"
+  },
+  "2550014": {
+    "rd": {
+      "name": "Felbro - Red Food Coloring - gallon",
+      "caseContents": "4 x 1 gallon",
+      "totalUnits": 4,
+      "unitOfMeasure": "gallon"
+    },
+    "sysco": null,
+    "comparison": {
+      "rdTotalUnits": 4,
+      "syscoTotalUnits": null,
+      "unitOfMeasure": "gallon",
+      "sameProduct": false,
+      "notes": "No Sysco equivalent found on Nick List. Felbro is a food coloring liquid product. Standard case contains 4 gallons. Best comparison unit is gallon for retail pricing."
+    },
+    "lastUpdated": "2026-05-11T03:05:32.129Z",
+    "rdItemId": "2550014",
+    "syscoUpc": null
+  },
+  "2620442": {
+    "rd": {
+      "name": "A ROY-D - COCONUT MILK REGULAR - 400ML",
+      "caseContents": "12 x 400ml cans",
+      "totalUnits": 4800,
+      "unitOfMeasure": "ml"
+    },
+    "sysco": {
+      "name": "Milk Coconut Unsweetened",
+      "pack": "24/13.5OZ",
+      "caseContents": "24 x 13.5oz cans",
+      "totalUnits": 324,
+      "unitOfMeasure": "oz"
+    },
+    "comparison": {
+      "rdTotalUnits": 4800,
+      "syscoTotalUnits": 324,
+      "unitOfMeasure": "oz",
+      "sameProduct": true,
+      "notes": "RD: 4800ml (162oz) per case in 12 cans. Sysco: 324oz per case in 24 cans. Different pack sizes - RD appears to be 12-pack while Sysco is 24-pack. Best comparison unit: oz per case or ml per can"
+    },
+    "lastUpdated": "2026-05-11T03:05:27.339Z",
+    "rdItemId": "2620442",
+    "syscoUpc": "1425982"
+  },
+  "2910159": {
+    "rd": {
+      "name": "Clabber Girl Cornstarch - 3 lbs",
+      "caseContents": "1 x 3 lb bag",
+      "totalUnits": 3,
+      "unitOfMeasure": "lb"
+    },
+    "sysco": {
+      "name": "Corn Starch Food Grade",
+      "pack": "24/1 LB",
+      "caseContents": "24 x 1 lb units",
+      "totalUnits": 24,
+      "unitOfMeasure": "lb"
+    },
+    "comparison": {
+      "rdTotalUnits": 3,
+      "syscoTotalUnits": 24,
+      "unitOfMeasure": "lb",
+      "sameProduct": true,
+      "notes": "RD case contains single 3lb bag; Sysco case contains 24 individual 1lb units. Sysco offers significantly better value per pound and more flexible portioning."
+    },
+    "lastUpdated": "2026-05-11T03:05:42.457Z",
+    "rdItemId": "2910159",
+    "syscoUpc": "4073441"
+  }
+}
