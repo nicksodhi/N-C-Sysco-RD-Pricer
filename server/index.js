@@ -1438,8 +1438,7 @@ async function scrapeSysco() {
         // Override search keywords for items where first 2 words give bad results
         const SEARCH_OVERRIDES = {
           "7102961": "Paneer",           // "Demand Cheese" → search "Paneer" instead
-          "7102961": "paneer cheese",    // fallback
-          "8053456": "Chicken Thighs",   // "Chicken Cvp" is internal Sysco code
+          "8053456": "Chicken Thighs",
           "0868459": "Chicken Leg Meat",
           "1803287": "Chicken Leg Quarter Halal",
           "5231238": "Chicken Breast Boneless",
@@ -1461,10 +1460,18 @@ async function scrapeSysco() {
             const name = nameEl.innerText.trim().split("\n")[0].trim();
             const priceText = priceEl.innerText.trim();
             const hasUpc = text.includes(upc);
+            // Always prefer CS (case) price over any other price
             const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
             const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
             const m = csM || anyM;
-            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc });
+            const isCS = !!csM;
+            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc, isCS });
+          });
+          // Sort: exact UPC match first, then CS price, then any
+          found.sort((a, b) => {
+            if (a.hasUpc !== b.hasUpc) return a.hasUpc ? -1 : 1;
+            if (a.isCS !== b.isCS) return a.isCS ? -1 : 1;
+            return 0;
           });
           return found;
         }, item.id);
@@ -1836,8 +1843,15 @@ async function runScrape(source = "all") {
         let savedCount = 0;
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
+          // Sysco Paneer (7102961) is priced per lb — case = 2×5lb = 10lb total
+          // Multiply by 10 to get case price for apples-to-apples comparison with RD
+          let adjustedPrice = price;
+          if (id === "7102961" && price < 20) {
+            adjustedPrice = Math.round(price * 10 * 100) / 100;
+            log("Sysco: 🔢 Paneer per-lb $" + price + " × 10lb = case $" + adjustedPrice);
+          }
           // Save under Sysco UPC for reference
-          priceStore.sysco[id] = { price, date: new Date().toISOString() };
+          priceStore.sysco[id] = { price: adjustedPrice, date: new Date().toISOString() };
           // ALSO save under RD equivalent ID for cross-vendor comparison
           const mapping = SYSCO_TO_RD[id];
           if (mapping) {
@@ -1916,11 +1930,59 @@ function loadItemKnowledge() {
       console.log("✅ Item knowledge base loaded: " + count + " items");
     }
   } catch(e) { console.log("Item KB load error:", e.message); }
+  patchItemKnowledge();
 }
 
 function saveItemKnowledge() {
   try { fs.writeFileSync(ITEM_KB_FILE, JSON.stringify(itemKnowledge, null, 2)); }
   catch(e) { console.log("Item KB save error:", e.message); }
+}
+
+// Patch KB entries where we have verified data from scraping or confirmed specs
+function patchItemKnowledge() {
+  const patches = {
+    // Chicken: all 40lb cases at RD, confirmed from scraper
+    "77200":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77232":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 20, syscoContents: "2 x 10 lb bags" },
+    "77658":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77670":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    "77682":  { rdTotal: 40, rdContents: "1 x 40 lb case",             unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
+    // Peeled Garlic: RD 30lb bag, Sysco 4x5lb=20lb
+    "44146":  { rdTotal: 30, rdContents: "1 x 30 lb bag",              unit: "lb", syscoTotal: 20, syscoContents: "4 x 5 lb bags" },
+    // Shrimp: both 10lb
+    "40212":  { rdTotal: 10, rdContents: "1 x 10 lb box",              unit: "lb", syscoTotal: 10, syscoContents: "4 x 2.5 lb bags" },
+    // Cauliflower: both 12-head cases
+    "42606":  { rdTotal: 12, rdContents: "12-head case",               unit: "each", syscoTotal: 12, syscoContents: "12 x 1 head (cello wrapped)" },
+    // Pan Spray: RD 6x17oz, Sysco 6x14oz
+    "12728":  { rdTotal: 102, rdContents: "6 x 17 oz cans (102 oz)",   unit: "oz", syscoTotal: 84, syscoContents: "6 x 14 oz cans (84 oz)" },
+    // Paneer: RD 4x5lb=20lb case, Sysco 2x5lb=10lb case (Sysco shows per-lb price, stored as case)
+    "1440528":{ rdTotal: 20, rdContents: "4 x 5 lb loaves (20 lb)",    unit: "lb", syscoTotal: 10, syscoContents: "2 x 5 lb blocks (10 lb)" },
+  };
+
+  let patched = 0;
+  Object.entries(patches).forEach(([id, p]) => {
+    if (!itemKnowledge[id]) return;
+    if (itemKnowledge[id].rd) {
+      itemKnowledge[id].rd.totalUnits    = p.rdTotal;
+      itemKnowledge[id].rd.caseContents  = p.rdContents;
+      itemKnowledge[id].rd.unitOfMeasure = p.unit;
+    }
+    if (itemKnowledge[id].sysco && p.syscoTotal) {
+      itemKnowledge[id].sysco.totalUnits    = p.syscoTotal;
+      itemKnowledge[id].sysco.caseContents  = p.syscoContents;
+      itemKnowledge[id].sysco.unitOfMeasure = p.unit;
+    }
+    if (itemKnowledge[id].comparison) {
+      itemKnowledge[id].comparison.rdTotalUnits    = p.rdTotal;
+      itemKnowledge[id].comparison.syscoTotalUnits = p.syscoTotal || null;
+      itemKnowledge[id].comparison.unitOfMeasure   = p.unit;
+    }
+    patched++;
+  });
+  if (patched > 0) {
+    saveItemKnowledge();
+    console.log("✅ Item KB: patched " + patched + " entries with verified data");
+  }
 }
 
 loadItemKnowledge();
@@ -2191,7 +2253,7 @@ const PACK_SIZES = {
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
+  "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
   "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
