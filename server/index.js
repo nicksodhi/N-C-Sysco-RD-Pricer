@@ -299,6 +299,10 @@ const CACHE_SEED = {
     "Broccoli Floret Poly Packaging Grade A": "6988158",
     "Spinach Chopped Bag": "2523833",
     "Demand Cheese Paneer": "7102961",
+    "Paneer": "7102961",
+    "Cheese Paneer": "7102961",
+    "Bharat Best Paneer": "7102961",
+    "Paneer Cheese": "7102961",
     "Spinach Baby Fresh": "8474538",
     "Carrots Loose Fresh": "3879962",
     "Lemon Choice Fresh": "2252013",
@@ -1431,7 +1435,17 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        const keyword = item.name.split(" ").slice(0, 2).join(" ");
+        // Override search keywords for items where first 2 words give bad results
+        const SEARCH_OVERRIDES = {
+          "7102961": "Paneer",           // "Demand Cheese" → search "Paneer" instead
+          "7102961": "paneer cheese",    // fallback
+          "8053456": "Chicken Thighs",   // "Chicken Cvp" is internal Sysco code
+          "0868459": "Chicken Leg Meat",
+          "1803287": "Chicken Leg Quarter Halal",
+          "5231238": "Chicken Breast Boneless",
+          "6344790": "Chicken Wings Jumbo",
+        };
+        const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
         await new Promise(r => setTimeout(r, 2000));
