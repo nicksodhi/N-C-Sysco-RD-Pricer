@@ -420,7 +420,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "6914451",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 32.75,
@@ -493,7 +493,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2638660",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 52.95,
@@ -566,7 +566,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4062337",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 42.95,
@@ -639,7 +639,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2886075",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 33.99,
@@ -712,7 +712,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5087572",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 17.71,
@@ -785,7 +785,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5517701",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 128.99,
@@ -858,7 +858,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5106388",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 67.79,
@@ -931,7 +931,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "7410640",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 11.75,
@@ -1004,7 +1004,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1184902",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 52.75,
@@ -1077,7 +1077,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1048222",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 11.31,
@@ -1150,7 +1150,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "7078475",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 19.85,
@@ -1223,7 +1223,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2252013",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 38.99,
@@ -1296,7 +1296,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1243724",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 62.99,
@@ -1369,7 +1369,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2037125",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 12.65,
@@ -1442,7 +1442,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1094663",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 17.99,
@@ -1515,7 +1515,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1543164",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 10.48,
@@ -1588,7 +1588,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "7007376",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 83.99,
@@ -1661,7 +1661,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1821537",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 70.54,
@@ -1734,7 +1734,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "8474538",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 12.99,
@@ -1807,7 +1807,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4113049",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 24.95,
@@ -1880,7 +1880,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "0496671",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 53.95,
@@ -1953,7 +1953,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4014684",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 17.59,
@@ -2026,7 +2026,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4063095",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 34.27,
@@ -2099,7 +2099,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2523833",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 56.95,
@@ -2172,7 +2172,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "6988158",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 71.55,
@@ -2245,7 +2245,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4014973",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 44.45,
@@ -2318,7 +2318,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "6344790",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 64.69,
@@ -2391,7 +2391,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5231238",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 78.49,
@@ -2464,7 +2464,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "0868459",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 61.67,
@@ -2537,7 +2537,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1803287",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 35.17,
@@ -2610,7 +2610,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "8053456",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 76.3,
@@ -2683,7 +2683,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "3879962",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 19.69,
@@ -2756,7 +2756,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "6409940",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 63.95,
@@ -2829,7 +2829,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "3960200",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 41.99,
@@ -2902,7 +2902,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4676306",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 17.53,
@@ -2975,7 +2975,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4002325",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 29.99,
@@ -3048,7 +3048,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5895750",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 38.95,
@@ -3121,7 +3121,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4119079",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 37.25,
@@ -3194,7 +3194,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4518403",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 36.01,
@@ -3267,7 +3267,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "5061643",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 47.95,
@@ -3340,7 +3340,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "3355757",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 29.99,
@@ -3410,14 +3410,16 @@
     },
     "1048222": {
       "price": 11.31,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1070496": {
       "price": 18.45,
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4564894",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 18.45,
@@ -3487,26 +3489,34 @@
     },
     "1094663": {
       "price": 17.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1184902": {
       "price": 52.75,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1243724": {
       "price": 62.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1425982": {
       "price": 57.65,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1440203": {
       "price": 65.99,
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "2822379",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 65.99,
@@ -3579,7 +3589,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "6935464",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 43.87,
@@ -3649,26 +3659,34 @@
     },
     "1543164": {
       "price": 10.48,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1803287": {
       "price": 35.17,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "1821537": {
       "price": 70.54,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2037125": {
       "price": 12.65,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2061212": {
       "price": 9.03,
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "8379251",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 9.03,
@@ -3738,18 +3756,22 @@
     },
     "2252013": {
       "price": 38.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2523833": {
       "price": 56.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2550012": {
       "price": 52.99,
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4112262",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 52.99,
@@ -3822,7 +3844,7 @@
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "1425982",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 57.65,
@@ -3892,22 +3914,28 @@
     },
     "2638660": {
       "price": 52.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2822379": {
       "price": 65.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2886075": {
       "price": 33.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "2910159": {
       "price": 43.79,
       "date": "2026-05-11T01:01:35.586Z",
       "syscoUpc": "4073441",
       "rdMult": 1,
-      "confidence": "medium",
+      "confidence": "low",
       "source": "scraped_sysco",
       "scrapedAt": "2026-05-11T01:01:35.586Z",
       "prevPrice": 43.79,
@@ -3977,142 +4005,210 @@
     },
     "3355757": {
       "price": 29.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "3879962": {
       "price": 19.69,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "3960200": {
       "price": 41.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4002325": {
       "price": 29.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4014684": {
       "price": 17.59,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4014973": {
       "price": 44.45,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4062337": {
       "price": 42.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4063095": {
       "price": 34.27,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4073441": {
       "price": 43.79,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4112262": {
       "price": 52.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4113049": {
       "price": 24.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4119079": {
       "price": 37.25,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4518403": {
       "price": 36.01,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4564894": {
       "price": 18.45,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "4676306": {
       "price": 17.53,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5061643": {
       "price": 47.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5087572": {
       "price": 17.71,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5106388": {
       "price": 67.79,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5231238": {
       "price": 78.49,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5517701": {
       "price": 128.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "5895750": {
       "price": 38.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "6344790": {
       "price": 64.69,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "6409940": {
       "price": 63.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "6914451": {
       "price": 32.75,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "6935464": {
       "price": 43.87,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "6988158": {
       "price": 71.55,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "7007376": {
       "price": 83.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "7078475": {
       "price": 19.85,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "7410640": {
       "price": 11.75,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "8053456": {
       "price": 76.3,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "8379251": {
       "price": 9.03,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "8474538": {
       "price": 12.99,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "0868459": {
       "price": 61.67,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     },
     "0496671": {
       "price": 53.95,
-      "date": "2026-05-11T01:01:35.586Z"
+      "date": "2026-05-11T01:01:35.586Z",
+      "confidence": "low",
+      "source": "restored"
     }
   },
-  "lastUpdated": "2026-05-11T01:01:35.587Z",
+  "lastUpdated": "2026-05-11T01:07:04.719Z",
   "oos": {
     "rd": [
       "440040",
