@@ -2147,7 +2147,7 @@ async function backupItemKnowledgeToGitHub() {
 // ── Pack size reference data ──────────────────────────────────────────────────
 const PACK_SIZES = {
   // rdId: { rd: "pack description", sysco: "pack description", rdTotal: total_units, syscoTotal: total_units, unit: "lb|oz|ml|each" }
-  "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 25 lb bag",          rdTotal: 50,    syscoTotal: 25,    unit: "lb"   },
+  "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
   "1530438":{ rd: "1 × 64 oz jug",           sysco: "12 × 32 oz bottles",     rdTotal: 64,    syscoTotal: 384,   unit: "oz"   },
   "370496": { rd: "1 × 1 gallon",            sysco: "4 × 1 gallon",           rdTotal: 128,   syscoTotal: 512,   unit: "oz"   },
   "1020152":{ rd: "1 × 1 gallon",            sysco: "3 × 1 gallon",           rdTotal: 128,   syscoTotal: 384,   unit: "oz"   },
@@ -2351,79 +2351,107 @@ app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
   try {
-    const rdCtx = RD_ITEMS.map(i => {
-      const p = priceStore.rd[i.id];
-      return p ? i.name + ": $" + p.price + " (RD)" : null;
-    }).filter(Boolean).join("\n");
-    const scCtx = SYSCO_ITEMS.map(i => {
-      // Try RD-mapped ID first (how Sysco prices are stored for comparison)
-      const mapping = SYSCO_TO_RD[i.id];
-      const rdId = mapping ? (mapping.rdId || mapping) : null;
-      const p = (rdId && priceStore.sysco[rdId]) ? priceStore.sysco[rdId] : priceStore.sysco[i.id];
-      return p ? i.name + " " + i.pack + ": $" + p.price + "/case (Sysco)" : null;
-    }).filter(Boolean).join("\n");
-    // Build rich catalog
+    // Build rich catalog: every item with today's real prices + pack sizes
     const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268"]);
     const catalog = [];
+
     RD_ITEMS.forEach(rdItem => {
-      const rdPrice = priceStore.rd[rdItem.id]?.price;
-      if (!rdPrice) return;
+      const rdEntry = priceStore.rd[rdItem.id];
+      if (!rdEntry?.price) return;
+
+      // Find Sysco equivalent
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
-      const syscoPrice = syscoUpc ? (priceStore.sysco[rdItem.id]?.price || priceStore.sysco[syscoUpc]?.price) : null;
+      const syscoEntry2 = priceStore.sysco[rdItem.id] || (syscoUpc ? priceStore.sysco[syscoUpc] : null);
+      const syscoPrice = syscoEntry2?.price || null;
+
+      // Pack sizes — prefer knowledge base, fall back to PACK_SIZES, then item pack field
       const kb = itemKnowledge[rdItem.id];
       const rdPack = kb?.rd?.caseContents || PACK_SIZES[rdItem.id]?.rd || "1 case";
-      const scPack = kb?.sysco?.caseContents || (syscoItem ? syscoItem.pack : null) || "1 case";
-      const shortName = rdItem.name.replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - /gi,'').replace(/ - \\d+.*$/,'').trim();
-      const cheaper = syscoPrice ? (rdPrice <= syscoPrice ? "RD" : "Sysco") : "RD";
-      let line = shortName + ": RD $" + rdPrice + " (" + rdPack + ")";
-      if (syscoPrice) line += " | Sysco $" + syscoPrice + " (" + scPack + ")";
-      else line += " | Sysco: not carried";
-      if (DIFF_SIZES.has(rdItem.id)) line += " [DIFF CASE SIZE]";
-      line += " -> CHEAPER: " + cheaper;
+      const scPack = kb?.sysco?.caseContents || syscoItem?.pack || PACK_SIZES[rdItem.id]?.sysco || "1 case";
+
+      // Clean short name
+      const shortName = rdItem.name
+        .replace(/Chef's Quality - /gi, "").replace(/James Farm - /gi, "")
+        .replace(/Royal Mahout - /gi, "").replace(/Thomas Farms - /gi, "")
+        .replace(/Clabber Girl - /gi, "").replace(/Clabber Girl /gi, "")
+        .replace(/Golden Temple - /gi, "").replace(/Royal Chef's Secret - /gi, "")
+        .replace(/Frozen James Farm - /gi, "").replace(/Frozen /gi, "")
+        .replace(/ - \d+.*$/, "").trim();
+
+      const cheaper = syscoPrice ? (rdEntry.price <= syscoPrice ? "RD" : "Sysco") : "RD only";
+
+      let line = shortName + ": RD $" + rdEntry.price + " per case (" + rdPack + ")";
+      if (syscoPrice) line += " | Sysco $" + syscoPrice + " per case (" + scPack + ")";
+      else line += " | Sysco: not on Nick List";
+      if (DIFF_SIZES.has(rdItem.id)) line += " *** DIFFERENT CASE SIZE — compare per unit ***";
+      line += " | BUY FROM: " + cheaper;
       catalog.push(line);
     });
-    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
-Parse the order list and build an accurate vendor breakdown using ONLY today's prices below.
 
-TODAY'S PRICES:
+    if (catalog.length === 0) {
+      return res.status(500).json({ error: "No price data available — run a scrape first" });
+    }
+
+    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas. Your job is to parse a grocery order list and produce an accurate vendor breakdown.
+
+TODAY'S LIVE PRICES (${catalog.length} items):
 ${catalog.join("\n")}
 
-ORDER LIST:
+CHEF'S ORDER LIST:
 ${list}
 
-RULES:
-1. Match each item to the closest catalog entry. Common sense: LQ=Leg Quarters, chx=Chicken Breast, WM=Whole Milk, HWC=Heavy Cream.
-2. If a quantity is mentioned multiply the price. Show math when qty > 1.
-3. Assign to CHEAPER vendor. If [DIFF CASE SIZE], note it.
-4. Items not in catalog go to ORDER MANUALLY with reason.
+MATCHING RULES:
+- LQ or leg quarters = Fresh Chicken Leg Quarters
+- chx breast or chicken breast = Boneless Skinless Chicken Breasts  
+- WM or whole milk = Whole Milk
+- HWC or heavy cream = Heavy Cream Whipping 40%
+- cream = Heavy Cream Whipping 40%
+- For any item marked "DIFFERENT CASE SIZE" — note this after the price so the buyer knows to verify volume
+- Items genuinely not in the price list → ORDER MANUALLY section
+- If quantity specified (2 cases, x3, etc.) multiply price and show the math
 
-OUTPUT - exact format, no markdown:
+REQUIRED OUTPUT FORMAT — follow exactly, no markdown, no asterisks, no bold:
 
 🟢 RESTAURANT DEPOT
-Item Name — $price
-RD Cart Total: $XX.XX
+[item name] — $[price]
+[item name] x[qty] ([qty] × $[unit price]) — $[total]
+RD Cart Total: $[total]
 
 🔵 SYSCO
-Item Name — $price
-Sysco Cart Total: $XX.XX
+[item name] — $[price]
+Sysco Cart Total: $[total]
 
 ⚠️ ORDER MANUALLY
-Item name — reason
+[item] — [reason: not in system / out of stock]
 
-💰 TOTAL ORDER COST: $XX.XX`;
+💰 TOTAL ORDER COST: $[grand total]`;
+
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }]
+      }),
     });
+
     const data = await r.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    if (data.error) throw new Error("Claude API error: " + (data.error.message || JSON.stringify(data.error)));
     const result = data.content?.find(b => b.type === "text")?.text;
-    if (!result) throw new Error("No response from Claude - check API key");
+    if (!result) throw new Error("Empty response from Claude");
     res.json({ result });
-  } catch(e) { log("Grocery error: " + e.message); res.status(500).json({ error: e.message }); }
+
+  } catch(e) {
+    log("Grocery endpoint error: " + e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get("/api/browser-test", async (req, res) => {
