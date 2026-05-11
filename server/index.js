@@ -473,7 +473,6 @@ const RD_ITEMS = [
   { id: "42513",   name: "Fresh Ginger - 30 lbs" },
   { id: "44146",   name: "Peeled Garlic" },
   { id: "42504",   name: "Cucumbers - 6 ct" },
-  { id: "42606",   name: "White Cauliflower" },
   { id: "43431",   name: "Green Bell Peppers - 9 ct" },
   { id: "42566",   name: "Taylor Farms - Bagged Cilantro" },
   { id: "42606",   name: "White Cauliflower - 1 ct" },
@@ -1758,10 +1757,7 @@ async function runScrape(source = "all") {
             unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
             confidence: "medium",        // upgraded to "high" after AI validation
             source: "scraped_rd",
-            rawScraped: items.find(i => {
-              const cacheId = matchCache.rd[i.name];
-              return cacheId === id;
-            })?.raw || null,
+            rawScraped: null,
             scrapedAt: now,
             prevPrice: prevEntry?.price || null,
             validatedBy: null,
@@ -2020,11 +2016,9 @@ Return ONLY JSON:
   }
 }
 
-// Build knowledge base for all items — runs authenticated using existing browser session
+// Build knowledge base — Claude uses product names + pack sizes to research each item
 async function buildItemKnowledgeBase(forceRefresh = false) {
   const needsUpdate = [];
-
-  // Check which items need knowledge (missing or older than 7 days)
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   for (const item of RD_ITEMS) {
     const existing = itemKnowledge[item.id];
@@ -2032,54 +2026,74 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       needsUpdate.push(item);
     }
   }
-
-  if (needsUpdate.length === 0) { log("Item KB: all items up to date"); return; }
+  if (needsUpdate.length === 0) { log("Item KB: all items up to date ✅"); return; }
   log("Item KB: building knowledge for " + needsUpdate.length + " items...");
 
-  // Launch authenticated browser
-  let browser;
-  try {
-    const chromium = require("@sparticuz/chromium");
-    browser = await require("puppeteer-core").launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
-
-    // Login to RD first
-    const rdCookies = await loginRD(browser);
-    if (!rdCookies) { log("Item KB: RD login failed"); return; }
-
-    let processed = 0;
-    for (const rdItem of needsUpdate) {
-      // Find matching Sysco UPC
-      const syscoUpc = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id)?.[0];
+  let processed = 0;
+  for (const rdItem of needsUpdate) {
+    try {
+      const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
+      const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
+      log("Item KB: researching " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / RD only") + ")");
 
-      log("Item KB: scraping " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / no Sysco") + ")");
+      // Try public RD product page for extra detail (no auth needed for basic info)
+      let rdPageText = "";
+      try {
+        const rdResp = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, {
+          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (rdResp.ok) {
+          const html = await rdResp.text();
+          rdPageText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3000);
+        }
+      } catch(e) { /* page may require auth, continue without it */ }
 
-      // Scrape RD product page
-      const rdPage = await scrapeRDProductPage(browser, rdItem.id);
-      await new Promise(r => setTimeout(r, 1500));
+      const syscoKnown = syscoItem ? syscoItem.name + " | Pack: " + syscoItem.pack : null;
 
-      // Scrape Sysco page if we have a UPC
-      let syscoPage = { success: false, text: "" };
-      if (syscoUpc) {
-        syscoPage = await scrapesSyscoProductPage(browser, syscoUpc);
-        await new Promise(r => setTimeout(r, 1500));
-      }
+      const prompt = `You are building a wholesale grocery product knowledge base for Naan & Curry restaurant in Las Vegas.
 
-      // Claude synthesizes everything it found
-      const knowledge = await synthesizeItemKnowledge(
-        rdItem.id,
-        rdItem.name,
-        rdPage.success ? rdPage.text : null,
-        syscoItem?.name || null,
-        syscoPage.success ? syscoPage.text : null
-      );
+ITEM:
+Restaurant Depot ID: ${rdItem.id}
+RD Name: ${rdItem.name}
+${syscoKnown ? "Sysco Name: " + syscoItem.name + "\nSysco UPC: " + syscoUpc + "\nSysco Pack: " + syscoItem.pack : "No Sysco equivalent on Nick List"}
+${rdPageText ? "\nRD PAGE DATA:\n" + rdPageText.slice(0, 2000) : ""}
 
-      if (knowledge) {
+Using your knowledge of wholesale grocery products, determine PRECISELY:
+- What comes in one case from Restaurant Depot (count x size each)
+- What comes in one case from Sysco (if applicable)
+- Total weight or volume per case for each vendor
+- Best unit for per-unit price comparison (lb, oz, each, gallon, ml)
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "rd": {
+    "name": "${rdItem.name}",
+    "caseContents": "exact description e.g. 1 x 50 lb bag or 6 x 17 oz cans",
+    "totalUnits": 50,
+    "unitOfMeasure": "lb"
+  },
+  "sysco": ${syscoItem ? '{"name": "' + syscoItem.name + '", "pack": "' + syscoItem.pack + '", "caseContents": "exact description", "totalUnits": 40, "unitOfMeasure": "lb"}' : "null"},
+  "comparison": {
+    "rdTotalUnits": 50,
+    "syscoTotalUnits": 40,
+    "unitOfMeasure": "lb",
+    "sameProduct": true,
+    "notes": "any important spec differences"
+  }
+}`;
+
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+      });
+      const data = await r.json();
+      const txt = data.content?.find(b => b.type === "text")?.text || "{}";
+      const m = txt.match(/\{[\s\S]*\}/);
+      if (m) {
+        const knowledge = JSON.parse(m[0]);
         itemKnowledge[rdItem.id] = {
           ...knowledge,
           lastUpdated: new Date().toISOString(),
@@ -2087,24 +2101,19 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
           syscoUpc: syscoUpc || null,
         };
         processed++;
-        log("✅ Item KB: learned " + rdItem.name);
+        log("✅ Item KB: " + rdItem.name + " — RD: " + knowledge.rd?.caseContents + (knowledge.sysco ? " | Sysco: " + knowledge.sysco?.caseContents : ""));
+      } else {
+        log("⚠️ Item KB: no JSON for " + rdItem.name);
       }
-
-      // Save after each item so progress isn't lost
-      if (processed % 5 === 0) saveItemKnowledge();
+      if (processed % 10 === 0) saveItemKnowledge();
+      await new Promise(res => setTimeout(res, 600));
+    } catch(e) {
+      log("❌ Item KB error for " + rdItem.name + ": " + e.message);
     }
-
-    saveItemKnowledge();
-    log("✅ Item KB: complete — " + processed + "/" + needsUpdate.length + " items learned");
-
-    // Also back up to GitHub
-    backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
-
-  } catch(e) {
-    log("Item KB build error: " + e.message);
-  } finally {
-    if (browser) await browser.close();
   }
+  saveItemKnowledge();
+  log("✅ Item KB complete: " + processed + "/" + needsUpdate.length + " items learned");
+  backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
 }
 
 // Backup item knowledge to GitHub
@@ -2137,7 +2146,7 @@ const PACK_SIZES = {
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
+  "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
   "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
