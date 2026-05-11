@@ -176,6 +176,18 @@ async function restoreFromGitHub() {
 
     // Record TODAY's prices AFTER history is loaded — merges today on top correctly
     recordHistory();
+
+    // Also restore item knowledge base from GitHub
+    try {
+      const kbBase = "https://api.github.com/repos/" + repo + "/contents/backup/item_knowledge.json";
+      const kbR = await fetch(kbBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
+      if (kbR.ok) {
+        const kbJ = await kbR.json();
+        itemKnowledge = JSON.parse(Buffer.from(kbJ.content, "base64").toString("utf8"));
+        saveItemKnowledge();
+        log("✅ Restore: item knowledge base restored for " + Object.keys(itemKnowledge).length + " items");
+      }
+    } catch(e) { log("Item KB restore error: " + e.message); }
   } catch(e) { log("Restore error: " + e.message); }
 }
 
@@ -1877,6 +1889,344 @@ async function runScrape(source = "all") {
 // ── API routes ────────────────────────────────────────────────────────────────
 // New items discovered by AI during scraping — review before adding
 app.get("/api/discovered", (req, res) => res.json(priceStore.discovered || []));
+
+// ── Item Knowledge Base ──────────────────────────────────────────────────────
+// Stores full product details scraped from vendor product pages
+// Built by Claude reading actual product pages — not manually entered
+const ITEM_KB_FILE = "/data/nc_item_knowledge.json";
+let itemKnowledge = {}; // { rdId: { rd: {...}, sysco: {...}, synthesized: {...}, lastUpdated } }
+
+function loadItemKnowledge() {
+  try {
+    if (fs.existsSync(ITEM_KB_FILE)) {
+      itemKnowledge = JSON.parse(fs.readFileSync(ITEM_KB_FILE, "utf8"));
+      const count = Object.keys(itemKnowledge).length;
+      console.log("✅ Item knowledge base loaded: " + count + " items");
+    }
+  } catch(e) { console.log("Item KB load error:", e.message); }
+}
+
+function saveItemKnowledge() {
+  try { fs.writeFileSync(ITEM_KB_FILE, JSON.stringify(itemKnowledge, null, 2)); }
+  catch(e) { console.log("Item KB save error:", e.message); }
+}
+
+loadItemKnowledge();
+
+// Scrape RD product page for a single item
+async function scrapeRDProductPage(browser, itemId) {
+  const url = "https://member.restaurantdepot.com/store/business/product-detail/" + itemId;
+  let page;
+  try {
+    page = await browser.newPage();
+    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    await new Promise(r => setTimeout(r, 2000));
+    const text = await page.evaluate(() => document.body.innerText);
+    return { url, text: text.slice(0, 3000), success: true };
+  } catch(e) {
+    return { url, error: e.message, success: false };
+  } finally {
+    if (page) await page.close();
+  }
+}
+
+// Scrape Sysco product page for a single item
+async function scrapesSyscoProductPage(browser, syscoUpc) {
+  const url = "https://shop.sysco.com/app/catalog/search?query=" + syscoUpc;
+  let page;
+  try {
+    page = await browser.newPage();
+    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    await new Promise(r => setTimeout(r, 3000));
+    const text = await page.evaluate(() => document.body.innerText);
+    return { url, text: text.slice(0, 3000), success: true };
+  } catch(e) {
+    return { url, error: e.message, success: false };
+  } finally {
+    if (page) await page.close();
+  }
+}
+
+// Use Claude to extract and synthesize product knowledge from page text
+async function synthesizeItemKnowledge(itemId, rdItemName, rdPageText, syscoItemName, syscoPageText) {
+  const prompt = `You are building a product knowledge base for a restaurant purchasing system.
+
+Extract detailed product information from these vendor page texts.
+
+ITEM: ${rdItemName}
+RD Item ID: ${itemId}
+
+RESTAURANT DEPOT PAGE TEXT:
+${rdPageText || "Not available"}
+
+SYSCO PAGE TEXT:
+${syscoPageText || "Not available"}
+
+Extract ALL of the following information. Be precise — this will be used for purchasing decisions.
+
+Return ONLY JSON:
+{
+  "rd": {
+    "itemId": "${itemId}",
+    "name": "exact product name from RD",
+    "brand": "brand name",
+    "packSize": "e.g. 1 case / 6 cans / 40 lbs",
+    "caseContents": "what exactly comes in one case (e.g. 6 cans × 17 oz each)",
+    "totalWeight": "total weight or volume in case (e.g. 102 oz total / 40 lb)",
+    "unitOfMeasure": "lb|oz|ml|each|gallon",
+    "totalUnits": 0,
+    "pricePerUnit": 0.00,
+    "upc": "UPC if visible",
+    "binLocation": "bin number if visible",
+    "category": "product category"
+  },
+  "sysco": {
+    "upc": "Sysco UPC",
+    "name": "exact product name from Sysco",
+    "brand": "brand name",
+    "packSize": "e.g. 4/10 LB",
+    "caseContents": "what exactly comes in one case",
+    "totalWeight": "total weight or volume",
+    "unitOfMeasure": "lb|oz|ml|each|gallon",
+    "totalUnits": 0
+  },
+  "comparison": {
+    "sameProduct": true,
+    "rdTotalUnits": 0,
+    "syscoTotalUnits": 0,
+    "unitOfMeasure": "lb|oz|ml|each",
+    "rdPricePerUnit": null,
+    "syscoPricePerUnit": null,
+    "cheaperVendor": "rd|sysco|same|unknown",
+    "notes": "any important differences in quality, brand, or specification"
+  }
+}`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "{}";
+    const m = txt.match(/\{[\s\S]*\}/);
+    return m ? JSON.parse(m[0]) : null;
+  } catch(e) {
+    log("Item KB synthesis error for " + itemId + ": " + e.message);
+    return null;
+  }
+}
+
+// Build knowledge base for all items — runs authenticated using existing browser session
+async function buildItemKnowledgeBase(forceRefresh = false) {
+  const needsUpdate = [];
+
+  // Check which items need knowledge (missing or older than 7 days)
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  for (const item of RD_ITEMS) {
+    const existing = itemKnowledge[item.id];
+    if (!existing || forceRefresh || new Date(existing.lastUpdated).getTime() < sevenDaysAgo) {
+      needsUpdate.push(item);
+    }
+  }
+
+  if (needsUpdate.length === 0) { log("Item KB: all items up to date"); return; }
+  log("Item KB: building knowledge for " + needsUpdate.length + " items...");
+
+  // Launch authenticated browser
+  let browser;
+  try {
+    const chromium = require("@sparticuz/chromium");
+    browser = await require("puppeteer-core").launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+
+    // Login to RD first
+    const rdCookies = await loginRD(browser);
+    if (!rdCookies) { log("Item KB: RD login failed"); return; }
+
+    let processed = 0;
+    for (const rdItem of needsUpdate) {
+      // Find matching Sysco UPC
+      const syscoUpc = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id)?.[0];
+      const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
+
+      log("Item KB: scraping " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / no Sysco") + ")");
+
+      // Scrape RD product page
+      const rdPage = await scrapeRDProductPage(browser, rdItem.id);
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Scrape Sysco page if we have a UPC
+      let syscoPage = { success: false, text: "" };
+      if (syscoUpc) {
+        syscoPage = await scrapesSyscoProductPage(browser, syscoUpc);
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      // Claude synthesizes everything it found
+      const knowledge = await synthesizeItemKnowledge(
+        rdItem.id,
+        rdItem.name,
+        rdPage.success ? rdPage.text : null,
+        syscoItem?.name || null,
+        syscoPage.success ? syscoPage.text : null
+      );
+
+      if (knowledge) {
+        itemKnowledge[rdItem.id] = {
+          ...knowledge,
+          lastUpdated: new Date().toISOString(),
+          rdItemId: rdItem.id,
+          syscoUpc: syscoUpc || null,
+        };
+        processed++;
+        log("✅ Item KB: learned " + rdItem.name);
+      }
+
+      // Save after each item so progress isn't lost
+      if (processed % 5 === 0) saveItemKnowledge();
+    }
+
+    saveItemKnowledge();
+    log("✅ Item KB: complete — " + processed + "/" + needsUpdate.length + " items learned");
+
+    // Also back up to GitHub
+    backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
+
+  } catch(e) {
+    log("Item KB build error: " + e.message);
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+// Backup item knowledge to GitHub
+async function backupItemKnowledgeToGitHub() {
+  const token = process.env.GITHUB_TOKEN;
+  const repo  = process.env.GITHUB_REPO;
+  if (!token || !repo) return;
+  try {
+    const encoded = Buffer.from(JSON.stringify(itemKnowledge, null, 2)).toString("base64");
+    await githubCommit(token, repo, "backup/item_knowledge.json", encoded, "Item knowledge " + new Date().toISOString().slice(0, 10));
+    log("✅ Item KB backed up to GitHub");
+  } catch(e) { log("Item KB GitHub error: " + e.message); }
+}
+
+// ── Pack size reference data ──────────────────────────────────────────────────
+const PACK_SIZES = {
+  // rdId: { rd: "pack description", sysco: "pack description", rdTotal: total_units, syscoTotal: total_units, unit: "lb|oz|ml|each" }
+  "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 25 lb bag",          rdTotal: 50,    syscoTotal: 25,    unit: "lb"   },
+  "1530438":{ rd: "1 × 64 oz jug",           sysco: "12 × 32 oz bottles",     rdTotal: 64,    syscoTotal: 384,   unit: "oz"   },
+  "370496": { rd: "1 × 1 gallon",            sysco: "4 × 1 gallon",           rdTotal: 128,   syscoTotal: 512,   unit: "oz"   },
+  "1020152":{ rd: "1 × 1 gallon",            sysco: "3 × 1 gallon",           rdTotal: 128,   syscoTotal: 384,   unit: "oz"   },
+  "55523":  { rd: "1 × 1 gallon",            sysco: "6 × 0.5 gallon",         rdTotal: 128,   syscoTotal: 384,   unit: "oz"   },
+  "12728":  { rd: "1 × 17 oz can",           sysco: "6 × 14 oz cans",         rdTotal: 17,    syscoTotal: 84,    unit: "oz"   },
+  "1440203":{ rd: "1 × 5 lb bag",            sysco: "4 × 5 lb bags",          rdTotal: 5,     syscoTotal: 20,    unit: "lb"   },
+  "44146":  { rd: "1 × 30 lb bag",           sysco: "4 × 5 lb bags (20 lb)", rdTotal: 30,    syscoTotal: 20,    unit: "lb"   },
+  "86525":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
+  "2620442":{ rd: "1 × 400ml can",           sysco: "24 × 13.5 oz cans",      rdTotal: 400,   syscoTotal: 9720,  unit: "ml"   },
+  "45900":  { rd: "1 × 1 gallon",            sysco: "4 × 1 gallon",           rdTotal: 128,   syscoTotal: 512,   unit: "oz"   },
+  "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
+  "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
+  "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
+  "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
+  "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
+  "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
+  "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
+  "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
+  "40212":  { rd: "1 × 10 lb box",           sysco: "4 × 2.5 lb boxes",       rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
+  // Same size — included so UI can still show pack info
+  "77200":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77658":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77670":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77232":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77682":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "42658":  { rd: "1 × 25 lb bag",           sysco: "1 × 25 lb bag",          rdTotal: 25,    syscoTotal: 25,    unit: "lb"   },
+  "42725":  { rd: "1 × 50 lb case",          sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
+  "42513":  { rd: "1 × 30 lb case",          sysco: "1 × 30 lb bag",          rdTotal: 30,    syscoTotal: 30,    unit: "lb"   },
+  "21039":  { rd: "24 × 500ml bottles",      sysco: "24 × 500ml bottles",     rdTotal: 12000, syscoTotal: 12000, unit: "ml"   },
+};
+
+// Get full item knowledge base
+app.get("/api/item-knowledge", (req, res) => res.json(itemKnowledge));
+
+// Get knowledge for a specific item
+app.get("/api/item-knowledge/:id", (req, res) => {
+  const kb = itemKnowledge[req.params.id];
+  if (!kb) return res.status(404).json({ error: "No knowledge for this item yet" });
+  res.json(kb);
+});
+
+// Trigger knowledge base build (can specify single item or all)
+app.get("/api/build-knowledge", async (req, res) => {
+  const force = req.query.force === "true";
+  const itemId = req.query.item; // optional: build for single item
+  res.json({ message: "Building item knowledge base" + (itemId ? " for item " + itemId : "") + "..." });
+  buildItemKnowledgeBase(force).catch(e => log("KB build error: " + e.message));
+});
+
+// Unit price comparison — uses Claude + knowledge base for accuracy
+app.post("/api/unit-compare", async (req, res) => {
+  const { itemId, itemName, rdPrice, scPrice } = req.body;
+  if (!itemId || !rdPrice || !scPrice) return res.status(400).json({ error: "Missing fields" });
+
+  const packInfo = PACK_SIZES[itemId];
+  const kb = itemKnowledge[itemId]; // Use knowledge base if available
+
+  // Build context — prefer knowledge base over manual PACK_SIZES
+  const rdPack  = kb?.rd?.caseContents  || kb?.rd?.packSize  || packInfo?.rd  || "1 case";
+  const scPack  = kb?.sysco?.caseContents || kb?.sysco?.packSize || packInfo?.sysco || "1 case";
+  const rdTotal = kb?.comparison?.rdTotalUnits    || packInfo?.rdTotal    || null;
+  const scTotal = kb?.comparison?.syscoTotalUnits || packInfo?.syscoTotal || null;
+  const unit    = kb?.comparison?.unitOfMeasure   || packInfo?.unit       || "unit";
+  const notes   = kb?.comparison?.notes || "";
+
+  const prompt = `You are a wholesale purchasing assistant for Naan & Curry restaurant in Las Vegas.
+
+ITEM: ${itemName}
+Restaurant Depot: $${rdPrice} for ${rdPack}${rdTotal ? " ("+rdTotal+" "+unit+" total)" : ""}
+Sysco: $${scPrice} for ${scPack}${scTotal ? " ("+scTotal+" "+unit+" total)" : ""}
+${notes ? "Additional context: " + notes : ""}
+
+Calculate precisely:
+1. Price per ${unit} for each vendor (use total units if provided)
+2. Which vendor is cheaper per ${unit} and by how much (% and $)  
+3. A plain English one-sentence recommendation for a restaurant buyer
+
+Return ONLY JSON:
+{
+  "rdPerUnit": 0.00,
+  "scPerUnit": 0.00,
+  "unit": "${unit}",
+  "rdPack": "${rdPack}",
+  "scPack": "${scPack}",
+  "cheaper": "rd|sysco|same",
+  "savingsPct": 0,
+  "savingsPerUnit": 0.00,
+  "recommendation": "one sentence plain English",
+  "dataSource": "${kb ? 'knowledge_base' : 'manual'}"
+}`;
+
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 500, messages: [{ role: "user", content: prompt }] }),
+    });
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === "text")?.text || "{}";
+    const m = txt.match(/\{[\s\S]*\}/);
+    if (!m) return res.status(500).json({ error: "AI parse error" });
+    res.json(JSON.parse(m[0]));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get("/api/history", (req, res) => res.json({
   data: priceHistory,
