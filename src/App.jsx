@@ -1,64 +1,64 @@
 import { useState, useMemo, useEffect } from "react";
 
 const ITEMS = [
-  { id:"42545",   name:"Yellow Onions",        emoji:"🧅", cat:"Produce"  },
-  { id:"42658",   name:"Red Onions",           emoji:"🧅", cat:"Produce"  },
-  { id:"42725",   name:"Russet Potato",        emoji:"🥔", cat:"Produce"  },
-  { id:"42566",   name:"Cilantro",             emoji:"🌿", cat:"Produce"  },
-  { id:"42606",   name:"Cauliflower",           emoji:"🥦", cat:"Produce"  },
-  { id:"42647",   name:"Mint",                 emoji:"🌿", cat:"Produce"  },
-  { id:"44146",   name:"Peeled Garlic",         emoji:"🧄", cat:"Produce"  },
-  { id:"42513",   name:"Ginger",               emoji:"🫚", cat:"Produce"  },
+  { id:"42545",   name:"Yellow Onions", cat:"Produce"  },
+  { id:"42658",   name:"Red Onions", cat:"Produce"  },
+  { id:"42725",   name:"Russet Potato", cat:"Produce"  },
+  { id:"42566",   name:"Cilantro", cat:"Produce"  },
+  { id:"42606",   name:"Cauliflower", cat:"Produce"  },
+  { id:"42647",   name:"Mint", cat:"Produce"  },
+  { id:"44146",   name:"Peeled Garlic", cat:"Produce"  },
+  { id:"42513",   name:"Ginger", cat:"Produce"  },
 
-  { id:"44137",   name:"Serrano Peppers",      emoji:"🌶️", cat:"Produce"  },
-  { id:"42504",   name:"Cucumbers",            emoji:"🥒", cat:"Produce"  },
-  { id:"42570",   name:"Lemons",               emoji:"🍋", cat:"Produce"  },
-  { id:"79152",   name:"Carrots",              emoji:"🥕", cat:"Produce"  },
-  { id:"44211",   name:"Cleaned Spinach",      emoji:"🥬", cat:"Produce"  },
-  { id:"1530438", name:"Heavy Cream",          emoji:"🥛", cat:"Dairy"    },
-  { id:"370496",  name:"Whole Milk",           emoji:"🥛", cat:"Dairy"    },
-  { id:"14785",   name:"Plain Yogurt",         emoji:"🫙", cat:"Dairy"    },
-  { id:"1440528", name:"Paneer",               emoji:"🧀", cat:"Dairy"    },
-  { id:"1440203", name:"Cheddar Jack Cheese",  emoji:"🧀", cat:"Dairy"    },
-  { id:"77200",   name:"Chicken Wings",        emoji:"🍗", cat:"Meat"     },
-  { id:"77670",   name:"Chicken Leg Quarters", emoji:"🍗", cat:"Meat"     },
-  { id:"77658",   name:"Chicken Leg Meat",     emoji:"🍗", cat:"Meat"     },
-  { id:"77682",   name:"Chicken Thighs",       emoji:"🍗", cat:"Meat"     },
-  { id:"77232",   name:"Chicken Breast",        emoji:"🍗", cat:"Meat"     },
-  { id:"1810019", name:"Goat Bone-in",          emoji:"🥩", cat:"Meat"     },
-  { id:"79042",   name:"Lamb Leg Halal",       emoji:"🥩", cat:"Meat"     },
-  { id:"51457",   name:"Tilapia Fillets",      emoji:"🐟", cat:"Frozen"   },
-  { id:"64046",   name:"Chopped Spinach",      emoji:"🥬", cat:"Frozen"   },
-  { id:"64120",   name:"Broccoli Florets",     emoji:"🥦", cat:"Frozen"   },
-  { id:"86527",   name:"Mixed Vegetables",     emoji:"🥦", cat:"Frozen"   },
-  { id:"86525",   name:"Green Peas",           emoji:"🟢", cat:"Frozen"   },
-  { id:"490266",  name:"Basmati Rice",         emoji:"🍚", cat:"Dry"      },
-  { id:"53556",   name:"Atta Flour",           emoji:"🌾", cat:"Dry"      },
-  { id:"2061212", name:"All Purpose Flour",    emoji:"🌾", cat:"Dry"      },
-  { id:"21051",   name:"Sugar",                emoji:"🍬", cat:"Dry"      },
-  { id:"1070496", name:"Salt",                 emoji:"🧂", cat:"Dry"      },
-  { id:"29268",   name:"Baking Powder",        emoji:"🫙", cat:"Dry"      },
-  { id:"2910159", name:"Cornstarch",           emoji:"🫙", cat:"Dry"      },
-  { id:"16200",   name:"Garbanzo Beans",       emoji:"🫘", cat:"Dry"      },
-  { id:"69810",   name:"Red Kidney Beans",     emoji:"🫘", cat:"Dry"      },
-  { id:"860044",  name:"Tomato Sauce",         emoji:"🍅", cat:"Dry"      },
-  { id:"860135",  name:"Diced Tomatoes",       emoji:"🍅", cat:"Dry"      },
-  { id:"2620442", name:"Coconut Milk",         emoji:"🥥", cat:"Dry"      },
-  { id:"13417",   name:"Sambal Oelek",         emoji:"🌶️", cat:"Dry"      },
-  { id:"25267",   name:"Eggplant Pulp",        emoji:"🍆", cat:"Dry"      },
-  { id:"1020152", name:"Liquid Butter Alt",    emoji:"🧈", cat:"Oils"     },
-  { id:"55523",   name:"Lemon Juice",          emoji:"🍋", cat:"Oils"     },
-  { id:"1020079", name:"Canola Oil",           emoji:"🫙", cat:"Oils"     },
-  { id:"1020075", name:"Soybean Oil",          emoji:"🫙", cat:"Oils"     },
-  { id:"1020077", name:"Fry Oil",              emoji:"🫙", cat:"Oils"     },
-  { id:"45900",   name:"White Vinegar",        emoji:"🫙", cat:"Oils"     },
-  { id:"40212",   name:"Shrimp 16/20",          emoji:"🍤", cat:"Seafood"  },
-  { id:"2550012", name:"Yellow Food Coloring",  emoji:"🟡", cat:"Other"    },
-  { id:"2550014", name:"Red Food Color",       emoji:"🔴", cat:"Oils"     },
-  { id:"12728",   name:"Pan Spray",            emoji:"🥫", cat:"Other"    },
-  { id:"21039",   name:"Evian Water",          emoji:"💧", cat:"Other"    },
-  { id:"440039",  name:"Diet Coke",            emoji:"🥤", cat:"Other"    },
-  { id:"440040",  name:"Sprite",               emoji:"🥤", cat:"Other"    },
+  { id:"44137",   name:"Serrano Peppers", cat:"Produce"  },
+  { id:"42504",   name:"Cucumbers", cat:"Produce"  },
+  { id:"42570",   name:"Lemons", cat:"Produce"  },
+  { id:"79152",   name:"Carrots", cat:"Produce"  },
+  { id:"44211",   name:"Cleaned Spinach", cat:"Produce"  },
+  { id:"1530438", name:"Heavy Cream", cat:"Dairy"    },
+  { id:"370496",  name:"Whole Milk", cat:"Dairy"    },
+  { id:"14785",   name:"Plain Yogurt", cat:"Dairy"    },
+  { id:"1440528", name:"Paneer", cat:"Dairy"    },
+  { id:"1440203", name:"Cheddar Jack Cheese", cat:"Dairy"    },
+  { id:"77200",   name:"Chicken Wings", cat:"Meat"     },
+  { id:"77670",   name:"Chicken Leg Quarters", cat:"Meat"     },
+  { id:"77658",   name:"Chicken Leg Meat", cat:"Meat"     },
+  { id:"77682",   name:"Chicken Thighs", cat:"Meat"     },
+  { id:"77232",   name:"Chicken Breast", cat:"Meat"     },
+  { id:"1810019", name:"Goat Bone-in", cat:"Meat"     },
+  { id:"79042",   name:"Lamb Leg Halal", cat:"Meat"     },
+  { id:"51457",   name:"Tilapia Fillets", cat:"Frozen"   },
+  { id:"64046",   name:"Chopped Spinach", cat:"Frozen"   },
+  { id:"64120",   name:"Broccoli Florets", cat:"Frozen"   },
+  { id:"86527",   name:"Mixed Vegetables", cat:"Frozen"   },
+  { id:"86525",   name:"Green Peas", cat:"Frozen"   },
+  { id:"490266",  name:"Basmati Rice", cat:"Dry"      },
+  { id:"53556",   name:"Atta Flour", cat:"Dry"      },
+  { id:"2061212", name:"All Purpose Flour", cat:"Dry"      },
+  { id:"21051",   name:"Sugar", cat:"Dry"      },
+  { id:"1070496", name:"Salt", cat:"Dry"      },
+  { id:"29268",   name:"Baking Powder", cat:"Dry"      },
+  { id:"2910159", name:"Cornstarch", cat:"Dry"      },
+  { id:"16200",   name:"Garbanzo Beans", cat:"Dry"      },
+  { id:"69810",   name:"Red Kidney Beans", cat:"Dry"      },
+  { id:"860044",  name:"Tomato Sauce", cat:"Dry"      },
+  { id:"860135",  name:"Diced Tomatoes", cat:"Dry"      },
+  { id:"2620442", name:"Coconut Milk", cat:"Dry"      },
+  { id:"13417",   name:"Sambal Oelek", cat:"Dry"      },
+  { id:"25267",   name:"Eggplant Pulp", cat:"Dry"      },
+  { id:"1020152", name:"Liquid Butter Alt", cat:"Oils"     },
+  { id:"55523",   name:"Lemon Juice", cat:"Oils"     },
+  { id:"1020079", name:"Canola Oil", cat:"Oils"     },
+  { id:"1020075", name:"Soybean Oil", cat:"Oils"     },
+  { id:"1020077", name:"Fry Oil", cat:"Oils"     },
+  { id:"45900",   name:"White Vinegar", cat:"Oils"     },
+  { id:"40212",   name:"Shrimp 16/20", cat:"Seafood"  },
+  { id:"2550012", name:"Yellow Food Coloring", cat:"Other"    },
+  { id:"2550014", name:"Red Food Color", cat:"Oils"     },
+  { id:"12728",   name:"Pan Spray", cat:"Other"    },
+  { id:"21039",   name:"Evian Water", cat:"Other"    },
+  { id:"440039",  name:"Diet Coke", cat:"Other"    },
+  { id:"440040",  name:"Sprite", cat:"Other"    },
 ];
 
 const CATS = ["All","Produce","Dairy","Meat","Frozen","Dry","Oils","Other"];
@@ -162,7 +162,7 @@ export default function App() {
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setUnitCompare(null)}>
         <div style={{background:"#fff",borderRadius:20,padding:22,maxWidth:400,width:"100%"}} onClick={e=>e.stopPropagation()}>
-          <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{item.emoji} {item.name}</div>
+          <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{item.name}</div>
           <div style={{fontSize:12,color:"#888",marginBottom:16}}>Unit price comparison</div>
 
           {loading && (
@@ -216,7 +216,7 @@ export default function App() {
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setAuditItem(null)}>
         <div style={{background:"#fff",borderRadius:16,padding:20,maxWidth:460,width:"100%",maxHeight:"80vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
-          <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>{auditItem.emoji} {auditItem.name} — Audit Trail</div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>{auditItem.name} — Audit Trail</div>
           {[["Restaurant Depot","#F8F8F6",rdE],["Sysco","#F0F6FF",scE]].filter(([,,e])=>e).map(([label,bg,entry])=>(
             <div key={label} style={{background:bg,borderRadius:8,padding:10,marginBottom:10,fontSize:11}}>
               <div style={{fontWeight:700,marginBottom:4}}>{label}</div>
@@ -320,7 +320,7 @@ function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pr
       const scP = sc[item.id]?.price;
       if (!rdP && !scP) return null;
       const rdBest = rdP && scP ? rdP <= scP : !!rdP;
-      return { name: item.name, emoji: item.emoji, rdP, scP, rdBest };
+      return { name: item.name, rdP, scP, rdBest };
     }).filter(Boolean);
 
     const html = `<!DOCTYPE html>
@@ -352,7 +352,7 @@ function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pr
 <thead><tr><th>ITEM</th><th>RESTAURANT DEPOT</th><th>SYSCO</th><th>BUY AT</th></tr></thead>
 <tbody>
 ${rows.map(r => `<tr>
-  <td>${r.emoji} ${r.name}</td>
+  <td>${r.name}</td>
   <td class="${r.rdP ? (r.rdBest ? "green" : "") : "gray"}">${r.rdP ? "$" + r.rdP.toFixed(2) : "—"}</td>
   <td class="${r.scP ? (!r.rdBest ? "blue" : "") : "gray"}">${r.scP ? "$" + r.scP.toFixed(2) : "—"}</td>
   <td><span class="badge ${r.rdBest ? "badge-rd" : "badge-sc"}">${r.rdBest ? "RD" : "Sysco"}</span></td>
@@ -433,7 +433,7 @@ ${rows.map(r => `<tr>
                   return (
                     <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                        <span style={{ fontSize: 20 }}></span>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                         <div style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: rdBest ? "#F0FDF4" : "#EFF6FF", color: rdBest ? "#16A34A" : "#2563EB" }}>
                           {rdBest ? "Buy at RD" : "Buy at Sysco"}
@@ -466,7 +466,7 @@ ${rows.map(r => `<tr>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>RESTAURANT DEPOT ONLY</div>
                 {rdOnly.map((item, i) => (
                   <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, animationDelay: i * 10 + "ms", cursor:"pointer" }}>
-                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <span style={{ fontSize: 20 }}></span>
                     <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>{fmt(rd[item.id]?.price)}</div>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "#999", background: "#F0F0EC", borderRadius: 99, padding: "3px 10px" }}>RD</div>
@@ -486,7 +486,7 @@ ${rows.map(r => `<tr>
                   </div>
                   {oosHere.map(item => (
                     <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #FEE2E2", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10 }}>
-                      <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                      <span style={{ fontSize: 20 }}></span>
                       <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                       {sc[item.id] && <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>{fmt(sc[item.id].price)}</div>}
                       {sc[item.id]
@@ -501,7 +501,7 @@ ${rows.map(r => `<tr>
                   </div>
                   {unscraped.map(item => (
                     <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
-                      <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                      <span style={{ fontSize: 20 }}></span>
                       <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
                       <div style={{ fontSize: 11, color: "#BBB", fontWeight: 500 }}>Not scraped yet</div>
                     </div>
@@ -547,7 +547,7 @@ ${rows.map(r => `<tr>
                 {/* Row button */}
                 <button onClick={() => setSelectedItem(isOpen ? null : { ...item, view7: true })}
                   style={{ width: "100%", background: "#fff", border: isOpen ? "1px solid #111" : "1px solid #EEEEE9", borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: isOpen ? "none" : undefined }}>
-                  <span style={{ fontSize: 18 }}>{item.emoji}</span>
+                  <span style={{ fontSize: 18 }}></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{item.name}</div>
                     <div style={{ fontSize: 11, color: "#999", marginTop: 1 }}>{entries.length} day{entries.length !== 1 ? "s" : ""} of data</div>
@@ -639,7 +639,7 @@ ${rows.map(r => `<tr>
                 const scP = sc[item.id]?.price;
                 return (
                   <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #FEE2E2", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <span style={{ fontSize: 20 }}></span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                       <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
@@ -669,7 +669,7 @@ ${rows.map(r => `<tr>
                 const scP = sc[item.id]?.price;
                 return (
                   <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                    <span style={{ fontSize: 20 }}></span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
                       <div style={{ fontSize: 11, marginTop: 3, display: "flex", gap: 8 }}>
@@ -690,7 +690,7 @@ ${rows.map(r => `<tr>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>NEVER SCRAPED</div>
               {ITEMS.filter(i => !rd[i.id] && !sc[i.id] && !history[i.id]?.length).map(item => (
                 <div key={item.id} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px dashed #E0E0D8", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, opacity: 0.6 }}>
-                  <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                  <span style={{ fontSize: 20 }}></span>
                   <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#888" }}>{item.name}</div>
                   <div style={{ fontSize: 11, color: "#BBB" }}>No data</div>
                 </div>
@@ -847,7 +847,7 @@ Return ONLY this JSON structure:
                 return (
                   <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "10px 14px", borderBottom: i < result.bothItems.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center", gap: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 15 }}>{item.emoji}</span>
+                      <span style={{ fontSize: 15 }}></span>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
                         {item.qty > 1 && <div style={{ fontSize: 10, color: "#999" }}>×{item.qty} cases</div>}
@@ -880,7 +880,7 @@ Return ONLY this JSON structure:
               <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", overflow: "hidden", marginBottom: 14 }}>
                 {result.skipped.map((item, i) => (
                   <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.skipped.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10, opacity: 0.7 }}>
-                    <span style={{ fontSize: 15 }}>{item.emoji}</span>
+                    <span style={{ fontSize: 15 }}></span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>{item.name}</div>
                       <div style={{ fontSize: 11, color: "#AAA", marginTop: 1 }}>{item.reason}</div>
