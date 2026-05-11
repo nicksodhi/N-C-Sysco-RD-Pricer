@@ -473,6 +473,7 @@ const RD_ITEMS = [
   { id: "42513",   name: "Fresh Ginger - 30 lbs" },
   { id: "44146",   name: "Peeled Garlic" },
   { id: "42504",   name: "Cucumbers - 6 ct" },
+  { id: "42606",   name: "White Cauliflower" },
   { id: "43431",   name: "Green Bell Peppers - 9 ct" },
   { id: "42566",   name: "Taylor Farms - Bagged Cilantro" },
   { id: "42606",   name: "White Cauliflower - 1 ct" },
@@ -1146,16 +1147,12 @@ async function scrapeRD() {
       }
 
       if (bestName && pl.price > 0) {
-        // Before accepting this name+price combo, check if the name belongs
-        // to a known single-unit item and the price exceeds its max
-        // If so, don't assign — let a later price line with correct value claim the name
         const tentativeId = Object.entries(matchCache.rd || {}).find(([k]) => k === bestName)?.[1];
         const priceMax = tentativeId ? RD_PRICE_MAX[tentativeId] : null;
         if (priceMax && pl.price > priceMax) {
           log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item) — will try to match name to correct price");
-          // Don't add to seen — allow the correct lower price line to claim this name
         } else {
-          items.push({ name: bestName, price: pl.price, raw: pl.raw });
+          items.push({ name: bestName, price: pl.price, raw: pl.raw, ctx: pl.ctx }); // store ctx for KB
           seen.add(bestName);
         }
       } else {
@@ -1217,14 +1214,17 @@ async function scrapeRD() {
         if (foundPrice) {
           const itemName = lineText.trim();
           if (isProductName(itemName) && !seen.has(itemName)) {
-            items.push({ name: itemName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
+            // Gather ctx around found line
+            const tCtx = lines.slice(Math.max(0, li-8), Math.min(lines.length, li+8)).join(" | ");
+            items.push({ name: itemName, price: foundPrice, raw: "targeted scan: $" + foundPrice, ctx: tCtx });
             seen.add(itemName);
             log("RD: 🎯 Targeted scan found " + itemId + " '" + itemName + "' = $" + foundPrice);
           } else {
             // Use the name from cache seed instead
             const cacheName = Object.entries(matchCache.rd || {}).find(([k, v]) => v === itemId)?.[0];
             if (cacheName && !seen.has(cacheName)) {
-              items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
+              const tCtx2 = lines.slice(Math.max(0, li-8), Math.min(lines.length, li+8)).join(" | ");
+              items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice, ctx: tCtx2 });
               seen.add(cacheName);
               log("RD: 🎯 Targeted scan found " + itemId + " (cache name) = $" + foundPrice);
             }
@@ -1751,13 +1751,16 @@ async function runScrape(source = "all") {
           }
           const now = new Date().toISOString();
           const prevEntry = priceStore.rd[id];
+          // Find scraped item for this id to get raw + ctx
+          const scrapedItem = result.items.find(i => (matchCache.rd[i.name] === id));
           priceStore.rd[id] = {
             price,
             date: now,
             unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
-            confidence: "medium",        // upgraded to "high" after AI validation
+            confidence: "medium",
             source: "scraped_rd",
-            rawScraped: null,
+            rawScraped: scrapedItem?.raw || null,
+            scrapedCtx: scrapedItem?.ctx ? scrapedItem.ctx.slice(0, 800) : null,
             scrapedAt: now,
             prevPrice: prevEntry?.price || null,
             validatedBy: null,
@@ -1900,54 +1903,6 @@ function loadItemKnowledge() {
       console.log("✅ Item knowledge base loaded: " + count + " items");
     }
   } catch(e) { console.log("Item KB load error:", e.message); }
-  patchItemKnowledge();
-}
-
-// Patch KB entries where Claude guessed wrong — we know the correct values from scraping
-function patchItemKnowledge() {
-  const patches = {
-    // All chicken at RD is sold as 40lb cases (confirmed from scraper logs)
-    "77200": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77232": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 20, syscoContents: "2 x 10 lb bags" },
-    "77658": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77670": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    "77682": { rdTotal: 40, rdContents: "1 x 40 lb case", unit: "lb", syscoTotal: 40, syscoContents: "4 x 10 lb bags" },
-    // Peeled Garlic — RD name says 30lb, Sysco is 4x5lb=20lb
-    "44146": { rdTotal: 30, rdContents: "1 x 30 lb bag", unit: "lb", syscoTotal: 20, syscoContents: "4 x 5 lb bags" },
-    // Shrimp — RD sells 10lb box
-    "40212": { rdTotal: 10, rdContents: "1 x 10 lb box", unit: "lb", syscoTotal: 10, syscoContents: "4 x 2.5 lb bags" },
-    // Cauliflower — RD sells by the case of 12 heads (same as Sysco 12/1EA)
-    "42606": { rdTotal: 12, rdContents: "12-head case", unit: "each", syscoTotal: 12, syscoContents: "12 x 1 head (cello wrapped)" },
-    // Pan Spray — RD sells 6x17oz case (same count as Sysco 6/14oz, just larger cans)
-    "12728": { rdTotal: 102, rdContents: "6 x 17 oz cans", unit: "oz", syscoTotal: 84, syscoContents: "6 x 14 oz cans" },
-    // Paneer — RD is 5lb single loaf, Sysco is 2x5lb=10lb
-    "1440528": { rdTotal: 5, rdContents: "1 x 5 lb loaf", unit: "lb", syscoTotal: 10, syscoContents: "2 x 5 lb blocks" },
-  };
-
-  let patched = 0;
-  Object.entries(patches).forEach(([id, p]) => {
-    if (!itemKnowledge[id]) return; // not built yet, skip
-    if (itemKnowledge[id].rd) {
-      itemKnowledge[id].rd.totalUnits = p.rdTotal;
-      itemKnowledge[id].rd.caseContents = p.rdContents;
-      itemKnowledge[id].rd.unitOfMeasure = p.unit;
-    }
-    if (itemKnowledge[id].sysco && p.syscoTotal) {
-      itemKnowledge[id].sysco.totalUnits = p.syscoTotal;
-      itemKnowledge[id].sysco.caseContents = p.syscoContents;
-      itemKnowledge[id].sysco.unitOfMeasure = p.unit;
-    }
-    if (itemKnowledge[id].comparison) {
-      itemKnowledge[id].comparison.rdTotalUnits = p.rdTotal;
-      itemKnowledge[id].comparison.syscoTotalUnits = p.syscoTotal || null;
-      itemKnowledge[id].comparison.unitOfMeasure = p.unit;
-    }
-    patched++;
-  });
-  if (patched > 0) {
-    saveItemKnowledge();
-    console.log("✅ Item KB: patched " + patched + " entries with verified data");
-  }
 }
 
 function saveItemKnowledge() {
@@ -2064,7 +2019,7 @@ Return ONLY JSON:
   }
 }
 
-// Build knowledge base — Claude researches each item using product names + pack sizes
+// Build knowledge base for all items — runs authenticated using existing browser session
 async function buildItemKnowledgeBase(forceRefresh = false) {
   const needsUpdate = [];
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -2085,6 +2040,13 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       log("Item KB: researching " + rdItem.name + " (RD:" + rdItem.id + (syscoUpc ? " / Sysco:" + syscoUpc : " / RD only") + ")");
 
+      // Pull stored scrape data — real context from the RD order guide page
+      const rdEntry = priceStore.rd[rdItem.id];
+      const rdScrapedCtx = rdEntry?.scrapedCtx || "";
+      const rdScrapedRaw = rdEntry?.rawScraped || "";
+      const rdPrice = rdEntry?.price || null;
+
+      // Also try public RD product page
       let rdPageText = "";
       try {
         const rdResp = await fetch("https://www.restaurantdepot.com/p/" + rdItem.id, {
@@ -2093,56 +2055,83 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
         });
         if (rdResp.ok) {
           const html = await rdResp.text();
-          rdPageText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3000);
+          rdPageText = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 2000);
         }
       } catch(e) { /* page may require auth */ }
 
       const syscoKnown = syscoItem ? syscoItem.name + " | Pack: " + syscoItem.pack : null;
+
       const prompt = `You are building a wholesale grocery product knowledge base for Naan & Curry restaurant in Las Vegas.
 
 ITEM:
 Restaurant Depot ID: ${rdItem.id}
 RD Name: ${rdItem.name}
-${syscoKnown ? "Sysco Name: " + syscoItem.name + "\nSysco UPC: " + syscoUpc + "\nSysco Pack: " + syscoItem.pack : "No Sysco equivalent on Nick List"}
-${rdPageText ? "\nRD PAGE DATA:\n" + rdPageText.slice(0, 2000) : ""}
+${rdPrice ? "Current RD Price: $" + rdPrice : ""}
+${rdScrapedRaw ? "RD Price Format (from order guide): " + rdScrapedRaw : ""}
+${rdScrapedCtx ? "\nRD ORDER GUIDE CONTEXT (raw page text around this item):\n" + rdScrapedCtx : ""}
+${rdPageText ? "\nRD PRODUCT PAGE DATA:\n" + rdPageText : ""}
+${syscoKnown ? "\nSysco Name: " + syscoItem.name + "\nSysco UPC: " + syscoUpc + "\nSysco Pack: " + syscoItem.pack : "No Sysco equivalent on Nick List"}
 
-Using your knowledge of wholesale grocery products, determine PRECISELY:
-- What comes in one case from Restaurant Depot (count x size each)
+The RD order guide context shows real data from the actual page. Key clues:
+- "128 z" after item = 128 oz = 1 gallon jug
+- "32#" = 32 lbs total weight
+- "64 z" = 64 oz total
+- Price format "$422-$1612" = unit $4.22, case $16.12 → 4 units per case
+- Price format "$784-$4395" = unit $7.84, case $43.95 → divide to find count
+- "About X.X lb each" = individual item weight (by-weight product)
+- "Buy X lb or more for $Y/lb" = sold by weight not fixed case
+- "Bin - XXXX" = bin location at Las Vegas RD store
+- "Many in stock" = in stock, "Likely out of stock" = OOS
+
+Using ALL available data above, determine PRECISELY:
+- What comes in one case from Restaurant Depot (count x size each, total weight)
 - What comes in one case from Sysco (if applicable)
-- Total weight or volume per case for each vendor
 - Best unit for per-unit price comparison (lb, oz, each, gallon, ml)
 
-Return ONLY this JSON (no markdown):
+Return ONLY this JSON (no markdown, no extra text):
 {
   "rd": {
     "name": "${rdItem.name}",
-    "caseContents": "exact description e.g. 1 x 50 lb bag or 6 x 17 oz cans",
-    "totalUnits": 50,
-    "unitOfMeasure": "lb"
+    "caseContents": "exact e.g. 4 x 1 gallon jugs or 1 x 40 lb case",
+    "totalUnits": 4,
+    "unitOfMeasure": "gallon",
+    "binLocation": "bin number if visible in context",
+    "stockStatus": "in stock or out of stock if visible"
   },
-  "sysco": ${syscoItem ? '{"name": "' + syscoItem.name + '", "pack": "' + syscoItem.pack + '", "caseContents": "exact description", "totalUnits": 40, "unitOfMeasure": "lb"}' : "null"},
+  "sysco": ${syscoItem ? `{
+    "name": "${syscoItem.name}",
+    "pack": "${syscoItem.pack}",
+    "caseContents": "exact description",
+    "totalUnits": 4,
+    "unitOfMeasure": "gallon"
+  }` : "null"},
   "comparison": {
-    "rdTotalUnits": 50,
-    "syscoTotalUnits": 40,
-    "unitOfMeasure": "lb",
+    "rdTotalUnits": 4,
+    "syscoTotalUnits": 4,
+    "unitOfMeasure": "gallon",
     "sameProduct": true,
-    "notes": "any important spec differences"
+    "notes": "any important spec differences between vendors"
   }
 }`;
 
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 800, messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
       });
       const data = await r.json();
       const txt = data.content?.find(b => b.type === "text")?.text || "{}";
       const m = txt.match(/\{[\s\S]*\}/);
       if (m) {
         const knowledge = JSON.parse(m[0]);
-        itemKnowledge[rdItem.id] = { ...knowledge, lastUpdated: new Date().toISOString(), rdItemId: rdItem.id, syscoUpc: syscoUpc || null };
+        itemKnowledge[rdItem.id] = {
+          ...knowledge,
+          lastUpdated: new Date().toISOString(),
+          rdItemId: rdItem.id,
+          syscoUpc: syscoUpc || null,
+        };
         processed++;
-        log("✅ Item KB: " + rdItem.name + " — " + knowledge.rd?.caseContents);
+        log("✅ Item KB: " + rdItem.name + " — RD: " + knowledge.rd?.caseContents + (knowledge.sysco ? " | Sysco: " + knowledge.sysco?.caseContents : ""));
       } else {
         log("⚠️ Item KB: no JSON for " + rdItem.name);
       }
@@ -2153,10 +2142,11 @@ Return ONLY this JSON (no markdown):
     }
   }
   saveItemKnowledge();
-  patchItemKnowledge(); // apply corrections after build
+  patchItemKnowledge();
   log("✅ Item KB complete: " + processed + "/" + needsUpdate.length + " items learned");
   backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
 }
+
 
 // Backup item knowledge to GitHub
 async function backupItemKnowledgeToGitHub() {
