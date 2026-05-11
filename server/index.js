@@ -603,7 +603,7 @@ const SYSCO_TO_RD_SEED = {
   "4014973": { rdId: "69810", rdMult: 1 }, // Bean Kidney Dark Red
   "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
   "1094721": { rdId: "42545",   rdMult: 1 }, // Yellow Onion 50lb
-  "2139911": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 6/64oz
+  "2139911": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 6x64oz
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -1897,7 +1897,7 @@ function loadItemKnowledge() {
   try {
     if (fs.existsSync(ITEM_KB_FILE)) {
       itemKnowledge = JSON.parse(fs.readFileSync(ITEM_KB_FILE, "utf8"));
-      console.log("✅ Item knowledge base loaded: " + Object.keys(itemKnowledge).length + " items");
+      console.log("Item KB loaded: " + Object.keys(itemKnowledge).length + " items");
     }
   } catch(e) { console.log("Item KB load error:", e.message); }
   patchItemKnowledge();
@@ -1909,13 +1909,14 @@ function saveItemKnowledge() {
 }
 
 function patchItemKnowledge() {
+  // Ground-truth facts — override any KB guesses with verified data
   const P = {
-    "77200":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags"],
-    "77232":  [40,"1 x 40 lb case","lb",20,"2 x 10 lb bags"],
-    "77658":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags"],
-    "77670":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags"],
-    "77682":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags"],
-    "44146":  [30,"6 x 5 lb bags (30 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
+    "77200":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
+    "77232":  [40,"1 x 40 lb case","lb",20,"2 x 10 lb bags (20 lb)"],
+    "77658":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
+    "77670":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
+    "77682":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
+    "44146":  [30,"6 x 5 lb bags (30 lb total)","lb",20,"4 x 5 lb bags (20 lb total)"],
     "42513":  [30,"1 x 30 lb bulk case","lb",30,"1 x 30 lb bag"],
     "42545":  [50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
     "42658":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
@@ -1924,56 +1925,56 @@ function patchItemKnowledge() {
     "44137":  [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"],
     "79152":  [10,"1 x 10 lb bag","lb",10,"1 x 10 lb bag"],
     "42606":  [12,"12-head case","each",12,"12 x 1 head cello wrapped"],
-    "42566":  [21,"6 x 3.5 oz bags","oz",21,"6 x 3.5 oz bags (30 ct)"],
+    "42566":  [21,"6 x 3.5 oz bags (30 ct)","oz",21,"6 x 3.5 oz bags (30 ct)"],
     "42647":  [1,"1 x 1 lb package","lb",1,"1 x 1 lb package"],
     "1530438":[384,"6 x 64 oz jugs (384 oz total)","oz",384,"6 x 64 oz jugs (384 oz total)"],
     "370496": [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
-    "1440203":[20,"4 x 5 lb bags (20 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
-    "1440528":[20,"4 x 5 lb loaves (20 lb)","lb",10,"2 x 5 lb blocks (10 lb)"],
+    "1440203":[20,"4 x 5 lb bags (20 lb total)","lb",20,"4 x 5 lb bags (20 lb total)"],
+    "1440528":[20,"4 x 5 lb loaves (20 lb total)","lb",10,"2 x 5 lb blocks (10 lb total)"],
     "14785":  [32,"1 x 32 lb container","lb",null,null],
     "1020077":[35,"1 x 35 lb bag","lb",35,"1 x 35 lb bag"],
     "1020079":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020075":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020152":[3,"3 x 1 gallon jugs","gallon",3,"3 x 1 gallon jugs"],
-    "55523":  [1,"1 x 1 gallon jug","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
+    "55523":  [1,"1 x 1 gallon jug","gallon",3,"6 x 0.5 gallon jugs (3 gal total)"],
     "45900":  [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "21051":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
     "1070496":[50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
     "2061212":[25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
-    "53556":  [40,"2 x 20 lb bags (40 lb)","lb",50,"1 x 50 lb bag"],
-    "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes"],
-    "29268":  [5,"1 x 5 lb can","lb",30,"6 x 5 lb cans (30 lb)"],
+    "53556":  [40,"2 x 20 lb bags (40 lb total)","lb",50,"1 x 50 lb bag"],
+    "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes (24 lb total)"],
+    "29268":  [5,"1 x 5 lb can","lb",30,"6 x 5 lb cans (30 lb total)"],
     "16200":  [54,"6 x #10 cans","lb",54,"6 x #10 cans"],
     "69810":  [60,"6 x #10 cans","lb",60,"6 x #10 cans"],
     "860135": [102,"6 x #10 cans","oz",102,"6 x #10 cans"],
     "490266": [40,"1 x 40 lb bag","lb",null,null],
-    "86525":  [2.5,"1 x 2.5 lb bag","lb",30,"12 x 2.5 lb bags (30 lb)"],
-    "64120":  [2,"1 x 2 lb bag","lb",24,"12 x 2 lb bags (24 lb)"],
-    "64046":  [36,"12 x 3 lb bags (36 lb)","lb",36,"12 x 3 lb bags (36 lb)"],
-    "86527":  [25,"10 x 2.5 lb bags (25 lb)","lb",30,"1 x 30 lb bag"],
-    "51457":  [10,"1 x 10 lb box","lb",10,"2 x 5 lb boxes"],
-    "40212":  [10,"1 x 10 lb box","lb",10,"4 x 2.5 lb bags"],
+    "86525":  [2.5,"1 x 2.5 lb bag","lb",30,"12 x 2.5 lb bags (30 lb total)"],
+    "64120":  [2,"1 x 2 lb bag","lb",24,"12 x 2 lb bags (24 lb total)"],
+    "64046":  [36,"12 x 3 lb bags (36 lb total)","lb",36,"12 x 3 lb bags (36 lb total)"],
+    "86527":  [25,"10 x 2.5 lb bags (25 lb total)","lb",30,"1 x 30 lb bag"],
+    "51457":  [10,"1 x 10 lb box","lb",10,"2 x 5 lb boxes (10 lb total)"],
+    "40212":  [10,"1 x 10 lb box","lb",10,"4 x 2.5 lb bags (10 lb total)"],
     "13417":  [408,"3 x 136 oz containers","oz",408,"3 x 136 oz containers"],
     "2620442":[4800,"12 x 400 ml cans","ml",9720,"24 x 13.5 oz cans"],
-    "12728":  [102,"6 x 17 oz cans (102 oz)","oz",84,"6 x 14 oz cans (84 oz)"],
+    "12728":  [102,"6 x 17 oz cans (102 oz total)","oz",84,"6 x 14 oz cans (84 oz total)"],
     "2550012":[4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "21039":  [12000,"24 x 500 ml bottles","ml",12000,"24 x 500 ml bottles"],
-    "1810019":[15,"1 x 15 lb box (bone-in cubes)","lb",null,null],
+    "1810019":[15,"1 x 15 lb box","lb",null,null],
     "79042":  [42,"variable weight ~40-42 lb each","lb",null,null],
   };
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
     if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:scT?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
-    Object.assign(itemKnowledge[id].rd, { totalUnits:rdT, caseContents:rdC, unitOfMeasure:u });
+    if (itemKnowledge[id].rd) Object.assign(itemKnowledge[id].rd, { totalUnits:rdT, caseContents:rdC, unitOfMeasure:u });
     if (scT && itemKnowledge[id].sysco) Object.assign(itemKnowledge[id].sysco, { totalUnits:scT, caseContents:scC, unitOfMeasure:u });
-    Object.assign(itemKnowledge[id].comparison||{}, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
+    if (!itemKnowledge[id].comparison) itemKnowledge[id].comparison = {};
+    Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
     n++;
   });
-  if (n > 0) { saveItemKnowledge(); console.log("✅ Item KB: "+n+" items patched"); }
+  if (n > 0) { saveItemKnowledge(); console.log("Item KB patched: " + n + " items"); }
 }
 
 loadItemKnowledge();
-
 
 // Scrape RD product page for a single item
 async function scrapeRDProductPage(browser, itemId) {
@@ -2097,9 +2098,8 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
-      log("Item KB: researching " + rdItem.name);
       const rdEntry = priceStore.rd[rdItem.id];
-      const rdCtx = rdEntry?.scrapedCtx || "";
+      const rdCtx2 = rdEntry?.scrapedCtx || "";
       const rdRaw = rdEntry?.rawScraped || "";
       const rdPrice = rdEntry?.price || null;
       let rdPageText = "";
@@ -2108,7 +2108,8 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
         if (resp.ok) rdPageText = (await resp.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 2000);
       } catch(e) {}
       const sysLine = syscoItem ? "Sysco: " + syscoItem.name + " | UPC: " + syscoUpc + " | Pack: " + syscoItem.pack : "No Sysco equivalent";
-      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD ID: " + rdItem.id + ")\n" + (rdPrice?"Price: $"+rdPrice+"\n":"") + (rdRaw?"Format: "+rdRaw+"\n":"") + (rdCtx?"Context: "+rdCtx+"\n":"") + (rdPageText?"Page: "+rdPageText+"\n":"") + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\""+rdItem.name+"\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\""+syscoItem.name+"\",\"pack\":\""+syscoItem.pack+"\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
+      const ctxLine = rdCtx2 ? "RD page context: " + rdCtx2 : "";
+      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD: " + rdItem.id + ")" + (rdPrice ? "\nPrice: $" + rdPrice : "") + (rdRaw ? "\nFormat: " + rdRaw : "") + (ctxLine ? "\n" + ctxLine : "") + (rdPageText ? "\nPage: " + rdPageText.slice(0,1500) : "") + "\n" + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\"" + rdItem.name + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\"" + syscoItem.name + "\",\"pack\":\"" + syscoItem.pack + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
@@ -2120,7 +2121,7 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       if (m) {
         itemKnowledge[rdItem.id] = { ...JSON.parse(m[0]), lastUpdated: new Date().toISOString(), rdItemId: rdItem.id, syscoUpc: syscoUpc || null };
         processed++;
-        log("OK Item KB: " + rdItem.name);
+        log("Item KB: " + rdItem.name + " learned");
       }
       if (processed % 10 === 0) { saveItemKnowledge(); patchItemKnowledge(); }
       await new Promise(res => setTimeout(res, 600));
@@ -2130,7 +2131,6 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
   log("Item KB complete: " + processed + "/" + needsUpdate.length + " items");
   backupItemKnowledgeToGitHub().catch(e => log("Item KB backup error: " + e.message));
 }
-
 
 // Backup item knowledge to GitHub
 async function backupItemKnowledgeToGitHub() {
@@ -2351,108 +2351,72 @@ app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
   try {
-    // Build rich catalog: every item with today's real prices + pack sizes
     const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268"]);
     const catalog = [];
-
     RD_ITEMS.forEach(rdItem => {
       const rdEntry = priceStore.rd[rdItem.id];
       if (!rdEntry?.price) return;
-
-      // Find Sysco equivalent
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
-      const syscoEntry2 = priceStore.sysco[rdItem.id] || (syscoUpc ? priceStore.sysco[syscoUpc] : null);
-      const syscoPrice = syscoEntry2?.price || null;
-
-      // Pack sizes — prefer knowledge base, fall back to PACK_SIZES, then item pack field
+      const syscoPrice = syscoUpc ? (priceStore.sysco[rdItem.id]?.price || priceStore.sysco[syscoUpc]?.price) : null;
       const kb = itemKnowledge[rdItem.id];
       const rdPack = kb?.rd?.caseContents || PACK_SIZES[rdItem.id]?.rd || "1 case";
       const scPack = kb?.sysco?.caseContents || syscoItem?.pack || PACK_SIZES[rdItem.id]?.sysco || "1 case";
-
-      // Clean short name
       const shortName = rdItem.name
-        .replace(/Chef's Quality - /gi, "").replace(/James Farm - /gi, "")
-        .replace(/Royal Mahout - /gi, "").replace(/Thomas Farms - /gi, "")
-        .replace(/Clabber Girl - /gi, "").replace(/Clabber Girl /gi, "")
-        .replace(/Golden Temple - /gi, "").replace(/Royal Chef's Secret - /gi, "")
-        .replace(/Frozen James Farm - /gi, "").replace(/Frozen /gi, "")
+        .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen /gi, "")
         .replace(/ - \d+.*$/, "").trim();
-
       const cheaper = syscoPrice ? (rdEntry.price <= syscoPrice ? "RD" : "Sysco") : "RD only";
-
-      let line = shortName + ": RD $" + rdEntry.price + " per case (" + rdPack + ")";
-      if (syscoPrice) line += " | Sysco $" + syscoPrice + " per case (" + scPack + ")";
+      let line = shortName + ": RD $" + rdEntry.price + " (" + rdPack + ")";
+      if (syscoPrice) line += " | Sysco $" + syscoPrice + " (" + scPack + ")";
       else line += " | Sysco: not on Nick List";
-      if (DIFF_SIZES.has(rdItem.id)) line += " *** DIFFERENT CASE SIZE — compare per unit ***";
-      line += " | BUY FROM: " + cheaper;
+      if (DIFF_SIZES.has(rdItem.id)) line += " [CHECK CASE SIZE]";
+      line += " | CHEAPER: " + cheaper;
       catalog.push(line);
     });
+    if (catalog.length === 0) return res.status(500).json({ error: "No price data — run a scrape first at /api/trigger" });
+    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
+Parse the order list and build an accurate vendor breakdown using ONLY today's prices.
 
-    if (catalog.length === 0) {
-      return res.status(500).json({ error: "No price data available — run a scrape first" });
-    }
-
-    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas. Your job is to parse a grocery order list and produce an accurate vendor breakdown.
-
-TODAY'S LIVE PRICES (${catalog.length} items):
+TODAY'S PRICES (${catalog.length} items tracked):
 ${catalog.join("\n")}
 
-CHEF'S ORDER LIST:
+ORDER LIST:
 ${list}
 
-MATCHING RULES:
-- LQ or leg quarters = Fresh Chicken Leg Quarters
-- chx breast or chicken breast = Boneless Skinless Chicken Breasts  
-- WM or whole milk = Whole Milk
-- HWC or heavy cream = Heavy Cream Whipping 40%
-- cream = Heavy Cream Whipping 40%
-- For any item marked "DIFFERENT CASE SIZE" — note this after the price so the buyer knows to verify volume
-- Items genuinely not in the price list → ORDER MANUALLY section
-- If quantity specified (2 cases, x3, etc.) multiply price and show the math
+RULES:
+1. Match to closest catalog entry. Shortcuts: LQ=Leg Quarters, chx=Chicken Breast, WM=Whole Milk, HWC=Heavy Cream, cream=Heavy Cream.
+2. Multiply price by quantity when specified. Show math: "x2 (2 x $30.80) — $61.60"
+3. Assign to CHEAPER vendor. Note [CHECK CASE SIZE] items so buyer can verify volume.
+4. Anything not in catalog → ORDER MANUALLY with reason.
 
-REQUIRED OUTPUT FORMAT — follow exactly, no markdown, no asterisks, no bold:
+OUTPUT — exact format, no markdown, no asterisks:
 
 🟢 RESTAURANT DEPOT
-[item name] — $[price]
-[item name] x[qty] ([qty] × $[unit price]) — $[total]
-RD Cart Total: $[total]
+Item Name — $price
+RD Cart Total: $XX.XX
 
 🔵 SYSCO
-[item name] — $[price]
-Sysco Cart Total: $[total]
+Item Name — $price
+Sysco Cart Total: $XX.XX
 
 ⚠️ ORDER MANUALLY
-[item] — [reason: not in system / out of stock]
+Item name — reason
 
-💰 TOTAL ORDER COST: $[grand total]`;
-
+💰 TOTAL ORDER COST: $XX.XX`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }]
-      }),
+      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
     });
-
     const data = await r.json();
-    if (data.error) throw new Error("Claude API error: " + (data.error.message || JSON.stringify(data.error)));
+    if (data.error) throw new Error("API error: " + (data.error.message || JSON.stringify(data.error)));
     const result = data.content?.find(b => b.type === "text")?.text;
     if (!result) throw new Error("Empty response from Claude");
     res.json({ result });
-
-  } catch(e) {
-    log("Grocery endpoint error: " + e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { log("Grocery error: " + e.message); res.status(500).json({ error: e.message }); }
 });
+
 
 app.get("/api/browser-test", async (req, res) => {
   try {
