@@ -187,7 +187,7 @@ export default function App() {
                   <div style={{fontSize:11,color:"#666",marginBottom:6}}>{pack}</div>
                   <div style={{fontSize:22,fontWeight:700,color:isCheaper?color:"#555"}}>{fmt2(perUnit)}</div>
                   <div style={{fontSize:10,color:"#999"}}>per {result.unit}</div>
-                  <div style={{fontSize:12,fontWeight:600,color:"#888",marginTop:4}}>Case: {fmt2(isCheaper?(result.cheaper==="rd"?rd[item.id]?.price:sc[item.id]?.price):(result.cheaper==="rd"?sc[item.id]?.price:rd[item.id]?.price))}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#888",marginTop:4}}>Case: {fmt2(vendor==="Restaurant Depot" ? rd[item.id]?.price : sc[item.id]?.price)}</div>
                 </div>
               ))}
             </div>
@@ -306,6 +306,8 @@ export default function App() {
           </button>
         ))}
       </div>
+      <UnitCompareModal />
+      <AuditModal />
     </div>
   );
 }
