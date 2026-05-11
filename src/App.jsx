@@ -1,5 +1,27 @@
 import { useState, useMemo, useEffect } from "react";
 
+// Items where case sizes differ between RD and Sysco — show warning border on price badge
+const DIFFERENT_CASE_SIZES = new Set([
+  "42545",   // Yellow Onion: RD 50lb vs Sysco 25lb
+  "1530438", // Heavy Cream: RD 64oz vs Sysco 384oz
+  "370496",  // Whole Milk: RD 1gal vs Sysco 4gal
+  "1020152", // Butter Alt: RD 1gal vs Sysco 3gal
+  "55523",   // Lemon Juice: RD 1gal vs Sysco 3gal
+  "12728",   // Pan Spray: RD 6x17oz vs Sysco 6x14oz
+  "1440203", // Cheddar Jack: RD 5lb vs Sysco 20lb
+  "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
+  "86525",   // Peas: RD 2.5lb vs Sysco 30lb
+  "2620442", // Coconut Milk: RD 12 cans vs Sysco 24 cans
+  "45900",   // White Vinegar: RD 1gal vs Sysco 4gal
+  "64120",   // Broccoli: RD 2lb vs Sysco 24lb
+  "64046",   // Chopped Spinach: RD 3lb vs Sysco 36lb
+  "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
+  "1440528", // Paneer: RD 20lb vs Sysco 10lb
+  "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
+  "29268",   // Baking Powder: RD 5lb vs Sysco 30lb
+  "2550012", // Yellow Food Coloring: RD 1gal vs Sysco 4gal
+]);
+
 const ITEMS = [
   { id:"42545",   name:"Yellow Onions", cat:"Produce"  },
   { id:"42658",   name:"Red Onions", cat:"Produce"  },
@@ -435,8 +457,13 @@ ${rows.map(r => `<tr>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}></span>
                         <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                        <div style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: rdBest ? "#F0FDF4" : "#EFF6FF", color: rdBest ? "#16A34A" : "#2563EB" }}>
-                          {rdBest ? "Buy at RD" : "Buy at Sysco"}
+                        <div style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
+                          background: rdBest ? "#F0FDF4" : "#EFF6FF",
+                          color: rdBest ? "#16A34A" : "#2563EB",
+                          border: DIFFERENT_CASE_SIZES.has(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
+                          title: DIFFERENT_CASE_SIZES.has(item.id) ? "Case sizes differ — tap Compare for details" : ""
+                        }}>
+                          {rdBest ? "Buy at RD" : "Buy at Sysco"}{DIFFERENT_CASE_SIZES.has(item.id) ? " ⚖" : ""}
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid #F3F3EF" }}>
