@@ -2,13 +2,13 @@
   "rd": {
     "12728": {
       "price": 18.9,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $3.87 → case=18.9",
       "scrapedCtx": "Bin - 516 | 1 ct | Gluten free | Current price: $16.60 | $1660-$8943 | Clabber Girl - Baking Powder - 5 lbs | 5 lb | Many in stock | Bin - 721 | 1 ct | Current price: $3.87 | $387-$1890 | Chef's Quality - All Purpose Pan Spray - 17 oz | 17 z | Many in stock | Bin - 420 | 1 ct | Current price: $9.69 | $969-$3287 | Felbro - Red Food Coloring - gallon | 1 gal | Bin - 706 | Add | Current price: $8.03 | $803-$3260",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 18.9,
       "validatedBy": null,
       "auditLog": [
@@ -47,18 +47,24 @@
           "price": 18.9,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 18.9,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "13417": {
       "price": 39.29,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $16.39 → case=39.29",
       "scrapedCtx": "Many in stock | Bin - 5113 | 1 ct | Current price: $13.55 | $1355 | Jumbo Red Onions - 25 lbs | 25 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $16.39 | $1639-$3929 | Huy Fong - Sambal Olek (Ground Chili Paste) - 3/136 oz | 1 gal | Many in stock | Bin - 626 | 1 ct | Out of stock | Cucumbers - 6 ct | 6 ct | Out of stock | Bin - 5106 | Show similar | Current price: $67.60 per package (estimated) | $6760",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 39.29,
       "validatedBy": null,
       "auditLog": [
@@ -97,18 +103,24 @@
           "price": 39.29,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 39.29,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "14785": {
       "price": 36.24,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $36.24",
       "scrapedCtx": "Restaurant Depot | Delivery available | 12.8 mi | Pickup ready by 9:00am May 12 | 12.8 mi | Items | Members | Settings | Edit items | Add 62 items to cart | Current price: $36.24 | $3624 | James Farm - Plain Yogurt - 32 lbs | 32# | Many in stock | Bin - 4043 | 1 ct | Whole | Current price: $4.22 | $422-$1612 | MILK WHL GAL GS/AN | 128 z | Many in stock | Bin - 4018 | 1 ct",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 36.24,
       "validatedBy": null,
       "auditLog": [
@@ -147,18 +159,24 @@
           "price": 36.24,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 36.24,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "16200": {
       "price": 29.75,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.87 → case=29.75",
       "scrapedCtx": "Bin - 708 | 1 ct | CaffeinatedZero calories | Current price: $17.94 | $1794 | Diet Coke Bottles, 16.9 fl oz, 24 Pack | 24 ct | Many in stock | Bin - 1311 | 1 ct | Current price: $7.87 | $787-$2975 | Chef's Quality - Garbanzo Beans - #10 can | 110 oz | Many in stock | Bin - 606 | 1 ct | Current price: $37.72 | $3772 | Chef's Quality - 100% Canola Salad Oil - 35 lbs | 35 lb | Many in stock | Bin - 424 | 1 ct | Current price: $22.72",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 29.75,
       "validatedBy": null,
       "auditLog": [
@@ -197,18 +215,24 @@
           "price": 29.75,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 29.75,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "21039": {
       "price": 16.99,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $16.99",
       "scrapedCtx": "Many in stock | Bin - 618 | 1 ct | Current price: $13.02 | $1302-$3617 | Chef's Quality - Liquid Butter Alternative - gallon | gal | Many in stock | Bin - 420 | 1 ct | Current price: $16.99 | $1699 | Evian - Natural Spring Water, 24 Ct, 500 mL | 24 x 16.9 fl oz | Many in stock | Bin - 9000 | 1 ct | Current price: $266.93 each (estimated) | $26693 | each (est.) | Buy 40 lb or more for $6.28 /lb | Frozen Halal Boneless Lamb Leg, Australia | $6.36 / lb | About 41.97 lb each | Many in stock",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 16.99,
       "validatedBy": null,
       "auditLog": [
@@ -247,18 +271,24 @@
           "price": 16.99,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 16.99,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "21051": {
       "price": 19.07,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $19.07",
       "scrapedCtx": "Bin - 6008 | See eligible items | 1 ct | Current price: $77.47 | $7747 | Thomas Farms - Bone in Goat Cube - #15 | 15 lb | Many in stock | Bin - 9000 | 1 ct | Current price: $19.07 | $1907 | C&H - Granulated Sugar - 25 lbs | 25# | Many in stock | Bin - 708 | 1 ct | CaffeinatedZero calories | Current price: $17.94 | $1794 | Diet Coke Bottles, 16.9 fl oz, 24 Pack | 24 ct | Many in stock | Bin - 1311 | 1 ct",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 19.07,
       "validatedBy": null,
       "auditLog": [
@@ -297,18 +327,24 @@
           "price": 19.07,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 19.07,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "25267": {
       "price": 55.25,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $11.29 → case=55.25",
       "scrapedCtx": "Bin - 5010 | 1 ct | Gluten free | Current price: $7.37 | $737-$3067 | Clabber Girl Cornstarch - 3 lbs | 3 lb | Many in stock | Bin - 721 | 1 ct | Current price: $11.29 | $1129-$5525 | Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg | 10# | Many in stock | Bin - 516 | 1 ct | Gluten free | Current price: $16.60 | $1660-$8943 | Clabber Girl - Baking Powder - 5 lbs | 5 lb | Many in stock | Bin - 721 | 1 ct",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 55.25,
       "validatedBy": null,
       "auditLog": [
@@ -347,18 +383,24 @@
           "price": 55.25,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 55.25,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "29268": {
       "price": 89.43,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $16.60 → case=89.43",
       "scrapedCtx": "Bin - 721 | 1 ct | Current price: $11.29 | $1129-$5525 | Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg | 10# | Many in stock | Bin - 516 | 1 ct | Gluten free | Current price: $16.60 | $1660-$8943 | Clabber Girl - Baking Powder - 5 lbs | 5 lb | Many in stock | Bin - 721 | 1 ct | Current price: $3.87 | $387-$1890 | Chef's Quality - All Purpose Pan Spray - 17 oz | 17 z | Many in stock | Bin - 420 | 1 ct | Current price: $9.69",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 89.43,
       "validatedBy": null,
       "auditLog": [
@@ -397,18 +439,24 @@
           "price": 89.43,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 89.43,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "40212": {
       "price": 64.32,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $14.85 → case=64.32",
       "scrapedCtx": "5 lb | Many in stock | Bin - 609 | 1 ct | Current price: $53.98 | $5398 | Serrano Peppers | 38 lb | Bin - 5102 | 1 ct | Current price: $14.85 | $1485-$6432 | SHRP P&D TF 16-20 | 2# | Bin - 5004 | Add | Current price: $37.94 | $3794 | Chef's Quality - Soybean Salad Oil - 35 lbs | 35 lb | Many in stock | Bin - 426 | Add | ABOUT | About Us",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 64.32,
       "validatedBy": null,
       "auditLog": [
@@ -447,18 +495,24 @@
           "price": 64.32,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 64.32,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42504": {
       "price": 56.3,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $5.63 → case=56.3",
       "scrapedCtx": "Many in stock | Bin - 7009 | 1 ct | Current price: $29.28 | $2928 | Lemons, 71-115 ct | 38 lb | Many in stock | Bin - 5103 | 1 ct | Current price: $5.63 | $563-$5630 | Herb - Mint- 1 lb | 1 lb | Many in stock | Bin - 5109 | 1 ct | Current price: $77.60 each (estimated) | $7760 | each (est.) | Buy 560 lb or more for $1.89 /lb | Boneless, Skinless Chicken Breasts, Tenders Out, Dry | $1.94 / lb | About 40.0 lb each | Many in stock",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 56.3,
       "validatedBy": null,
       "auditLog": [
@@ -497,18 +551,24 @@
           "price": 56.3,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 56.3,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42513": {
       "price": 22.72,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $22.72",
       "scrapedCtx": "Many in stock | Bin - 606 | 1 ct | Current price: $37.72 | $3772 | Chef's Quality - 100% Canola Salad Oil - 35 lbs | 35 lb | Many in stock | Bin - 424 | 1 ct | Current price: $22.72 | $2272 | Fresh Ginger - 30 lbs | 30 lb | Many in stock | Bin - 5104 | 1 ct | Current price: $5.33 | $533-$2618 | Isabella - Petite Diced Tomatoes -#10 cans | 102 oz | Bin - 303 | 1 ct | Current price: $5.41 | $541-$3605",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 22.72,
       "validatedBy": null,
       "auditLog": [
@@ -547,18 +607,24 @@
           "price": 22.72,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 22.72,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42545": {
       "price": 17.69,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $17.69",
       "scrapedCtx": "Many in stock | Bin - 606 | 1 ct | Current price: $9.23 | $923 | Morton - Purex Salt - 50lb | 50# | Many in stock | Bin - 707 | 1 ct | Current price: $17.69 | $1769 | Jumbo Spanish Onions - 50 lbs | 50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $13.55 | $1355 | Jumbo Red Onions - 25 lbs | 25 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $16.39",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 17.69,
       "validatedBy": null,
       "auditLog": [
@@ -597,18 +663,24 @@
           "price": 17.69,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 17.69,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42566": {
       "price": 15.11,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $4.72 → case=15.11",
       "scrapedCtx": "Isabella - Petite Diced Tomatoes -#10 cans | 102 oz | Bin - 303 | 1 ct | Current price: $5.41 | $541-$3605 | Frozen James Farm - Frozen Chopped Spinach - 3 lbs | 3 lb | Bin - 5009 | 1 ct | Current price: $4.72 | $472-$1511 | Taylor Farms - Bagged Cilantro | 1# | Bin - 5109 | 1 ct | Current price: $32.23 | $3223 | Frozen Tilapia Fillets - 3-5 oz, IQF(China) - 10 lbs | 10# | Many in stock | Bin - 5007 | 1 ct | Current price: $19.90 | $1990-$3910",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 15.11,
       "validatedBy": null,
       "auditLog": [
@@ -647,18 +719,24 @@
           "price": 15.11,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 15.11,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42570": {
       "price": 29.28,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $29.28",
       "scrapedCtx": "Many in stock | Bin - 5106 | 1 ct | Current price: $7.21 | $721 | Carrots- 10 lb | 10# | Many in stock | Bin - 7009 | 1 ct | Current price: $29.28 | $2928 | Lemons, 71-115 ct | 38 lb | Many in stock | Bin - 5103 | 1 ct | Current price: $5.63 | $563-$5630 | Herb - Mint- 1 lb | 1 lb | Many in stock | Bin - 5109 | 1 ct | Current price: $77.60 each (estimated)",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 29.28,
       "validatedBy": null,
       "auditLog": [
@@ -697,18 +775,24 @@
           "price": 29.28,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 29.28,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42606": {
       "price": 71.7,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $6.51 → case=71.7",
       "scrapedCtx": "Many in stock | Bin - 1330 | 1 ct | Current price: $8.61 | $861 | Chef's Quality - Hotel & Restaurant All Purpose Flour - 25 lb Bag | 25# | Many in stock | Bin - 723 | 1 ct | Current price: $6.51 | $651-$7170 | White Cauliflower - 1 ct | 1 ct | Many in stock | Bin - 5106 | 1 ct | Current price: $7.21 | $721 | Carrots- 10 lb | 10# | Many in stock | Bin - 7009 | 1 ct | Current price: $29.28",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 71.7,
       "validatedBy": null,
       "auditLog": [
@@ -747,18 +831,24 @@
           "price": 71.7,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 71.7,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42647": {
       "price": 5.63,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "targeted scan: $5.63",
       "scrapedCtx": "$2928 | Lemons, 71-115 ct | 38 lb | Many in stock | Bin - 5103 | 1 ct | Current price: $5.63 | $563-$5630 | Herb - Mint- 1 lb | 1 lb | Many in stock | Bin - 5109 | 1 ct | Current price: $77.60 each (estimated) | $7760 | each (est.)",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 5.63,
       "validatedBy": null,
       "auditLog": [
@@ -797,18 +887,24 @@
           "price": 5.63,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 5.63,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42658": {
       "price": 13.55,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $13.55",
       "scrapedCtx": "Many in stock | Bin - 707 | 1 ct | Current price: $17.69 | $1769 | Jumbo Spanish Onions - 50 lbs | 50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $13.55 | $1355 | Jumbo Red Onions - 25 lbs | 25 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $16.39 | $1639-$3929 | Huy Fong - Sambal Olek (Ground Chili Paste) - 3/136 oz | 1 gal | Many in stock | Bin - 626 | 1 ct | Out of stock",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 13.55,
       "validatedBy": null,
       "auditLog": [
@@ -847,18 +943,24 @@
           "price": 13.55,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 13.55,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42725": {
       "price": 13.42,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $13.42",
       "scrapedCtx": "$7760 | each (est.) | Buy 560 lb or more for $1.89 /lb | Boneless, Skinless Chicken Breasts, Tenders Out, Dry | $1.94 / lb | About 40.0 lb each | Many in stock | Bin - 6027 | See eligible items | 1 ct | Current price: $13.42 | $1342 | Russet Potato - 50 lb Crtn, 90 cnt, US #1 | 50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $2.68 | $268-$4302 | A ROY-D - COCONUT MILK REGULAR - 400ML | 13.5 oz | Bin - 624 | 1 ct | Current price: $7.10 | $710-$3151",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 13.42,
       "validatedBy": null,
       "auditLog": [
@@ -897,18 +999,24 @@
           "price": 13.42,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 13.42,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "43431": {
       "price": 47.86,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.98 → case=47.86",
       "scrapedCtx": "1 gal | Bin - 706 | 1 ct | Current price: $4.33 | $433-$1732 | Cleaned Spinach - 2.5 lbs | 2.5# | Many in stock | Bin - 5101 | 1 ct | Current price: $7.98 | $798-$4786 | Green Bell Peppers - 9 ct | 9 ct | Bin - 5107 | 1 ct | Current price: $4.08 | $408-$1125 | Chef's Quality - White Vinegar (4% acidity) - gallon | 1 gal | Many in stock | Bin - 419 | 1 ct | Current price: $24.04 | $2404",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 47.86,
       "validatedBy": null,
       "auditLog": [
@@ -947,18 +1055,24 @@
           "price": 47.86,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 47.86,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44137": {
       "price": 53.98,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $53.98",
       "scrapedCtx": "Many in stock | Bin - 728 | 1 ct | Current price: $24.12 | $2412-$8837 | Dry Chile Japones - 5 lb | 5 lb | Many in stock | Bin - 609 | 1 ct | Current price: $53.98 | $5398 | Serrano Peppers | 38 lb | Bin - 5102 | 1 ct | Current price: $14.85 | $1485-$6432 | SHRP P&D TF 16-20 | 2# | Bin - 5004 | Add | Current price: $37.94 | $3794 | Chef's Quality - Soybean Salad Oil - 35 lbs",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 53.98,
       "validatedBy": null,
       "auditLog": [
@@ -997,18 +1111,24 @@
           "price": 53.98,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 53.98,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44146": {
       "price": 86.19,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $16.46 → case=86.19",
       "scrapedCtx": "Many in stock | Bin - 9000 | See eligible items | 1 ct | Out of stock | Micro Orchid Flowers - 4 oz | 50 ct | Out of stock | Bin - 5112 | Show similar | Current price: $16.46 | $1646-$8619 | Peeled Garlic | 5# | Many in stock | Bin - 5104 | 1 ct | Current price: $5.69 | $569-$2778 | Chef's Quality - Tomato Sauce - #10 cans | #10 | Many in stock | Bin - 308 | 1 ct | Current price: $56.40 each (estimated)",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 86.19,
       "validatedBy": null,
       "auditLog": [
@@ -1047,18 +1167,24 @@
           "price": 86.19,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 86.19,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44211": {
       "price": 17.32,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $4.33 → case=17.32",
       "scrapedCtx": "24 ct | Out of stock | Bin - 1311 | Show similar | Current price: $8.18 | $818-$2914 | Felbro - Egg Yellow Food Coloring - gallon | 1 gal | Bin - 706 | 1 ct | Current price: $4.33 | $433-$1732 | Cleaned Spinach - 2.5 lbs | 2.5# | Many in stock | Bin - 5101 | 1 ct | Current price: $7.98 | $798-$4786 | Green Bell Peppers - 9 ct | 9 ct | Bin - 5107 | 1 ct | Current price: $4.08 | $408-$1125",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 17.32,
       "validatedBy": null,
       "auditLog": [
@@ -1097,18 +1223,24 @@
           "price": 17.32,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 17.32,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "45900": {
       "price": 11.25,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $4.08 → case=11.25",
       "scrapedCtx": "2.5# | Many in stock | Bin - 5101 | 1 ct | Current price: $7.98 | $798-$4786 | Green Bell Peppers - 9 ct | 9 ct | Bin - 5107 | 1 ct | Current price: $4.08 | $408-$1125 | Chef's Quality - White Vinegar (4% acidity) - gallon | 1 gal | Many in stock | Bin - 419 | 1 ct | Current price: $24.04 | $2404 | Rice Flour - 50 lbs | 50# | Many in stock | Bin - 728 | 1 ct | Current price: $24.12",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 11.25,
       "validatedBy": null,
       "auditLog": [
@@ -1147,18 +1279,24 @@
           "price": 11.25,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 11.25,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "51457": {
       "price": 32.23,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $32.23",
       "scrapedCtx": "Frozen James Farm - Frozen Chopped Spinach - 3 lbs | 3 lb | Bin - 5009 | 1 ct | Current price: $4.72 | $472-$1511 | Taylor Farms - Bagged Cilantro | 1# | Bin - 5109 | 1 ct | Current price: $32.23 | $3223 | Frozen Tilapia Fillets - 3-5 oz, IQF(China) - 10 lbs | 10# | Many in stock | Bin - 5007 | 1 ct | Current price: $19.90 | $1990-$3910 | Golden Temple - Durum Atta Flour - 2/20 lb Bag | 20 lb | Many in stock | Bin - 728 | 1 ct | Caffeine free",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 32.23,
       "validatedBy": null,
       "auditLog": [
@@ -1197,18 +1335,24 @@
           "price": 32.23,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 32.23,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "53556": {
       "price": 39.1,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $19.90 → case=39.1",
       "scrapedCtx": "1# | Bin - 5109 | 1 ct | Current price: $32.23 | $3223 | Frozen Tilapia Fillets - 3-5 oz, IQF(China) - 10 lbs | 10# | Many in stock | Bin - 5007 | 1 ct | Current price: $19.90 | $1990-$3910 | Golden Temple - Durum Atta Flour - 2/20 lb Bag | 20 lb | Many in stock | Bin - 728 | 1 ct | Caffeine free | Out of stock | Sprite Bottles, 16.9 fl oz, 4 Pack | 6 x 16.9 fl oz | Out of stock | Bin - 1311 | Show similar | Current price: $2.71",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 39.1,
       "validatedBy": null,
       "auditLog": [
@@ -1247,18 +1391,24 @@
           "price": 39.1,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 39.1,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "55519": {
       "price": 16.46,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "targeted scan: $16.46",
       "scrapedCtx": "Frozen Halal Boneless Lamb Leg, Australia | $6.36 / lb | About 41.97 lb each | Many in stock | Bin - 9000 | See eligible items | 1 ct | Out of stock | Micro Orchid Flowers - 4 oz | 50 ct | Out of stock | Bin - 5112 | Show similar | Current price: $16.46 | $1646-$8619 | Peeled Garlic",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 16.46,
       "validatedBy": null,
       "auditLog": [
@@ -1297,18 +1447,24 @@
           "price": 16.46,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 16.46,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "55523": {
       "price": 32.81,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $9.46 → case=32.81",
       "scrapedCtx": "Show similar | Current price: $67.60 per package (estimated) | $6760 | /pkg (est.) | Fresh Boneless Skinless Chicken Leg Meat | $1.69 / lb | About 40.0 lb / package | Likely out of stock | Bin - 6026 | 1 pkg | Current price: $9.46 | $946-$3281 | Chef's Quality - Lemon Juice - gallon | 1 gal | Many in stock | Bin - 1330 | 1 ct | Current price: $8.61 | $861 | Chef's Quality - Hotel & Restaurant All Purpose Flour - 25 lb Bag | 25# | Many in stock | Bin - 723 | 1 ct | Current price: $6.51",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 32.81,
       "validatedBy": null,
       "auditLog": [
@@ -1347,18 +1503,24 @@
           "price": 32.81,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 32.81,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "64046": {
       "price": 36.05,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $5.41 → case=36.05",
       "scrapedCtx": "30 lb | Many in stock | Bin - 5104 | 1 ct | Current price: $5.33 | $533-$2618 | Isabella - Petite Diced Tomatoes -#10 cans | 102 oz | Bin - 303 | 1 ct | Current price: $5.41 | $541-$3605 | Frozen James Farm - Frozen Chopped Spinach - 3 lbs | 3 lb | Bin - 5009 | 1 ct | Current price: $4.72 | $472-$1511 | Taylor Farms - Bagged Cilantro | 1# | Bin - 5109 | 1 ct | Current price: $32.23 | $3223 | Frozen Tilapia Fillets - 3-5 oz, IQF(China) - 10 lbs",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 36.05,
       "validatedBy": null,
       "auditLog": [
@@ -1397,18 +1559,24 @@
           "price": 36.05,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 36.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "64120": {
       "price": 23.45,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $2.71 → case=23.45",
       "scrapedCtx": "Many in stock | Bin - 728 | 1 ct | Caffeine free | Out of stock | Sprite Bottles, 16.9 fl oz, 4 Pack | 6 x 16.9 fl oz | Out of stock | Bin - 1311 | Show similar | Current price: $2.71 | $271-$2345 | Frozen James Farm - IQF Broccoli Florets - 2 lbs | 2# | Many in stock | Bin - 5009 | 1 ct | Current price: $4.51 | $451-$3134 | Frozen James Farm - IQF Mixed Vegetables - 2.5 lbs | 2.5 lb | Bin - 5010 | 1 ct | Current price: $5.19 | $519-$3820",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 23.45,
       "validatedBy": null,
       "auditLog": [
@@ -1447,18 +1615,24 @@
           "price": 23.45,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 23.45,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "69778": {
       "price": 24.04,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $24.04",
       "scrapedCtx": "9 ct | Bin - 5107 | 1 ct | Current price: $4.08 | $408-$1125 | Chef's Quality - White Vinegar (4% acidity) - gallon | 1 gal | Many in stock | Bin - 419 | 1 ct | Current price: $24.04 | $2404 | Rice Flour - 50 lbs | 50# | Many in stock | Bin - 728 | 1 ct | Current price: $24.12 | $2412-$8837 | Dry Chile Japones - 5 lb | 5 lb | Many in stock | Bin - 609 | 1 ct | Current price: $53.98",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 24.04,
       "validatedBy": null,
       "auditLog": [
@@ -1497,18 +1671,24 @@
           "price": 24.04,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 24.04,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "69810": {
       "price": 32.6,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $8.03 → case=32.6",
       "scrapedCtx": "17 z | Many in stock | Bin - 420 | 1 ct | Current price: $9.69 | $969-$3287 | Felbro - Red Food Coloring - gallon | 1 gal | Bin - 706 | Add | Current price: $8.03 | $803-$3260 | Chef's Quality - Dark Red Kidney Beans - #10 cans | #10 | Many in stock | Bin - 606 | 1 ct | Current price: $9.23 | $923 | Morton - Purex Salt - 50lb | 50# | Many in stock | Bin - 707 | 1 ct | Current price: $17.69",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 32.6,
       "validatedBy": null,
       "auditLog": [
@@ -1547,18 +1727,24 @@
           "price": 32.6,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 32.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "77200": {
       "price": 54.8,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $56.40 each (estimated) ($1.37/lb × 40lb = $54.8)",
       "scrapedCtx": "Many in stock | Bin - 5104 | 1 ct | Current price: $5.69 | $569-$2778 | Chef's Quality - Tomato Sauce - #10 cans | #10 | Many in stock | Bin - 308 | 1 ct | Current price: $56.40 each (estimated) | $5640 | each (est.) | Buy 560 lb or more for $1.37 /lb | Jumbo Chicken Party Wings (6-8 ct) | $1.41 / lb | About 40.0 lb each | Bin - 6008 | See eligible items | 1 ct | Current price: $77.47 | $7747 | Thomas Farms - Bone in Goat Cube - #15 | 15 lb | Many in stock",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 54.8,
       "validatedBy": null,
       "auditLog": [
@@ -1597,18 +1783,24 @@
           "price": 54.8,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 54.8,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "77232": {
       "price": 75.6,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $77.60 each (estimated) ($1.89/lb × 40lb = $75.6)",
       "scrapedCtx": "Many in stock | Bin - 5103 | 1 ct | Current price: $5.63 | $563-$5630 | Herb - Mint- 1 lb | 1 lb | Many in stock | Bin - 5109 | 1 ct | Current price: $77.60 each (estimated) | $7760 | each (est.) | Buy 560 lb or more for $1.89 /lb | Boneless, Skinless Chicken Breasts, Tenders Out, Dry | $1.94 / lb | About 40.0 lb each | Many in stock | Bin - 6027 | See eligible items | 1 ct | Current price: $13.42 | $1342 | Russet Potato - 50 lb Crtn, 90 cnt, US #1 | 50 lb",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 75.6,
       "validatedBy": null,
       "auditLog": [
@@ -1647,18 +1839,24 @@
           "price": 75.6,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 75.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "77658": {
       "price": 67.6,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "targeted scan: $67.6",
       "scrapedCtx": "Cucumbers - 6 ct | 6 ct | Out of stock | Bin - 5106 | Show similar | Current price: $67.60 per package (estimated) | $6760 | /pkg (est.) | Fresh Boneless Skinless Chicken Leg Meat | $1.69 / lb | About 40.0 lb / package | Likely out of stock | Bin - 6026 | 1 pkg | Current price: $9.46 | $946-$3281",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 67.6,
       "validatedBy": null,
       "auditLog": [
@@ -1697,18 +1895,24 @@
           "price": 67.6,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 67.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "77670": {
       "price": 30.8,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $31.60 each (estimated) ($0.77/lb × 40lb = $30.8)",
       "scrapedCtx": "Many in stock | Bin - 4018 | 1 ct | Current price: $7.84 | $784-$4395 | James Farm - Heavy Cream, 40% - 64 oz | 64 z | Many in stock | Bin - 4022 | 1 ct | Current price: $31.60 each (estimated) | $3160 | each (est.) | Buy 560 lb or more for $0.77 /lb | Fresh Chicken Leg Quarters - 40 lbs | $0.79 / lb | About 40.0 lb each | Bin - 6026 | See eligible items | Add | Dairy free | Current price: $24.40 | $2440-$8676 | Royal Mahout - Paneer Loaf - 5 lbs | 5 lb",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 30.8,
       "validatedBy": null,
       "auditLog": [
@@ -1747,18 +1951,24 @@
           "price": 30.8,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 30.8,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "79042": {
       "price": 263.57,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $266.93 each (estimated) ($6.28/lb × 41.97lb = $263.57)",
       "scrapedCtx": "Many in stock | Bin - 420 | 1 ct | Current price: $16.99 | $1699 | Evian - Natural Spring Water, 24 Ct, 500 mL | 24 x 16.9 fl oz | Many in stock | Bin - 9000 | 1 ct | Current price: $266.93 each (estimated) | $26693 | each (est.) | Buy 40 lb or more for $6.28 /lb | Frozen Halal Boneless Lamb Leg, Australia | $6.36 / lb | About 41.97 lb each | Many in stock | Bin - 9000 | See eligible items | 1 ct | Out of stock | Micro Orchid Flowers - 4 oz | 50 ct | Out of stock",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 263.57,
       "validatedBy": null,
       "auditLog": [
@@ -1797,18 +2007,24 @@
           "price": 263.57,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 263.57,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "79152": {
       "price": 7.21,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.21",
       "scrapedCtx": "Many in stock | Bin - 723 | 1 ct | Current price: $6.51 | $651-$7170 | White Cauliflower - 1 ct | 1 ct | Many in stock | Bin - 5106 | 1 ct | Current price: $7.21 | $721 | Carrots- 10 lb | 10# | Many in stock | Bin - 7009 | 1 ct | Current price: $29.28 | $2928 | Lemons, 71-115 ct | 38 lb | Many in stock | Bin - 5103 | 1 ct | Current price: $5.63",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 7.21,
       "validatedBy": null,
       "auditLog": [
@@ -1847,18 +2063,24 @@
           "price": 7.21,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 7.21,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "86525": {
       "price": 38.2,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $5.19 → case=38.2",
       "scrapedCtx": "2# | Many in stock | Bin - 5009 | 1 ct | Current price: $4.51 | $451-$3134 | Frozen James Farm - IQF Mixed Vegetables - 2.5 lbs | 2.5 lb | Bin - 5010 | 1 ct | Current price: $5.19 | $519-$3820 | Frozen James Farm - IQF Peas - 2.5 lbs | 2.5# | Many in stock | Bin - 5010 | 1 ct | Gluten free | Current price: $7.37 | $737-$3067 | Clabber Girl Cornstarch - 3 lbs | 3 lb | Many in stock | Bin - 721 | 1 ct",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 38.2,
       "validatedBy": null,
       "auditLog": [
@@ -1897,18 +2119,24 @@
           "price": 38.2,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 38.2,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "86527": {
       "price": 31.34,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $4.51 → case=31.34",
       "scrapedCtx": "Out of stock | Bin - 1311 | Show similar | Current price: $2.71 | $271-$2345 | Frozen James Farm - IQF Broccoli Florets - 2 lbs | 2# | Many in stock | Bin - 5009 | 1 ct | Current price: $4.51 | $451-$3134 | Frozen James Farm - IQF Mixed Vegetables - 2.5 lbs | 2.5 lb | Bin - 5010 | 1 ct | Current price: $5.19 | $519-$3820 | Frozen James Farm - IQF Peas - 2.5 lbs | 2.5# | Many in stock | Bin - 5010 | 1 ct | Gluten free | Current price: $7.37",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 31.34,
       "validatedBy": null,
       "auditLog": [
@@ -1947,18 +2175,24 @@
           "price": 31.34,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 31.34,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "370496": {
       "price": 16.12,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $4.22 → case=16.12",
       "scrapedCtx": "Edit items | Add 62 items to cart | Current price: $36.24 | $3624 | James Farm - Plain Yogurt - 32 lbs | 32# | Many in stock | Bin - 4043 | 1 ct | Whole | Current price: $4.22 | $422-$1612 | MILK WHL GAL GS/AN | 128 z | Many in stock | Bin - 4018 | 1 ct | Current price: $7.84 | $784-$4395 | James Farm - Heavy Cream, 40% - 64 oz | 64 z | Many in stock | Bin - 4022 | 1 ct | Current price: $31.60 each (estimated)",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 16.12,
       "validatedBy": null,
       "auditLog": [
@@ -1997,18 +2231,24 @@
           "price": 16.12,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 16.12,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "440039": {
       "price": 17.94,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $17.94",
       "scrapedCtx": "Bin - 9000 | 1 ct | Current price: $19.07 | $1907 | C&H - Granulated Sugar - 25 lbs | 25# | Many in stock | Bin - 708 | 1 ct | CaffeinatedZero calories | Current price: $17.94 | $1794 | Diet Coke Bottles, 16.9 fl oz, 24 Pack | 24 ct | Many in stock | Bin - 1311 | 1 ct | Current price: $7.87 | $787-$2975 | Chef's Quality - Garbanzo Beans - #10 can | 110 oz | Many in stock | Bin - 606 | 1 ct | Current price: $37.72",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 17.94,
       "validatedBy": null,
       "auditLog": [
@@ -2047,18 +2287,24 @@
           "price": 17.94,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 17.94,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "490266": {
       "price": 57.62,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $57.62",
       "scrapedCtx": "Many in stock | Bin - 4002 | Add | Current price: $36.68 | $3668 | Chef's Quality - Clear Liquid Fry Oil, zero trans fats - 35 lbs | 35 lb | Many in stock | Bin - 428 | 1 ct | Current price: $57.62 | $5762 | Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs | 40 lb | Many in stock | Bin - 618 | 1 ct | Current price: $13.02 | $1302-$3617 | Chef's Quality - Liquid Butter Alternative - gallon | gal | Many in stock | Bin - 420 | 1 ct | Current price: $16.99",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 57.62,
       "validatedBy": null,
       "auditLog": [
@@ -2097,18 +2343,24 @@
           "price": 57.62,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 57.62,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "860043": {
       "price": 31.51,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.10 → case=31.51",
       "scrapedCtx": "50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $2.68 | $268-$4302 | A ROY-D - COCONUT MILK REGULAR - 400ML | 13.5 oz | Bin - 624 | 1 ct | Current price: $7.10 | $710-$3151 | Chef's Quality - Tomato Puree - 6 lb Can | #10 | Many in stock | Bin - 304 | 1 ct | Current price: $11.34 | $1134-$4147 | James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs | 5# | Many in stock | Bin - 4011 | 1 ct | Caffeinated",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 31.51,
       "validatedBy": null,
       "auditLog": [
@@ -2147,18 +2399,24 @@
           "price": 31.51,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 31.51,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "860044": {
       "price": 27.78,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $5.69 → case=27.78",
       "scrapedCtx": "Out of stock | Bin - 5112 | Show similar | Current price: $16.46 | $1646-$8619 | Peeled Garlic | 5# | Many in stock | Bin - 5104 | 1 ct | Current price: $5.69 | $569-$2778 | Chef's Quality - Tomato Sauce - #10 cans | #10 | Many in stock | Bin - 308 | 1 ct | Current price: $56.40 each (estimated) | $5640 | each (est.) | Buy 560 lb or more for $1.37 /lb | Jumbo Chicken Party Wings (6-8 ct) | $1.41 / lb | About 40.0 lb each | Bin - 6008",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 27.78,
       "validatedBy": null,
       "auditLog": [
@@ -2197,18 +2455,24 @@
           "price": 27.78,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 27.78,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "860135": {
       "price": 26.18,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $5.33 → case=26.18",
       "scrapedCtx": "Many in stock | Bin - 424 | 1 ct | Current price: $22.72 | $2272 | Fresh Ginger - 30 lbs | 30 lb | Many in stock | Bin - 5104 | 1 ct | Current price: $5.33 | $533-$2618 | Isabella - Petite Diced Tomatoes -#10 cans | 102 oz | Bin - 303 | 1 ct | Current price: $5.41 | $541-$3605 | Frozen James Farm - Frozen Chopped Spinach - 3 lbs | 3 lb | Bin - 5009 | 1 ct | Current price: $4.72 | $472-$1511 | Taylor Farms - Bagged Cilantro",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 26.18,
       "validatedBy": null,
       "auditLog": [
@@ -2247,18 +2511,24 @@
           "price": 26.18,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 26.18,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1020077": {
       "price": 36.68,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $36.68",
       "scrapedCtx": "See eligible items | Add | Dairy free | Current price: $24.40 | $2440-$8676 | Royal Mahout - Paneer Loaf - 5 lbs | 5 lb | Many in stock | Bin - 4002 | Add | Current price: $36.68 | $3668 | Chef's Quality - Clear Liquid Fry Oil, zero trans fats - 35 lbs | 35 lb | Many in stock | Bin - 428 | 1 ct | Current price: $57.62 | $5762 | Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs | 40 lb | Many in stock | Bin - 618 | 1 ct | Current price: $13.02",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 36.68,
       "validatedBy": null,
       "auditLog": [
@@ -2297,18 +2567,24 @@
           "price": 36.68,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 36.68,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1020079": {
       "price": 37.72,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $37.72",
       "scrapedCtx": "Many in stock | Bin - 1311 | 1 ct | Current price: $7.87 | $787-$2975 | Chef's Quality - Garbanzo Beans - #10 can | 110 oz | Many in stock | Bin - 606 | 1 ct | Current price: $37.72 | $3772 | Chef's Quality - 100% Canola Salad Oil - 35 lbs | 35 lb | Many in stock | Bin - 424 | 1 ct | Current price: $22.72 | $2272 | Fresh Ginger - 30 lbs | 30 lb | Many in stock | Bin - 5104 | 1 ct | Current price: $5.33",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 37.72,
       "validatedBy": null,
       "auditLog": [
@@ -2347,18 +2623,24 @@
           "price": 37.72,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 37.72,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1020152": {
       "price": 36.17,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $13.02 → case=36.17",
       "scrapedCtx": "Many in stock | Bin - 428 | 1 ct | Current price: $57.62 | $5762 | Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs | 40 lb | Many in stock | Bin - 618 | 1 ct | Current price: $13.02 | $1302-$3617 | Chef's Quality - Liquid Butter Alternative - gallon | gal | Many in stock | Bin - 420 | 1 ct | Current price: $16.99 | $1699 | Evian - Natural Spring Water, 24 Ct, 500 mL | 24 x 16.9 fl oz | Many in stock | Bin - 9000 | 1 ct | Current price: $266.93 each (estimated)",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 36.17,
       "validatedBy": null,
       "auditLog": [
@@ -2397,18 +2679,24 @@
           "price": 36.17,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 36.17,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1070125": {
       "price": 88.37,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $24.12 → case=88.37",
       "scrapedCtx": "Many in stock | Bin - 419 | 1 ct | Current price: $24.04 | $2404 | Rice Flour - 50 lbs | 50# | Many in stock | Bin - 728 | 1 ct | Current price: $24.12 | $2412-$8837 | Dry Chile Japones - 5 lb | 5 lb | Many in stock | Bin - 609 | 1 ct | Current price: $53.98 | $5398 | Serrano Peppers | 38 lb | Bin - 5102 | 1 ct | Current price: $14.85 | $1485-$6432",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 88.37,
       "validatedBy": null,
       "auditLog": [
@@ -2447,18 +2735,24 @@
           "price": 88.37,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 88.37,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1070496": {
       "price": 9.23,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $9.23",
       "scrapedCtx": "1 gal | Bin - 706 | Add | Current price: $8.03 | $803-$3260 | Chef's Quality - Dark Red Kidney Beans - #10 cans | #10 | Many in stock | Bin - 606 | 1 ct | Current price: $9.23 | $923 | Morton - Purex Salt - 50lb | 50# | Many in stock | Bin - 707 | 1 ct | Current price: $17.69 | $1769 | Jumbo Spanish Onions - 50 lbs | 50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $13.55",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 9.23,
       "validatedBy": null,
       "auditLog": [
@@ -2497,18 +2791,24 @@
           "price": 9.23,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 9.23,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1440203": {
       "price": 41.47,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $11.34 → case=41.47",
       "scrapedCtx": "13.5 oz | Bin - 624 | 1 ct | Current price: $7.10 | $710-$3151 | Chef's Quality - Tomato Puree - 6 lb Can | #10 | Many in stock | Bin - 304 | 1 ct | Current price: $11.34 | $1134-$4147 | James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs | 5# | Many in stock | Bin - 4011 | 1 ct | Caffeinated | Out of stock | Coca-Cola Bottles, 16.9 fl oz, 24 Pack | 24 ct | Out of stock | Bin - 1311 | Show similar | Current price: $8.18",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 41.47,
       "validatedBy": null,
       "auditLog": [
@@ -2547,18 +2847,24 @@
           "price": 41.47,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 41.47,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1440528": {
       "price": 86.76,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $24.40 → case=86.76",
       "scrapedCtx": "$3160 | each (est.) | Buy 560 lb or more for $0.77 /lb | Fresh Chicken Leg Quarters - 40 lbs | $0.79 / lb | About 40.0 lb each | Bin - 6026 | See eligible items | Add | Dairy free | Current price: $24.40 | $2440-$8676 | Royal Mahout - Paneer Loaf - 5 lbs | 5 lb | Many in stock | Bin - 4002 | Add | Current price: $36.68 | $3668 | Chef's Quality - Clear Liquid Fry Oil, zero trans fats - 35 lbs | 35 lb | Many in stock | Bin - 428 | 1 ct | Current price: $57.62",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 86.76,
       "validatedBy": null,
       "auditLog": [
@@ -2597,18 +2903,24 @@
           "price": 86.76,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 86.76,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1530438": {
       "price": 43.95,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.84 → case=43.95",
       "scrapedCtx": "Bin - 4043 | 1 ct | Whole | Current price: $4.22 | $422-$1612 | MILK WHL GAL GS/AN | 128 z | Many in stock | Bin - 4018 | 1 ct | Current price: $7.84 | $784-$4395 | James Farm - Heavy Cream, 40% - 64 oz | 64 z | Many in stock | Bin - 4022 | 1 ct | Current price: $31.60 each (estimated) | $3160 | each (est.) | Buy 560 lb or more for $0.77 /lb | Fresh Chicken Leg Quarters - 40 lbs | $0.79 / lb | About 40.0 lb each | Bin - 6026",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 43.95,
       "validatedBy": null,
       "auditLog": [
@@ -2647,18 +2959,24 @@
           "price": 43.95,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 43.95,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1810019": {
       "price": 77.47,
-      "date": "2026-05-11T03:38:37.344Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $77.47",
       "scrapedCtx": "Current price: $56.40 each (estimated) | $5640 | each (est.) | Buy 560 lb or more for $1.37 /lb | Jumbo Chicken Party Wings (6-8 ct) | $1.41 / lb | About 40.0 lb each | Bin - 6008 | See eligible items | 1 ct | Current price: $77.47 | $7747 | Thomas Farms - Bone in Goat Cube - #15 | 15 lb | Many in stock | Bin - 9000 | 1 ct | Current price: $19.07 | $1907 | C&H - Granulated Sugar - 25 lbs | 25# | Many in stock | Bin - 708 | 1 ct | CaffeinatedZero calories",
-      "scrapedAt": "2026-05-11T03:38:37.344Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 77.47,
       "validatedBy": null,
       "auditLog": [
@@ -2697,18 +3015,24 @@
           "price": 77.47,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 77.47,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2061212": {
       "price": 8.61,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $8.61",
       "scrapedCtx": "Likely out of stock | Bin - 6026 | 1 pkg | Current price: $9.46 | $946-$3281 | Chef's Quality - Lemon Juice - gallon | 1 gal | Many in stock | Bin - 1330 | 1 ct | Current price: $8.61 | $861 | Chef's Quality - Hotel & Restaurant All Purpose Flour - 25 lb Bag | 25# | Many in stock | Bin - 723 | 1 ct | Current price: $6.51 | $651-$7170 | White Cauliflower - 1 ct | 1 ct | Many in stock | Bin - 5106 | 1 ct | Current price: $7.21",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 8.61,
       "validatedBy": null,
       "auditLog": [
@@ -2747,18 +3071,24 @@
           "price": 8.61,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 8.61,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2550012": {
       "price": 29.14,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $8.18 → case=29.14",
       "scrapedCtx": "Many in stock | Bin - 4011 | 1 ct | Caffeinated | Out of stock | Coca-Cola Bottles, 16.9 fl oz, 24 Pack | 24 ct | Out of stock | Bin - 1311 | Show similar | Current price: $8.18 | $818-$2914 | Felbro - Egg Yellow Food Coloring - gallon | 1 gal | Bin - 706 | 1 ct | Current price: $4.33 | $433-$1732 | Cleaned Spinach - 2.5 lbs | 2.5# | Many in stock | Bin - 5101 | 1 ct | Current price: $7.98 | $798-$4786",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 29.14,
       "validatedBy": null,
       "auditLog": [
@@ -2797,18 +3127,24 @@
           "price": 29.14,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 29.14,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2550014": {
       "price": 32.87,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $9.69 → case=32.87",
       "scrapedCtx": "Many in stock | Bin - 721 | 1 ct | Current price: $3.87 | $387-$1890 | Chef's Quality - All Purpose Pan Spray - 17 oz | 17 z | Many in stock | Bin - 420 | 1 ct | Current price: $9.69 | $969-$3287 | Felbro - Red Food Coloring - gallon | 1 gal | Bin - 706 | Add | Current price: $8.03 | $803-$3260 | Chef's Quality - Dark Red Kidney Beans - #10 cans | #10 | Many in stock | Bin - 606 | 1 ct | Current price: $9.23 | $923",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 32.87,
       "validatedBy": null,
       "auditLog": [
@@ -2847,18 +3183,24 @@
           "price": 32.87,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 32.87,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2620442": {
       "price": 43.02,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $2.68 → case=43.02",
       "scrapedCtx": "Bin - 6027 | See eligible items | 1 ct | Current price: $13.42 | $1342 | Russet Potato - 50 lb Crtn, 90 cnt, US #1 | 50 lb | Many in stock | Bin - 5113 | 1 ct | Current price: $2.68 | $268-$4302 | A ROY-D - COCONUT MILK REGULAR - 400ML | 13.5 oz | Bin - 624 | 1 ct | Current price: $7.10 | $710-$3151 | Chef's Quality - Tomato Puree - 6 lb Can | #10 | Many in stock | Bin - 304 | 1 ct | Current price: $11.34 | $1134-$4147",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 43.02,
       "validatedBy": null,
       "auditLog": [
@@ -2897,18 +3239,24 @@
           "price": 43.02,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 43.02,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2910159": {
       "price": 30.67,
-      "date": "2026-05-11T03:38:37.345Z",
+      "date": "2026-05-11T03:44:28.252Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": "Current price: $7.37 → case=30.67",
       "scrapedCtx": "Bin - 5010 | 1 ct | Current price: $5.19 | $519-$3820 | Frozen James Farm - IQF Peas - 2.5 lbs | 2.5# | Many in stock | Bin - 5010 | 1 ct | Gluten free | Current price: $7.37 | $737-$3067 | Clabber Girl Cornstarch - 3 lbs | 3 lb | Many in stock | Bin - 721 | 1 ct | Current price: $11.29 | $1129-$5525 | Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg | 10# | Many in stock | Bin - 516 | 1 ct | Gluten free",
-      "scrapedAt": "2026-05-11T03:38:37.345Z",
+      "scrapedAt": "2026-05-11T03:44:28.252Z",
       "prevPrice": 30.67,
       "validatedBy": null,
       "auditLog": [
@@ -2947,6 +3295,12 @@
           "price": 30.67,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:44:28.252Z",
+          "price": 30.67,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     }
@@ -2954,21 +3308,15 @@
   "sysco": {
     "12728": {
       "price": 32.75,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "6914451",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 32.75,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 32.75,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 32.75,
@@ -3019,6 +3367,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 32.75,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 32.75,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3027,21 +3381,15 @@
     },
     "13417": {
       "price": 52.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2638660",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 52.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 52.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 52.95,
@@ -3092,6 +3440,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 52.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 52.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3100,21 +3454,15 @@
     },
     "16200": {
       "price": 42.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4062337",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 42.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 42.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 42.95,
@@ -3165,6 +3513,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 42.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 42.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3173,21 +3527,15 @@
     },
     "21039": {
       "price": 33.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2886075",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 33.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 33.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 33.99,
@@ -3238,6 +3586,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 33.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 33.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3246,21 +3600,15 @@
     },
     "21051": {
       "price": 17.71,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5087572",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 17.71,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 17.71,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 17.71,
@@ -3311,6 +3659,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 17.71,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 17.71,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3319,21 +3673,15 @@
     },
     "29268": {
       "price": 128.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5517701",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 128.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 128.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 128.99,
@@ -3384,6 +3732,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 128.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 128.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3392,21 +3746,15 @@
     },
     "40212": {
       "price": 67.79,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5106388",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 67.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 67.79,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 67.79,
@@ -3457,6 +3805,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 67.79,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 67.79,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3465,21 +3819,15 @@
     },
     "42504": {
       "price": 11.75,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "7410640",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 11.75,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 11.75,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 11.75,
@@ -3530,6 +3878,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 11.75,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 11.75,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3538,21 +3892,15 @@
     },
     "42513": {
       "price": 52.75,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1184902",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 52.75,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 52.75,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 52.75,
@@ -3603,6 +3951,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 52.75,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 52.75,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3611,21 +3965,15 @@
     },
     "42545": {
       "price": 11.31,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1048222",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 11.31,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 11.31,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 11.31,
@@ -3676,6 +4024,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 11.31,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 11.31,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3684,21 +4038,15 @@
     },
     "42566": {
       "price": 19.85,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "7078475",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 19.85,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 19.85,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 19.85,
@@ -3749,6 +4097,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 19.85,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 19.85,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3757,21 +4111,15 @@
     },
     "42570": {
       "price": 38.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2252013",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 38.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 38.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 38.99,
@@ -3822,6 +4170,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 38.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 38.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3830,21 +4184,15 @@
     },
     "42606": {
       "price": 62.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1243724",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 62.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 62.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 62.99,
@@ -3895,6 +4243,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 62.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 62.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3903,21 +4257,15 @@
     },
     "42647": {
       "price": 12.65,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2037125",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 12.65,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 12.65,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 12.65,
@@ -3968,6 +4316,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 12.65,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 12.65,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -3976,21 +4330,15 @@
     },
     "42658": {
       "price": 17.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1094663",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 17.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 17.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 17.99,
@@ -4041,6 +4389,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 17.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 17.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4049,21 +4403,15 @@
     },
     "42725": {
       "price": 10.48,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1543164",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 10.48,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 10.48,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 10.48,
@@ -4114,6 +4462,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 10.48,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 10.48,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4122,21 +4476,15 @@
     },
     "44137": {
       "price": 83.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "7007376",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 83.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 83.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 83.99,
@@ -4187,6 +4535,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 83.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 83.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4195,21 +4549,15 @@
     },
     "44146": {
       "price": 70.54,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1821537",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 70.54,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 70.54,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 70.54,
@@ -4260,6 +4608,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 70.54,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 70.54,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4268,21 +4622,15 @@
     },
     "44211": {
       "price": 12.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "8474538",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 12.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 12.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 12.99,
@@ -4333,6 +4681,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 12.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 12.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4341,21 +4695,15 @@
     },
     "45900": {
       "price": 24.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4113049",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 24.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 24.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 24.95,
@@ -4406,6 +4754,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 24.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 24.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4414,21 +4768,15 @@
     },
     "51457": {
       "price": 53.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "0496671",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 53.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 53.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 53.95,
@@ -4479,6 +4827,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 53.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 53.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4487,21 +4841,15 @@
     },
     "53556": {
       "price": 17.59,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4014684",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 17.59,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 17.59,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 17.59,
@@ -4552,6 +4900,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 17.59,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 17.59,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4560,21 +4914,15 @@
     },
     "55523": {
       "price": 34.27,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4063095",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 34.27,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 34.27,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 34.27,
@@ -4625,6 +4973,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 34.27,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 34.27,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4633,21 +4987,15 @@
     },
     "64046": {
       "price": 56.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2523833",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 56.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 56.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 56.95,
@@ -4698,6 +5046,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 56.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 56.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4706,21 +5060,15 @@
     },
     "64120": {
       "price": 71.55,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "6988158",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 71.55,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 71.55,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 71.55,
@@ -4771,6 +5119,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 71.55,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 71.55,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4779,21 +5133,15 @@
     },
     "69810": {
       "price": 44.45,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4014973",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 44.45,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 44.45,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 44.45,
@@ -4844,6 +5192,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 44.45,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 44.45,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4852,21 +5206,15 @@
     },
     "77200": {
       "price": 64.69,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "6344790",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 64.69,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 64.69,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 64.69,
@@ -4917,6 +5265,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 64.69,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 64.69,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4925,21 +5279,15 @@
     },
     "77232": {
       "price": 78.49,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5231238",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 78.49,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 78.49,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 78.49,
@@ -4990,6 +5338,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 78.49,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 78.49,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4998,21 +5352,15 @@
     },
     "77658": {
       "price": 61.67,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "0868459",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 61.67,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 61.67,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 61.67,
@@ -5063,6 +5411,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 61.67,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 61.67,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5071,21 +5425,15 @@
     },
     "77670": {
       "price": 35.17,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1803287",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 35.17,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 35.17,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 35.17,
@@ -5136,6 +5484,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 35.17,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 35.17,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5144,21 +5498,15 @@
     },
     "77682": {
       "price": 76.3,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "8053456",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 76.3,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 76.3,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 76.3,
@@ -5212,26 +5560,26 @@
           "price": 76.3,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 76.3,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "79152": {
       "price": 19.69,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "3879962",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 19.69,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 19.69,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 19.69,
@@ -5282,6 +5630,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 19.69,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 19.69,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5290,21 +5644,15 @@
     },
     "86525": {
       "price": 63.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "6409940",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 63.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 63.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 63.95,
@@ -5355,6 +5703,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 63.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 63.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5363,21 +5717,15 @@
     },
     "86527": {
       "price": 41.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "3960200",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 41.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 41.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 41.99,
@@ -5428,6 +5776,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 41.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 41.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5436,21 +5790,15 @@
     },
     "370496": {
       "price": 17.53,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4676306",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 17.53,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 17.53,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 17.53,
@@ -5501,6 +5849,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 17.53,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 17.53,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5509,21 +5863,15 @@
     },
     "860044": {
       "price": 29.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4002325",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 29.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 29.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 29.99,
@@ -5577,26 +5925,26 @@
           "price": 29.99,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 29.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "860135": {
       "price": 38.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5895750",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 38.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 38.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 38.95,
@@ -5650,26 +5998,26 @@
           "price": 38.95,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 38.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "1020075": {
       "price": 37.25,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4119079",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 37.25,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 37.25,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 37.25,
@@ -5720,6 +6068,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 37.25,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 37.25,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5728,21 +6082,15 @@
     },
     "1020077": {
       "price": 36.01,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4518403",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 36.01,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 36.01,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 36.01,
@@ -5793,6 +6141,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 36.01,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 36.01,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5801,21 +6155,15 @@
     },
     "1020079": {
       "price": 47.95,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "5061643",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 47.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 47.95,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 47.95,
@@ -5866,6 +6214,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 47.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 47.95,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5874,21 +6228,15 @@
     },
     "1020152": {
       "price": 29.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "3355757",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 29.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 29.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 29.99,
@@ -5939,6 +6287,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 29.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 29.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5947,25 +6301,19 @@
     },
     "1048222": {
       "price": 11.31,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1070496": {
       "price": 18.45,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4564894",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 18.45,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 18.45,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 18.45,
@@ -6016,6 +6364,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 18.45,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 18.45,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6024,37 +6378,31 @@
     },
     "1094663": {
       "price": 17.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1184902": {
       "price": 52.75,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1243724": {
       "price": 62.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1425982": {
       "price": 57.65,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1440203": {
       "price": 65.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "2822379",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 65.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 65.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 65.99,
@@ -6105,6 +6453,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 65.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 65.99,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6113,21 +6467,15 @@
     },
     "1530438": {
       "price": 43.87,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "6935464",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 43.87,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 43.87,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 43.87,
@@ -6178,6 +6526,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 43.87,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 43.87,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6186,37 +6540,31 @@
     },
     "1543164": {
       "price": 10.48,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1803287": {
       "price": 35.17,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "1821537": {
       "price": 70.54,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2037125": {
       "price": 12.65,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2061212": {
       "price": 9.03,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "8379251",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 9.03,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 9.03,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 9.03,
@@ -6267,6 +6615,12 @@
         },
         {
           "date": "2026-05-11T03:41:34.113Z",
+          "price": 9.03,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
           "price": 9.03,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6275,29 +6629,23 @@
     },
     "2252013": {
       "price": 38.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2523833": {
       "price": 56.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2550012": {
       "price": 52.99,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4112262",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 52.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 52.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 52.99,
@@ -6351,26 +6699,26 @@
           "price": 52.99,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 52.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "2620442": {
       "price": 57.65,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "1425982",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 57.65,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 57.65,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 57.65,
@@ -6424,38 +6772,38 @@
           "price": 57.65,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 57.65,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "2638660": {
       "price": 52.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2822379": {
       "price": 65.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2886075": {
       "price": 33.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "2910159": {
       "price": 43.79,
-      "date": "2026-05-11T03:41:34.113Z",
+      "date": "2026-05-11T03:47:25.443Z",
       "syscoUpc": "4073441",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-05-11T03:41:34.113Z",
+      "scrapedAt": "2026-05-11T03:47:25.443Z",
       "prevPrice": 43.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-05-11T02:42:21.669Z",
-          "price": 43.79,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-05-11T02:47:37.674Z",
           "price": 43.79,
@@ -6509,147 +6857,153 @@
           "price": 43.79,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-05-11T03:47:25.443Z",
+          "price": 43.79,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "3355757": {
       "price": 29.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "3879962": {
       "price": 19.69,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "3960200": {
       "price": 41.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4002325": {
       "price": 29.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4014684": {
       "price": 17.59,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4014973": {
       "price": 44.45,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4062337": {
       "price": 42.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4063095": {
       "price": 34.27,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4073441": {
       "price": 43.79,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4112262": {
       "price": 52.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4113049": {
       "price": 24.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4119079": {
       "price": 37.25,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4518403": {
       "price": 36.01,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4564894": {
       "price": 18.45,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "4676306": {
       "price": 17.53,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5061643": {
       "price": 47.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5087572": {
       "price": 17.71,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5106388": {
       "price": 67.79,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5231238": {
       "price": 78.49,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5517701": {
       "price": 128.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "5895750": {
       "price": 38.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "6344790": {
       "price": 64.69,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "6409940": {
       "price": 63.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "6914451": {
       "price": 32.75,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "6935464": {
       "price": 43.87,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "6988158": {
       "price": 71.55,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "7007376": {
       "price": 83.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "7078475": {
       "price": 19.85,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "7410640": {
       "price": 11.75,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "8053456": {
       "price": 76.3,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "8379251": {
       "price": 9.03,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "8474538": {
       "price": 12.99,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "0868459": {
       "price": 61.67,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     },
     "0496671": {
       "price": 53.95,
-      "date": "2026-05-11T03:41:34.113Z"
+      "date": "2026-05-11T03:47:25.443Z"
     }
   },
-  "lastUpdated": "2026-05-11T03:41:34.115Z",
+  "lastUpdated": "2026-05-11T03:47:25.444Z",
   "oos": {
     "rd": [
       "440040",
