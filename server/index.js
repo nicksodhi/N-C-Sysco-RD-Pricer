@@ -1832,7 +1832,7 @@ async function runScrape(source = "all") {
             const nowSc = new Date().toISOString();
             const prevSc = priceStore.sysco[rdId];
             priceStore.sysco[rdId] = {
-              price,
+              price: adjP,  // use adjusted price (e.g. Paneer per-lb × 10 = case price)
               date: nowSc,
               syscoUpc: id,
               rdMult,
@@ -1843,7 +1843,7 @@ async function runScrape(source = "all") {
               validatedBy: null,
               auditLog: [
                 ...(prevSc?.auditLog || []).slice(-9),
-                { date: nowSc, price, source: "scraped_sysco", confidence: "medium" }
+                { date: nowSc, price: adjP, source: "scraped_sysco", confidence: "medium" }
               ],
             };
           }
@@ -1859,7 +1859,10 @@ async function runScrape(source = "all") {
           if (mapping) {
             const rdId = mapping.rdId || mapping;
             if (!priceStore.sysco[rdId]) {
-              priceStore.sysco[rdId] = { price, date: new Date().toISOString(), syscoUpc: id, rdMult: mapping.rdMult || 1 };
+              // Use adjusted price (handles per-lb items like Paneer)
+              let reAdjP = price;
+              if (id === "7102961" && price < 20) reAdjP = Math.round(price*10*100)/100;
+              priceStore.sysco[rdId] = { price: reAdjP, date: new Date().toISOString(), syscoUpc: id, rdMult: mapping.rdMult || 1 };
             }
           }
         });
