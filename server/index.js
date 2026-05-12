@@ -198,6 +198,17 @@ let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] 
 // Clean up any previously cached bad prices on startup
 function cleanBadPrices() {
   let cleaned = 0;
+
+  // Paneer (1440528): Sysco price is per-lb, case = 10lb total. Multiply if stored wrong.
+  const paneerEntry = priceStore.sysco["1440528"];
+  if (paneerEntry?.price && paneerEntry.price < 20) {
+    const corrected = Math.round(paneerEntry.price * 10 * 100) / 100;
+    log("Startup fix: Paneer $" + paneerEntry.price + "/lb → case $" + corrected);
+    priceStore.sysco["1440528"] = { ...paneerEntry, price: corrected };
+    priceStore.sysco["7102961"] = { ...paneerEntry, price: corrected };
+    savePrices();
+  }
+
   Object.entries(priceStore.rd).forEach(([id, entry]) => {
     const max = RD_PRICE_MAX[id];
     if (max && entry.price > max) {
