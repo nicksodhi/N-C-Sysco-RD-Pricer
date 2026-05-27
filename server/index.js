@@ -28,6 +28,17 @@ const RD_PRICE_MAX = {
   "1810019": 200, // Goat Bone-in 15lb (~$50-150)
 };
 
+// Minimum acceptable RD case price — rejects per-lb prices stored without ×weight multiplication
+const RD_PRICE_MIN = {
+  "77658":  25,  // Chicken Leg Meat 40lb — per-lb would be ~$3-5, case must be $25+
+  "77670":  25,  // Chicken Leg Quarters 40lb
+  "77232":  30,  // Chicken Breast 40lb
+  "77682":  30,  // Chicken Thighs 40lb
+  "77200":  30,  // Chicken Wings 40lb
+  "79042":  50,  // Lamb Leg 40lb
+  "1810019": 20, // Goat Bone-in 15lb
+};
+
 
 function loadPrices() {
   try {
@@ -215,6 +226,13 @@ function cleanBadPrices() {
       delete priceStore.rd[id];
       cleaned++;
       console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (max $" + max + ")");
+      return;
+    }
+    const min = RD_PRICE_MIN[id];
+    if (min && entry.price < min) {
+      delete priceStore.rd[id];
+      cleaned++;
+      console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-lb stored as case price");
     }
   });
   if (cleaned > 0) savePrices();
@@ -1217,7 +1235,8 @@ async function scrapeRD() {
           if (pm) {
             const p = parseFloat(pm[1]);
             const max = RD_PRICE_MAX[itemId];
-            if (p > 0 && (!max || p <= max)) {
+            const min = RD_PRICE_MIN[itemId];
+            if (p > 0 && (!max || p <= max) && (!min || p >= min)) {
               foundPrice = p;
               break;
             }
@@ -1756,6 +1775,12 @@ async function runScrape(source = "all") {
             log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (max expected $" + maxPrice + ")");
             return;
           }
+          // Sanity check against min prices — catches per-lb price stored without ×weight
+          const minPrice = RD_PRICE_MIN[id];
+          if (minPrice && price < minPrice) {
+            log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (min expected $" + minPrice + ") — likely per-lb not case price");
+            return;
+          }
           // Also check single-unit items with generic $25 ceiling
           if (RD_SINGLE_UNIT.has(id) && !maxPrice && price > 25) {
             log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + price);
@@ -1950,14 +1975,14 @@ function patchItemKnowledge() {
     "1020079":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020075":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020152":[3,"3 x 1 gallon jugs","gallon",3,"3 x 1 gallon jugs"],
-    "55523":  [1,"1 x 1 gallon jug","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
+    "55523":  [4,"4 x 1 gallon jugs","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
     "45900":  [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "21051":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
     "1070496":[50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
     "2061212":[25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
     "53556":  [40,"2 x 20 lb bags (40 lb)","lb",50,"1 x 50 lb bag"],
     "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes"],
-    "29268":  [5,"1 x 5 lb can","lb",30,"6 x 5 lb cans (30 lb)"],
+    "29268":  [30,"6 x 5 lb cans","lb",30,"6 x 5 lb cans (30 lb)"],
     "16200":  [54,"6 x #10 cans","lb",54,"6 x #10 cans"],
     "69810":  [60,"6 x #10 cans","lb",60,"6 x #10 cans"],
     "860135": [102,"6 x #10 cans","oz",102,"6 x #10 cans"],
@@ -2162,10 +2187,10 @@ async function backupItemKnowledgeToGitHub() {
 const PACK_SIZES = {
   // rdId: { rd: "pack description", sysco: "pack description", rdTotal: total_units, syscoTotal: total_units, unit: "lb|oz|ml|each" }
   "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
-  "1530438":{ rd: "1 × 64 oz jug",           sysco: "12 × 32 oz bottles",     rdTotal: 64,    syscoTotal: 384,   unit: "oz"   },
+  "1530438":{ rd: "6 × 64 oz jugs",          sysco: "6 × 64 oz jugs",          rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
   "370496": { rd: "1 × 1 gallon",            sysco: "4 × 1 gallon",           rdTotal: 128,   syscoTotal: 512,   unit: "oz"   },
   "1020152":{ rd: "1 × 1 gallon",            sysco: "3 × 1 gallon",           rdTotal: 128,   syscoTotal: 384,   unit: "oz"   },
-  "55523":  { rd: "1 × 1 gallon",            sysco: "6 × 0.5 gallon",         rdTotal: 128,   syscoTotal: 384,   unit: "oz"   },
+  "55523":  { rd: "4 × 1 gallon jugs",        sysco: "6 × 0.5 gallon jugs",    rdTotal: 512,   syscoTotal: 384,   unit: "oz"   },
   "12728":  { rd: "1 × 17 oz can",           sysco: "6 × 14 oz cans",         rdTotal: 17,    syscoTotal: 84,    unit: "oz"   },
   "1440203":{ rd: "1 × 5 lb bag",            sysco: "4 × 5 lb bags",          rdTotal: 5,     syscoTotal: 20,    unit: "lb"   },
   "44146":  { rd: "1 × 30 lb bag",           sysco: "4 × 5 lb bags (20 lb)", rdTotal: 30,    syscoTotal: 20,    unit: "lb"   },
@@ -2178,7 +2203,7 @@ const PACK_SIZES = {
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
   "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",        rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
-  "29268":  { rd: "1 × 5 lb can",            sysco: "6 × 5 lb cans",          rdTotal: 5,     syscoTotal: 30,    unit: "lb"   },
+  "29268":  { rd: "6 × 5 lb cans",            sysco: "6 × 5 lb cans",          rdTotal: 30,    syscoTotal: 30,    unit: "lb"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes",         rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
   "40212":  { rd: "1 × 10 lb box",           sysco: "4 × 2.5 lb boxes",       rdTotal: 10,    syscoTotal: 10,    unit: "lb"   },
   // Same size — included so UI can still show pack info
