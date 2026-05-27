@@ -14,7 +14,7 @@ const fs = require("fs");
 const PRICES_FILE = "/data/nc_prices.json";
 
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
-const RD_SINGLE_UNIT = new Set(["42647","55519"]); // sold per-unit not per-case
+const RD_SINGLE_UNIT = new Set(["42647","55519","40138"]); // sold per-unit not per-case
 const RD_PRICE_MAX = {
   "42647":  15,   // Mint 1 lb (~$5-8)
   "55519":  25,   // Orchid Flowers (~$5-15)
@@ -317,6 +317,19 @@ const CACHE_SEED = {
     "Morton - Purex Salt - 50lb": "1070496",
     "Morton Purex Salt 50lb": "1070496",
     "Purex Salt - 50lb": "1070496",
+    "Green Onions, Rootless & Iceless - 4 lbs": "40138",
+    "Green Onions Rootless Iceless 4 lbs": "40138",
+    "Green Bell Pepper - 5 lb bag": "42706",
+    "Green Pepper, 5 lb bag": "42706",
+    "Green Bell Peppers 5 lb": "42706",
+    "Chef's Quality - Tomato Ketchup Jug - #10 size": "2010066",
+    "Chef's Quality - Tomato Ketchup Jug": "2010066",
+    "Tomato Ketchup Jug #10": "2010066",
+    "Sunset 7313 - POS Thermal Printer Rolls - 10 pk": "50103",
+    "POS Thermal Printer Rolls": "50103",
+    "Thermal Printer Rolls 10": "50103",
+    "Coca-Cola Bottles 16.9 fl oz 24 Pack": "440038",
+    "Coca Cola Bottles 16.9 fl oz 24 Pack": "440038",
   },
   sysco: {
     "Chicken Cvp Leg Quarter Small Halal": "1803287",
@@ -369,9 +382,12 @@ const CACHE_SEED = {
     "Onion Yellow Jumbo Bag": "1094721",
     "Cream Heavy Whipping 40%": "2139911",
     "Cream Heavy Whipping": "2139911",
-    "Demand Cheese Paneer": "7102961",
     "Paneer": "7102961",
     "Cilantro Bunch Iceless": "7078475",
+    "Onion Green Iceless": "7350788",
+    "Pepper Green Bell Choice Fresh": "1910231",
+    "Ketchup Jug Red In Plastic Bottle With Pump": "9903790",
+    "Ketchup Jug Red Plastic Bottle": "9903790",
   }
 };
 
@@ -379,8 +395,8 @@ const CACHE_SEED = {
 // Tracks expected item counts per vendor. If a scrape returns significantly fewer,
 // Claude flags it as partial and keeps yesterday's prices.
 const scraperHealth = {
-  rd:    { expectedItems: 59, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
-  sysco: { expectedItems: 48, minThreshold: 0.80, lastGoodCount: 0 },
+  rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
+  sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 },
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -517,6 +533,10 @@ const RD_ITEMS = [
   { id: "440039",  name: "Diet Coke Bottles 16.9 fl oz 24 Pack" },
   { id: "440040",  name: "Sprite Bottles 16.9 fl oz 4 Pack" },
   { id: "440038",  name: "Coca-Cola Bottles 16.9 fl oz 24 Pack" },
+  { id: "40138",   name: "Green Onions, Rootless & Iceless - 4 lbs" },    // single bunch
+  { id: "42706",   name: "Green Bell Pepper - 5 lb bag" },                 // OOS when added
+  { id: "2010066", name: "Chef's Quality - Tomato Ketchup Jug - #10" },    // case of 6 × 114oz
+  { id: "50103",   name: "Sunset 7313 - POS Thermal Printer Rolls - 10 pk" }, // case of 3 trays
   { id: "55523",   name: "Chef's Quality - Lemon Juice - gallon" },
   { id: "1440528", name: "Royal Mahout - Paneer Loaf - 5 lbs" },
   { id: "1440203", name: "James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs" },
@@ -606,6 +626,9 @@ const SYSCO_ITEMS = [
   { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite", pack: "6/#10" },
   { id: "4014973", name: "Bean Kidney Dark Red", pack: "6/#10" },
   { id: "5895750", name: "Tomato Diced Salsa Style", pack: "6/#10" },
+  { id: "7350788", name: "Onion Green Iceless",                              pack: "4/2 LB"    }, // buy EA ($6.85/2lb), not full case
+  { id: "1910231", name: "Pepper Green Bell Choice Fresh",                   pack: "1/22-25#"  }, // 22-25lb case
+  { id: "9903790", name: "Ketchup Jug Red In Plastic Bottle With Pump",     pack: "6/114 OZ"  }, // case of 6, $43.95
 ];
 
 // ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
@@ -621,7 +644,7 @@ const SYSCO_TO_RD_SEED = {
   "5231238": { rdId: "77232",   rdMult: 1 }, // Chicken Breast
   "6344790": { rdId: "77200",   rdMult: 1 }, // Chicken Wings
   "8379251": { rdId: "2061212", rdMult: 1 }, // Flour
-  "4002325": { rdId: "860044",  rdMult: 1 }, // Tomato Puree
+  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → Tomato Puree (NOT Tomato Sauce)
   "4676306": { rdId: "370496",  rdMult: 1 }, // Whole Milk
   "4119079": { rdId: "1020075", rdMult: 1 }, // Soybean Oil
   "5087572": { rdId: "21051",   rdMult: 1 }, // Sugar
@@ -664,6 +687,16 @@ const SYSCO_TO_RD_SEED = {
   "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
   "1094721": { rdId: "42545",   rdMult: 1 }, // Yellow Onion 50lb
   "2139911": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 6x64oz
+  "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions Iceless (single EA)
+  "1910231": { rdId: "42706",   rdMult: 1 }, // Green Bell Pepper Choice Fresh
+  "9903790": { rdId: "2010066", rdMult: 1 }, // Ketchup Jug 6/114oz
+};
+
+// Locked mappings — these override both the seed AND any saved cross-vendor file.
+// Use this for known-wrong auto-learned mappings that keep getting overridden.
+const SYSCO_TO_RD_LOCK = {
+  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must be 860043 not 860044
+  "5895750": { rdId: "860135",  rdMult: 1 }, // Diced Tomatoes → must be 860135 not 860044
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -673,7 +706,8 @@ function loadCrossVendor() {
   try {
     if (fs.existsSync(CROSS_VENDOR_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CROSS_VENDOR_FILE, "utf8"));
-      SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED, ...saved };
+      // LOCK entries always win — prevents wrong auto-learned mappings from persisting
+      SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED, ...saved, ...SYSCO_TO_RD_LOCK };
       console.log("✅ Cross-vendor map loaded: " + Object.keys(SYSCO_TO_RD).length + " mappings");
     }
   } catch(e) { console.log("Cross-vendor load error:", e.message); }
@@ -2037,6 +2071,13 @@ function patchItemKnowledge() {
     "1810019":[15,"1 x 15 lb box","lb",null,null],
     "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
     "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
+    // ── New items added ────────────────────────────────────────────────────────
+    "40138":  [4,"1 x 4 lb bunch","lb",2,"1 x 2 lb pack"],         // Green Onions (buy single)
+    "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
+    "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
+    "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
+    "440038": [24,"24 x 16.9 oz bottles","oz",null,null],           // Coca-Cola (RD only)
+    "50103":  [30,"3 trays x 10 rolls (30 total)","roll",null,null],// Printer Paper (RD only)
   };
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
@@ -2249,6 +2290,10 @@ const PACK_SIZES = {
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
+  "40138":  { rd: "1 × 4 lb bunch",          sysco: "1 × 2 lb pack",           rdTotal: 4,     syscoTotal: 2,     unit: "lb"   }, // Green Onions (buy single, not case)
+  "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   }, // Green Bell Pepper
+  "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   }, // Ketchup
+  "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  }, // Tomato Puree
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
   "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
