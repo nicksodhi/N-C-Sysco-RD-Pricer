@@ -39,6 +39,25 @@ const RD_PRICE_MIN = {
   "1810019": 20, // Goat Bone-in 15lb
 };
 
+// Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
+// Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
+const SYSCO_PRICE_MIN = {
+  // Chicken items — 40lb cases, minimum floor prevents per-10lb-pack price storage
+  "1803287": 20,  // Chicken Leg Quarters Halal 4×10lb = 40lb case — $37.93 expected
+  "77670":   20,  // same item stored under RD ID
+  "0868459": 20,  // Chicken Leg Meat 4×10lb = 40lb case
+  "77658":   20,  // same item stored under RD ID
+  "5231238": 25,  // Chicken Breast 40lb
+  "77232":   25,  // same under RD ID
+  "6344790": 25,  // Chicken Wings 40lb
+  "77200":   25,  // same under RD ID
+  // Other large-case items where search can return unit price
+  "7007376": 20,  // Serrano Peppers 40lb — search fallback grabs retail per-lb
+  "44137":   20,  // same under RD ID
+  "1821537": 15,  // Peeled Garlic 20lb
+  "44146":   15,  // same under RD ID
+};
+
 
 function loadPrices() {
   try {
@@ -235,6 +254,17 @@ function cleanBadPrices() {
       console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-lb stored as case price");
     }
   });
+
+  // Clean bad Sysco prices — reject per-unit/per-pack prices stored as case prices
+  Object.entries(priceStore.sysco).forEach(([id, entry]) => {
+    const min = SYSCO_PRICE_MIN[id];
+    if (min && entry.price < min) {
+      delete priceStore.sysco[id];
+      cleaned++;
+      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-pack not case price");
+    }
+  });
+
   if (cleaned > 0) savePrices();
 }
 
@@ -529,8 +559,8 @@ const RD_ITEMS = [
 // Prices from Sysco PDF: CS = case price
 const SYSCO_ITEMS = [
   { id: "1094721", name: "Onion Yellow Jumbo Bag",                        pack: "1/50 LB" },
-  { id: "1803287", name: "Chicken Cvp Leg Quarter Small Halal",           pack: "4/10LB"  },
-  { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4/10 LB" },
+  { id: "1803287", name: "Chicken Cvp Leg Quarter Small Halal",           pack: "4 x 10 LB"  },
+  { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4 x 10 LB" },
   { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",   pack: "1/25LB"  },
   { id: "4002325", name: "Tomato Puree 1.06 Fancy California",            pack: "6/#10"   },
   { id: "2139911", name: "Cream Heavy Whipping 40%",                                pack: "6/64OZ"  },
@@ -565,7 +595,7 @@ const SYSCO_ITEMS = [
   { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A", pack: "12/2 LB" },
   { id: "2523833", name: "Spinach Chopped Bag", pack: "12/3LB" },
   { id: "7102961", name: "Demand Cheese Paneer", pack: "2/5 LB" },
-  { id: "8474538", name: "Spinach Baby Fresh", pack: "1/4 LB" },
+  { id: "8474538", name: "Spinach Baby Fresh", pack: "1 x 4 LB" },
   { id: "3879962", name: "Carrots Loose Fresh", pack: "1/10 LB" },
   { id: "2252013", name: "Lemon Choice Fresh", pack: "1/115 CT" },
   { id: "7410640", name: "Cucumber Select Fresh", pack: "1/5 LB" },
@@ -1859,6 +1889,12 @@ async function runScrape(source = "all") {
           if (!id || price <= 0) return;
           let adjP = price;
           if (id === "7102961" && price < 20) { adjP = Math.round(price*10*100)/100; log("Sysco: Paneer $"+price+"/lb x 10lb = $"+adjP); }
+          // Reject prices below known minimums — catches per-pack prices stored as case prices
+          const syscoMin = SYSCO_PRICE_MIN[id];
+          if (syscoMin && adjP < syscoMin) {
+            log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (min expected $" + syscoMin + ") — likely per-pack not case price");
+            return;
+          }
           priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
           // ALSO save under RD equivalent ID for cross-vendor comparison
           const mapping = SYSCO_TO_RD[id];
@@ -2000,6 +2036,7 @@ function patchItemKnowledge() {
     "21039":  [12000,"24 x 500 ml bottles","ml",12000,"24 x 500 ml bottles"],
     "1810019":[15,"1 x 15 lb box","lb",null,null],
     "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
+    "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
   };
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
@@ -2010,6 +2047,18 @@ function patchItemKnowledge() {
     Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
     n++;
   });
+
+  // Hardcoded bin locations — confirmed from RD site, never overwritten by AI
+  const BINS = {
+    "77670": "6026",  // Chicken Leg Quarters — confirmed from RD product page
+    "77658": "6026",  // Chicken Leg Meat — same bin area
+  };
+  Object.entries(BINS).forEach(([id, bin]) => {
+    if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
+    if (!itemKnowledge[id].rd) itemKnowledge[id].rd = {};
+    itemKnowledge[id].rd.binLocation = "Bin " + bin;
+  });
+
   if (n > 0) { saveItemKnowledge(); console.log("Item KB patched: " + n + " items with verified facts"); }
 }
 
@@ -2199,6 +2248,7 @@ const PACK_SIZES = {
   "45900":  { rd: "1 × 1 gallon",            sysco: "4 × 1 gallon",           rdTotal: 128,   syscoTotal: 512,   unit: "oz"   },
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
+  "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
   "42606":  { rd: "12-head case",            sysco: "12-head case",           rdTotal: 12,    syscoTotal: 12,    unit: "head" },
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
   "1440528":{ rd: "1 × 5 lb loaf",           sysco: "2 × 5 lb loaves",        rdTotal: 5,     syscoTotal: 10,    unit: "lb"   },
@@ -2390,7 +2440,7 @@ app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
   try {
-    const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268"]);
+    const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268","44211"]);
 
     // Build the richest possible catalog — everything Claude needs to be accurate
     const catalog = [];
