@@ -401,7 +401,8 @@ ${rows.map(r => `<tr>
 
   // Also include items missing price from one vendor that have been seen before
   const missingItems = ITEMS.filter(item => {
-    if (rdOosIds.has(item.id) || scOosIds.has(item.id)) return false; // already in oosItems
+    // Keep OOS items in main list — they show last confirmed price with OOS badge
+    // if (rdOosIds.has(item.id) || scOosIds.has(item.id)) return false;
     const rdP = rd[item.id]?.price;
     const scP = sc[item.id]?.price;
     const hasHistory = history[item.id]?.length > 1;
@@ -449,8 +450,15 @@ ${rows.map(r => `<tr>
                     <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}></span>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
-                        <div style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#111", flex: 1 }}>
+                          {item.name}
+                          {(rdOosIds.has(item.id) || scOosIds.has(item.id)) && (
+                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626", verticalAlign: "middle" }}>
+                              {rdOosIds.has(item.id) && scOosIds.has(item.id) ? "BOTH OOS" : rdOosIds.has(item.id) ? "RD OOS" : "SYSCO OOS"}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
                           background: rdBest ? "#F0FDF4" : "#EFF6FF",
                           color: rdBest ? "#16A34A" : "#2563EB",
                           border: DIFFERENT_CASE_SIZES.has(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
@@ -460,14 +468,15 @@ ${rows.map(r => `<tr>
                         </div>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid #F3F3EF" }}>
-                        <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdBest ? "#F7FEF9" : "transparent" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdBest ? "✓ " : ""}Restaurant Depot</div>
-                          <div style={{ fontSize: 17, fontWeight: 700, color: rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
-                          <div style={{ fontSize: 9, color: "#AAA", marginTop: 2 }}>{rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
+                        <div style={{ padding: "10px 14px", borderRight: "1px solid #F3F3EF", background: rdOosIds.has(item.id) ? "#FFFBFB" : rdBest ? "#F7FEF9" : "transparent", opacity: rdOosIds.has(item.id) ? 0.7 : 1 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: rdOosIds.has(item.id) ? "#DC2626" : rdBest ? "#16A34A" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{rdOosIds.has(item.id) ? "⚠ OOS" : rdBest ? "✓ " : ""}Restaurant Depot</div>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: rdOosIds.has(item.id) ? "#999" : rdBest ? "#16A34A" : "#555" }}>{fmt(r)}</div>
+                          <div style={{ fontSize: 9, color: rdOosIds.has(item.id) ? "#DC2626" : "#AAA", marginTop: 2 }}>{rdOosIds.has(item.id) ? "last known price" : rd[item.id]?.unit === "each" ? "per unit" : "per case"}</div>
                         </div>
-                        <div style={{ padding: "10px 14px", background: !rdBest ? "#F0F6FF" : "transparent" }}>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{!rdBest ? "✓ " : ""}Sysco</div>
-                          <div style={{ fontSize: 17, fontWeight: 700, color: !rdBest ? "#2563EB" : "#555" }}>{fmt(s)}</div>
+                        <div style={{ padding: "10px 14px", background: scOosIds.has(item.id) ? "#FFFBFB" : !rdBest ? "#F0F6FF" : "transparent", opacity: scOosIds.has(item.id) ? 0.7 : 1 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: scOosIds.has(item.id) ? "#DC2626" : !rdBest ? "#2563EB" : "#AAA", letterSpacing: .3, marginBottom: 3 }}>{scOosIds.has(item.id) ? "⚠ OOS" : !rdBest ? "✓ " : ""}Sysco</div>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: scOosIds.has(item.id) ? "#999" : !rdBest ? "#2563EB" : "#555" }}>{fmt(s)}</div>
+                          {scOosIds.has(item.id) && <div style={{ fontSize: 9, color: "#DC2626", marginTop: 2 }}>last known price</div>}
                         </div>
                       </div>
                       {onUnitCompare && (
