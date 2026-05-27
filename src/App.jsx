@@ -1,82 +1,88 @@
 import { useState, useMemo, useEffect } from "react";
 
 // Items where case VOLUMES genuinely differ between vendors — price not directly comparable
-// Whole Milk, Cauliflower, Ginger, Tilapia, Shrimp etc are excluded — same total volume
 const DIFFERENT_CASE_SIZES = new Set([
-    "55523",   // Lemon Juice: RD 1gal vs Sysco 3gal
+  "55523",   // Lemon Juice: RD 4gal vs Sysco 3gal
   "12728",   // Pan Spray: RD 102oz vs Sysco 84oz
-    "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
+  "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
   "86525",   // Peas: RD 2.5lb vs Sysco 30lb
-  "2620442", // Coconut Milk: RD 162oz vs Sysco 324oz
-    "64120",   // Broccoli: RD 2lb vs Sysco 24lb
-    "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
+  "2620442", // Coconut Milk: RD 4800ml vs Sysco 9720ml
+  "64120",   // Broccoli: RD 2lb vs Sysco 24lb
+  "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
   "1440528", // Paneer: RD 20lb vs Sysco 10lb
   "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
-  "29268",   // Baking Powder: RD 5lb vs Sysco 30lb
-  ]);
+  "44211",   // Fresh Spinach: RD 10lb vs Sysco 4lb
+]);
 
 const ITEMS = [
-  { id:"42545",   name:"Yellow Onions", cat:"Produce"  },
-  { id:"42658",   name:"Red Onions", cat:"Produce"  },
-  { id:"42725",   name:"Russet Potato", cat:"Produce"  },
-  { id:"42566",   name:"Cilantro", cat:"Produce"  },
-  { id:"42606",   name:"Cauliflower", cat:"Produce"  },
-  { id:"42647",   name:"Mint", cat:"Produce"  },
-  { id:"44146",   name:"Peeled Garlic", cat:"Produce"  },
-  { id:"42513",   name:"Ginger", cat:"Produce"  },
-
-  { id:"44137",   name:"Serrano Peppers", cat:"Produce"  },
-  { id:"42504",   name:"Cucumbers", cat:"Produce"  },
-  { id:"42570",   name:"Lemons", cat:"Produce"  },
-  { id:"79152",   name:"Carrots", cat:"Produce"  },
-  { id:"44211",   name:"Cleaned Spinach", cat:"Produce"  },
-  { id:"1530438", name:"Heavy Cream", cat:"Dairy"    },
-  { id:"370496",  name:"Whole Milk", cat:"Dairy"    },
-  { id:"14785",   name:"Plain Yogurt", cat:"Dairy"    },
-  { id:"1440528", name:"Paneer", cat:"Dairy"    },
-  { id:"1440203", name:"Cheddar Jack Cheese", cat:"Dairy"    },
-  { id:"77200",   name:"Chicken Wings", cat:"Meat"     },
+  // ── Produce ──────────────────────────────────────────────────────────────────
+  { id:"42545",   name:"Yellow Onions",       cat:"Produce"  },
+  { id:"42658",   name:"Red Onions",           cat:"Produce"  },
+  { id:"42725",   name:"Russet Potato",        cat:"Produce"  },
+  { id:"44146",   name:"Peeled Garlic",        cat:"Produce"  },
+  { id:"42513",   name:"Ginger",               cat:"Produce"  },
+  { id:"1440528", name:"Paneer",               cat:"Dairy"    },
+  { id:"55519",   name:"Flowers",              cat:"Produce"  },
+  { id:"42606",   name:"Cauliflower",          cat:"Produce"  },
+  { id:"79152",   name:"Carrots",              cat:"Produce"  },
+  { id:"44211",   name:"Fresh Spinach",        cat:"Produce"  },
+  { id:"42570",   name:"Lemons",               cat:"Produce"  },
+  { id:"42647",   name:"Mint",                 cat:"Produce"  },
+  { id:"42566",   name:"Cilantro",             cat:"Produce"  },
+  { id:"44137",   name:"Green Chilies",        cat:"Produce"  },
+  { id:"42504",   name:"Cucumbers",            cat:"Produce"  },
+  // ── Dairy ────────────────────────────────────────────────────────────────────
+  { id:"1530438", name:"Heavy Cream",          cat:"Dairy"    },
+  { id:"370496",  name:"Whole Milk",           cat:"Dairy"    },
+  // ── Meat ─────────────────────────────────────────────────────────────────────
+  { id:"77232",   name:"Chicken Breast",       cat:"Meat"     },
   { id:"77670",   name:"Chicken Leg Quarters", cat:"Meat"     },
-  { id:"77658",   name:"Chicken Leg Meat", cat:"Meat"     },
-  { id:"77682",   name:"Chicken Thighs", cat:"Meat"     },
-  { id:"77232",   name:"Chicken Breast", cat:"Meat"     },
-  { id:"1810019", name:"Goat Bone-in", cat:"Meat"     },
-  { id:"79042",   name:"Lamb Leg Halal", cat:"Meat"     },
-  { id:"51457",   name:"Tilapia Fillets", cat:"Frozen"   },
-  { id:"64046",   name:"Chopped Spinach", cat:"Frozen"   },
-  { id:"64120",   name:"Broccoli Florets", cat:"Frozen"   },
-  { id:"86527",   name:"Mixed Vegetables", cat:"Frozen"   },
-  { id:"86525",   name:"Green Peas", cat:"Frozen"   },
-  { id:"490266",  name:"Basmati Rice", cat:"Dry"      },
-  { id:"53556",   name:"Atta Flour", cat:"Dry"      },
-  { id:"2061212", name:"All Purpose Flour", cat:"Dry"      },
-  { id:"21051",   name:"Sugar", cat:"Dry"      },
-  { id:"1070496", name:"Salt", cat:"Dry"      },
-  { id:"29268",   name:"Baking Powder", cat:"Dry"      },
-  { id:"2910159", name:"Cornstarch", cat:"Dry"      },
-  { id:"16200",   name:"Garbanzo Beans", cat:"Dry"      },
-  { id:"69810",   name:"Red Kidney Beans", cat:"Dry"      },
-  { id:"860044",  name:"Tomato Sauce", cat:"Dry"      },
-  { id:"860135",  name:"Diced Tomatoes", cat:"Dry"      },
-  { id:"2620442", name:"Coconut Milk", cat:"Dry"      },
-  { id:"13417",   name:"Sambal Oelek", cat:"Dry"      },
-  { id:"25267",   name:"Eggplant Pulp", cat:"Dry"      },
-  { id:"1020152", name:"Liquid Butter Alt", cat:"Oils"     },
-  { id:"55523",   name:"Lemon Juice", cat:"Oils"     },
-  { id:"1020079", name:"Canola Oil", cat:"Oils"     },
-  { id:"1020075", name:"Soybean Oil", cat:"Oils"     },
-  { id:"1020077", name:"Fry Oil", cat:"Oils"     },
-  { id:"45900",   name:"White Vinegar", cat:"Oils"     },
-  { id:"40212",   name:"Shrimp 16/20", cat:"Seafood"  },
-  { id:"2550012", name:"Yellow Food Coloring", cat:"Other"    },
-  { id:"2550014", name:"Red Food Color", cat:"Oils"     },
-  { id:"12728",   name:"Pan Spray", cat:"Other"    },
-  { id:"21039",   name:"Evian Water", cat:"Other"    },
-  { id:"440039",  name:"Diet Coke", cat:"Other"    },
-  { id:"440040",  name:"Sprite", cat:"Other"    },
+  { id:"77200",   name:"Chicken Wings",        cat:"Meat"     },
+  { id:"77658",   name:"Chicken Leg Meat",     cat:"Meat"     },
+  { id:"79042",   name:"Lamb Leg Boneless",    cat:"Meat"     },
+  { id:"1810019", name:"Goat Cubes",           cat:"Meat"     },
+  { id:"1440203", name:"Cheese Blend",         cat:"Dairy"    },
+  { id:"14785",   name:"Plain Yogurt",         cat:"Dairy"    },
+  // ── Seafood ──────────────────────────────────────────────────────────────────
+  { id:"40212",   name:"Shrimp 16-20",         cat:"Seafood"  },
+  { id:"51457",   name:"Fish (Tilapia)",        cat:"Seafood"  },
+  // ── Frozen ───────────────────────────────────────────────────────────────────
+  { id:"64046",   name:"Frozen Spinach",       cat:"Frozen"   },
+  { id:"86525",   name:"Frozen Peas",          cat:"Frozen"   },
+  { id:"64120",   name:"Frozen Broccoli",      cat:"Frozen"   },
+  { id:"86527",   name:"Frozen 4-Way Mix",     cat:"Frozen"   },
+  { id:"25267",   name:"Eggplant Pulp",        cat:"Dry"      },
+  // ── Oils & Vinegar ───────────────────────────────────────────────────────────
+  { id:"45900",   name:"White Vinegar",        cat:"Oils"     },
+  { id:"1020152", name:"Liquid Butter",        cat:"Oils"     },
+  { id:"12728",   name:"Pan Spray",            cat:"Oils"     },
+  { id:"1020079", name:"Canola Salad Oil",     cat:"Oils"     },
+  { id:"1020075", name:"Soybean Oil",          cat:"Oils"     },
+  { id:"1020077", name:"Fryer Oil",            cat:"Oils"     },
+  { id:"55523",   name:"Lemon Juice",          cat:"Oils"     },
+  // ── Dry Goods ────────────────────────────────────────────────────────────────
+  { id:"53556",   name:"Roti Atta",            cat:"Dry"      },
+  { id:"13417",   name:"Sambal Chili",         cat:"Dry"      },
+  { id:"2620442", name:"Coconut Milk",         cat:"Dry"      },
+  { id:"2061212", name:"All Purpose Flour",    cat:"Dry"      },
+  { id:"29268",   name:"Baking Powder",        cat:"Dry"      },
+  { id:"2910159", name:"Cornstarch",           cat:"Dry"      },
+  { id:"490266",  name:"Rice – Royal",         cat:"Dry"      },
+  { id:"2550014", name:"Red Food Color",       cat:"Dry"      },
+  { id:"2550012", name:"Egg Yellow Color",     cat:"Dry"      },
+  { id:"16200",   name:"Garbanzo Beans",       cat:"Dry"      },
+  { id:"69810",   name:"Red Kidney Beans",     cat:"Dry"      },
+  { id:"1070496", name:"Salt",                 cat:"Dry"      },
+  { id:"21051",   name:"Sugar",                cat:"Dry"      },
+  { id:"860044",  name:"Tomato Sauce",         cat:"Dry"      },
+  { id:"860135",  name:"Petite Diced Tomato",  cat:"Dry"      },
+  // ── Beverages & Other ────────────────────────────────────────────────────────
+  { id:"21039",   name:"Water",                cat:"Other"    },
+  { id:"440039",  name:"Diet Coke",            cat:"Other"    },
+  { id:"440040",  name:"Sprite",               cat:"Other"    },
 ];
 
-const CATS = ["All","Produce","Dairy","Meat","Frozen","Dry","Oils","Other"];
+const CATS = ["All","Produce","Dairy","Meat","Seafood","Frozen","Dry","Oils","Other"];
 // No seed data — only show live scraped prices
 const fmt = n => n!=null ? "$"+n.toFixed(2) : "—";
 const ago = d => { if(!d) return ""; const h=(Date.now()-new Date(d))/3.6e6; if(h<1) return "just now"; if(h<24) return Math.floor(h)+"h ago"; return Math.floor(h/24)+"d ago"; };
