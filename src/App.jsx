@@ -12,6 +12,8 @@ const DIFFERENT_CASE_SIZES = new Set([
   "1440528", // Paneer: RD 20lb vs Sysco 10lb
   "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
   "44211",   // Fresh Spinach: RD 10lb vs Sysco 4lb
+  "40138",   // Green Onions: RD 4lb bunch vs Sysco 2lb pack (both single)
+  "42706",   // Green Bell Pepper: RD 5lb bag vs Sysco 22-25lb case
 ]);
 
 const ITEMS = [
@@ -24,8 +26,10 @@ const ITEMS = [
   { id:"1440528", name:"Paneer",               cat:"Dairy"    },
   { id:"55519",   name:"Flowers",              cat:"Produce"  },
   { id:"42606",   name:"Cauliflower",          cat:"Produce"  },
+  { id:"40138",   name:"Green Onions",          cat:"Produce"  },
   { id:"79152",   name:"Carrots",              cat:"Produce"  },
   { id:"44211",   name:"Fresh Spinach",        cat:"Produce"  },
+  { id:"42706",   name:"Green Bell Pepper",     cat:"Produce"  },
   { id:"42570",   name:"Lemons",               cat:"Produce"  },
   { id:"42647",   name:"Mint",                 cat:"Produce"  },
   { id:"42566",   name:"Cilantro",             cat:"Produce"  },
@@ -74,12 +78,16 @@ const ITEMS = [
   { id:"69810",   name:"Red Kidney Beans",     cat:"Dry"      },
   { id:"1070496", name:"Salt",                 cat:"Dry"      },
   { id:"21051",   name:"Sugar",                cat:"Dry"      },
+  { id:"2010066", name:"Ketchup",              cat:"Dry"      },
+  { id:"860043",  name:"Tomato Puree",         cat:"Dry"      },
   { id:"860044",  name:"Tomato Sauce",         cat:"Dry"      },
   { id:"860135",  name:"Petite Diced Tomato",  cat:"Dry"      },
   // ── Beverages & Other ────────────────────────────────────────────────────────
   { id:"21039",   name:"Water",                cat:"Other"    },
+  { id:"440038",  name:"Coca-Cola",            cat:"Other"    },
   { id:"440039",  name:"Diet Coke",            cat:"Other"    },
   { id:"440040",  name:"Sprite",               cat:"Other"    },
+  { id:"50103",   name:"Printer Paper Roll",   cat:"Other"    },
 ];
 
 const CATS = ["All","Produce","Dairy","Meat","Seafood","Frozen","Dry","Oils","Other"];
