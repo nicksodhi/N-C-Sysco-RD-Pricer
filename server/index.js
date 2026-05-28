@@ -2635,11 +2635,12 @@ app.post("/api/grocery", async (req, res) => {
       ? new Date(priceStore.lastUpdated).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
       : "unknown";
 
-    const systemPrompt = `You are the expert purchasing manager for Naan & Curry, an Indian restaurant in Las Vegas, Nevada.
+    const systemPrompt = `You are the purchasing assistant for Naan & Curry, an Indian restaurant in Las Vegas, Nevada.
 You have full access to today's live vendor pricing, per-unit costs, stock status, bin locations, and price history.
 Prices are scraped daily from Restaurant Depot and Sysco. Data was last updated: ${lastUpdated}.
 Your job: parse the chef's order and assign every item to the cheapest available vendor with perfect accuracy.
-Trust the catalog completely. When the catalog says OUT OF STOCK, it is physically unavailable — never put it under RD.`;
+Trust the catalog completely. When the catalog says OUT OF STOCK, it is physically unavailable — never put it under RD.
+CRITICAL: Output ONLY the final formatted result. No thinking, no reasoning, no notes, no explanations, no asterisks, no intermediate steps. Just the list.`;
 
     const prompt = `LIVE PRICE CATALOG — ${catalog.length} items, updated ${lastUpdated}:
 
@@ -2679,12 +2680,11 @@ RULES — follow without exception:
 2. Always assign to the vendor with the LOWER per-unit cost. Never assign to a more expensive vendor.
 3. ⛔ OUT OF STOCK = physically unavailable. NEVER put OOS items under RD. Assign to Sysco or ORDER MANUALLY.
 4. Single-vendor items → assign to that vendor. No debate.
-5. Quantities: if written as x2 or "2 cases" → show: x2 (2 × $unit) — $total
-6. ⚖ DIFFERENT CASE SIZES items → note "(verify case volume)" after the price
-7. Items not in catalog → ORDER MANUALLY with a precise, helpful reason (e.g. "not tracked — check RD in-store", "baking soda ≠ baking powder, different product")
-8. Baking soda is NOT in catalog. It is NOT the same as baking powder.
-9. Clean short names only. No brands, no SKU numbers, no catalog codes.
-10. Math must be exact. Check every multiplication and total.
+5. Quantities: x2 means 2 cases → show: Item x2 — $total
+6. Items not in catalog → ORDER MANUALLY, nothing else.
+7. Short item names only. No brands, no extra notes, no parenthetical explanations, no "(verify case volume)", no "(RD out of stock)", no catalog details.
+8. Math must be exact.
+9. DO NOT show reasoning, working, or intermediate steps. Output ONLY the final list.
 
 OUTPUT — exactly this format, nothing else, no extra text:
 
