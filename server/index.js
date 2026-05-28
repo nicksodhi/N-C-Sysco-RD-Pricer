@@ -14,7 +14,7 @@ const fs = require("fs");
 const PRICES_FILE = "/data/nc_prices.json";
 
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
-const RD_SINGLE_UNIT = new Set(["42647","55519"]); // sold per-unit not per-case (Mint, Flowers)
+const RD_SINGLE_UNIT = new Set(["42647","55519","42504"]); // sold per-unit not per-case (Mint, Flowers, Cucumbers)
 const RD_PRICE_MAX = {
   "42647":  15,   // Mint 1 lb (~$5-8)
   "55519":  25,   // Orchid Flowers (~$5-15)
@@ -262,6 +262,15 @@ function cleanBadPrices() {
       delete priceStore.sysco[id];
       cleaned++;
       console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-pack not case price");
+    }
+  });
+
+  // Clean single-unit RD items where a case price was accidentally stored
+  Object.entries(priceStore.rd).forEach(([id, entry]) => {
+    if (RD_SINGLE_UNIT.has(id) && !RD_PRICE_MAX[id] && entry.price > 25) {
+      delete priceStore.rd[id];
+      cleaned++;
+      console.log("🧹 Cleaned bad single-unit cached price: " + id + " was $" + entry.price + " (single-unit items must be ≤$25)");
     }
   });
 
@@ -930,7 +939,7 @@ async function matchWithAI(scrapedItems, itemList, source) {
     const cachedId = cache[scraped.name];
     if (cachedId && itemList.find(i => i.id === cachedId)) {
       if (!usedIds.has(cachedId)) {
-        results.push({ id: cachedId, price: scraped.price });
+        results.push({ id: cachedId, price: scraped.price, unitPrice: scraped.unitPrice });
         usedIds.add(cachedId);
         log("📋 Cache hit: \"" + scraped.name + "\" → " + cachedId);
       }
@@ -950,7 +959,7 @@ async function matchWithAI(scrapedItems, itemList, source) {
       if (score > bestScore) { bestScore = score; bestId = item.id; }
     }
     if (bestId && bestScore >= 6) {
-      results.push({ id: bestId, price: scraped.price });
+      results.push({ id: bestId, price: scraped.price, unitPrice: scraped.unitPrice });
       usedIds.add(bestId);
       learnMatch(cacheKey, scraped.name, bestId); // save to cache
       log("✅ Word match: \"" + scraped.name + "\" → " + bestId + " (score=" + bestScore + ")");
@@ -980,7 +989,8 @@ async function matchWithAI(scrapedItems, itemList, source) {
       if (m) {
         JSON.parse(m[0]).forEach(({ scraped, id, price }) => {
           if (id && price > 0 && !usedIds.has(id)) {
-            results.push({ id, price });
+            const origItem = scrapedItems.find(i => i.name === scraped);
+            results.push({ id, price, unitPrice: origItem?.unitPrice });
             usedIds.add(id);
             if (scraped) learnMatch(cacheKey, scraped, id); // save AI match to cache
             log("🤖 AI match: \"" + (scraped || "?") + "\" → " + id + " $" + price);
@@ -1247,7 +1257,7 @@ async function scrapeRD() {
           log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item) — will try to match name to correct price");
           // Don't add to seen — allow the correct lower price line to claim this name
         } else {
-          items.push({ name: bestName, price: pl.price, raw: pl.raw });
+          items.push({ name: bestName, price: pl.price, unitPrice: pl.unitPrice, raw: pl.raw });
           seen.add(bestName);
         }
       } else {
@@ -1847,8 +1857,20 @@ async function runScrape(source = "all") {
           savePrices();
           return; // skip saving this scrape's results
         }
-        matched.forEach(({ id, price }) => {
-          if (!id || price <= 0) return;
+        matched.forEach(({ id, price: rawPrice, unitPrice }) => {
+          if (!id || rawPrice <= 0) return;
+          let price = rawPrice;
+          // For single-unit items (Mint, Flowers, Cucumbers): the order guide shows both
+          // single and case price in a range — use unitPrice (single) not casePrice
+          if (RD_SINGLE_UNIT.has(id) && !RD_PRICE_MAX[id] && rawPrice > 25) {
+            if (unitPrice && unitPrice > 0 && unitPrice <= 25) {
+              price = unitPrice;
+              log("RD: Single-unit " + id + ": using unit price $" + unitPrice + " (case price $" + rawPrice + " skipped)");
+            } else {
+              log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + rawPrice);
+              return;
+            }
+          }
           // Sanity check against known max prices — catches adjacent-item bleed
           const maxPrice = RD_PRICE_MAX[id];
           if (maxPrice && price > maxPrice) {
@@ -1859,11 +1881,6 @@ async function runScrape(source = "all") {
           const minPrice = RD_PRICE_MIN[id];
           if (minPrice && price < minPrice) {
             log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (min expected $" + minPrice + ") — likely per-lb not case price");
-            return;
-          }
-          // Also check single-unit items with generic $25 ceiling
-          if (RD_SINGLE_UNIT.has(id) && !maxPrice && price > 25) {
-            log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + price);
             return;
           }
           const now = new Date().toISOString();
@@ -2088,7 +2105,8 @@ function patchItemKnowledge() {
     "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
     "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
     // ── New items added ────────────────────────────────────────────────────────
-    "40138":  [12,"3 x 4 lb bunches (12 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=3 bunches
+    "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed)
+    "42504":  [6,"1 x 6ct pack","each",null,null],                   // Cucumbers — buy SINGLE 6ct pack at $3.89 (not case of 12 at $42.96)
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
     "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
@@ -2306,7 +2324,8 @@ const PACK_SIZES = {
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
-  "40138":  { rd: "3 × 4 lb bunches (12 lb)", sysco: "1 × 2 lb pack",           rdTotal: 12,    syscoTotal: 2,     unit: "lb"   }, // Green Onions — RD case=3 bunches, Sysco=single EA
+  "40138":  { rd: "4 × 4 lb bunches (16 lb)", sysco: "1 × 2 lb pack",           rdTotal: 16,    syscoTotal: 2,     unit: "lb"   }, // Green Onions — RD case=4 bunches confirmed
+  "42504":  { rd: "1 × 6ct pack",            sysco: "1 × 5 lb pack",            rdTotal: 6,     syscoTotal: 8,     unit: "each" }, // Cucumbers — both single packs, similar qty
   "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   }, // Green Bell Pepper
   "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   }, // Ketchup
   "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  }, // Tomato Puree
