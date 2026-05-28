@@ -2654,9 +2654,16 @@ app.post("/api/grocery", async (req, res) => {
       if (rdE?.price && !isRdOos && syscoE?.price && !isScOos) {
         const rdPu = ps?.rdTotal ? rdE.price / ps.rdTotal : rdE.price;
         const scPu = ps?.syscoTotal ? syscoE.price / ps.syscoTotal : syscoE.price;
-        const winner = rdPu <= scPu ? "RD" : "Sysco";
+        const caseDiff = Math.abs(rdE.price - syscoE.price);
+        // Business rule: prefer Sysco when price difference is under $2 (consolidate orders)
+        let winner;
+        if (caseDiff < 2) {
+          winner = "Sysco"; // under $2 difference → always Sysco
+        } else {
+          winner = rdPu <= scPu ? "RD" : "Sysco";
+        }
         const saving = Math.abs(rdPu - scPu);
-        line += `\n  ✅ BUY: ${winner}${saving > 0.01 ? ` (saves $${saving.toFixed(2)}/${ps?.unit || "unit"})` : ""}`;
+        line += `\n  ✅ BUY: ${winner}${caseDiff < 2 ? ` (within $2 — prefer Sysco)` : saving > 0.01 ? ` (saves $${saving.toFixed(2)}/${ps?.unit || "unit"})` : ""}`;
         if (ps?.rdTotal !== ps?.syscoTotal && ps?.rdTotal && ps?.syscoTotal) {
           line += `\n  ⚖ DIFFERENT CASE SIZES — per-unit cost is the real comparison`;
         }
@@ -2717,14 +2724,15 @@ shrimp = Shrimp 16-20 | tilapia = Fish (Tilapia)
 
 RULES — follow without exception:
 1. Every item in the chef's order must appear in output. Zero exceptions.
-2. Always assign to the vendor with the LOWER per-unit cost. Never assign to a more expensive vendor.
-3. ⛔ OUT OF STOCK = physically unavailable. NEVER put OOS items under RD. Assign to Sysco or ORDER MANUALLY.
-4. Single-vendor items → assign to that vendor. No debate.
-5. Quantities: x2 means 2 cases → show: Item x2 — $total
-6. Items not in catalog → ORDER MANUALLY, nothing else.
-7. Short item names only. No brands, no extra notes, no parenthetical explanations, no "(verify case volume)", no "(RD out of stock)", no catalog details.
-8. Math must be exact.
-9. DO NOT show reasoning, working, or intermediate steps. Output ONLY the final list.
+2. SYSCO PREFERENCE: If the price difference between RD and Sysco is less than $2 per case, assign to SYSCO. The owner prefers to consolidate smaller savings into Sysco orders.
+3. Only assign to RD when RD is cheaper by $2 or more per case.
+4. ⛔ OUT OF STOCK = physically unavailable. NEVER put OOS items under RD. Assign to Sysco or ORDER MANUALLY.
+5. Single-vendor items → assign to that vendor. No debate.
+6. Quantities: x2 means 2 cases → show: Item x2 — $total
+7. Items not in catalog → ORDER MANUALLY, nothing else.
+8. Short item names only. No brands, no extra notes, no parenthetical explanations.
+9. Math must be exact.
+10. DO NOT show reasoning, working, or intermediate steps. Output ONLY the final list.
 
 OUTPUT — exactly this format, nothing else, no extra text:
 
