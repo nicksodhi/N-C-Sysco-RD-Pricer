@@ -14,7 +14,7 @@ const fs = require("fs");
 const PRICES_FILE = "/data/nc_prices.json";
 
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
-const RD_SINGLE_UNIT = new Set(["42647","55519","40138"]); // sold per-unit not per-case
+const RD_SINGLE_UNIT = new Set(["42647","55519"]); // sold per-unit not per-case (Mint, Flowers)
 const RD_PRICE_MAX = {
   "42647":  15,   // Mint 1 lb (~$5-8)
   "55519":  25,   // Orchid Flowers (~$5-15)
@@ -1470,11 +1470,27 @@ async function scrapeSysco() {
     await new Promise(r => setTimeout(r, 2000));
 
     // Scroll through entire list to load all rows
-    for (let s = 0; s < 20; s++) {
-      await page.evaluate(() => window.scrollBy(0, 400));
-      await new Promise(r => setTimeout(r, 200));
-    }
-    await new Promise(r => setTimeout(r, 1000));
+    // Sysco uses a virtualized list — scroll the actual container, not window
+    await page.evaluate(async () => {
+      // Try known container selectors for Sysco's list
+      const container = document.querySelector("[class*='product-list']")
+        || document.querySelector("[class*='list-items']")
+        || document.querySelector("[class*='products-list']")
+        || document.querySelector("[class*='order-guide']")
+        || document.querySelector("main")
+        || document.body;
+      // Scroll in chunks to trigger lazy loading
+      const totalScroll = container.scrollHeight || 15000;
+      for (let s = 0; s < 40; s++) {
+        container.scrollTop = s * 400;
+        window.scrollBy(0, 400);
+        await new Promise(r => setTimeout(r, 150));
+      }
+      // Scroll back to top so search works cleanly
+      container.scrollTop = 0;
+      window.scrollTo(0, 0);
+    });
+    await new Promise(r => setTimeout(r, 2000));
 
     // Read ALL rows currently visible — captures every item on the Nick List
     const allDiscovered = await page.evaluate(() => {
@@ -1525,11 +1541,11 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","1803287":"Chicken Leg Quarter Halal","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","1803287":"Chicken Leg Quarter Halal","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 1200));
 
         const results = await page.evaluate((upc) => {
           const rows = document.querySelectorAll("[class*='product-item-row']");
@@ -1905,7 +1921,7 @@ async function runScrape(source = "all") {
 
   if (source === "sysco" || source === "all") {
     try {
-      const result = await withTimeout(scrapeSysco(), 180000, "Sysco");
+      const result = await withTimeout(scrapeSysco(), 300000, "Sysco");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
         // Health check
@@ -2072,7 +2088,7 @@ function patchItemKnowledge() {
     "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
     "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
     // ── New items added ────────────────────────────────────────────────────────
-    "40138":  [4,"1 x 4 lb bunch","lb",2,"1 x 2 lb pack"],         // Green Onions (buy single)
+    "40138":  [12,"3 x 4 lb bunches (12 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=3 bunches
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
     "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
@@ -2290,7 +2306,7 @@ const PACK_SIZES = {
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
-  "40138":  { rd: "1 × 4 lb bunch",          sysco: "1 × 2 lb pack",           rdTotal: 4,     syscoTotal: 2,     unit: "lb"   }, // Green Onions (buy single, not case)
+  "40138":  { rd: "3 × 4 lb bunches (12 lb)", sysco: "1 × 2 lb pack",           rdTotal: 12,    syscoTotal: 2,     unit: "lb"   }, // Green Onions — RD case=3 bunches, Sysco=single EA
   "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   }, // Green Bell Pepper
   "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   }, // Ketchup
   "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  }, // Tomato Puree
