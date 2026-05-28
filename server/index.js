@@ -2112,7 +2112,7 @@ function patchItemKnowledge() {
     // ── New items added ────────────────────────────────────────────────────────
     "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed)
     "42504":  [6,"1 x 6ct pack","each",null,null],                   // Cucumbers — buy SINGLE 6ct pack at $3.89 (not case of 12 at $42.96)
-    "44137":  [null,null,"lb",40,"1 x 40 lb case"],                  // Serrano Peppers — Sysco 1/40LB $2.98 confirmed; RD case size unknown
+    // "44137" Serrano Peppers already defined above as [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"] — Sysco $2.98/40lb confirmed
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
     "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
@@ -2122,10 +2122,11 @@ function patchItemKnowledge() {
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
     if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:scT?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
-    if (itemKnowledge[id].rd) Object.assign(itemKnowledge[id].rd, { totalUnits:rdT, caseContents:rdC, unitOfMeasure:u });
+    if (itemKnowledge[id].rd && rdT != null) Object.assign(itemKnowledge[id].rd, { totalUnits:rdT, caseContents:rdC, unitOfMeasure:u });
     if (scT && itemKnowledge[id].sysco) Object.assign(itemKnowledge[id].sysco, { totalUnits:scT, caseContents:scC, unitOfMeasure:u });
     if (!itemKnowledge[id].comparison) itemKnowledge[id].comparison = {};
-    Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
+    if (rdT != null) Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
+    else if (scT) Object.assign(itemKnowledge[id].comparison, { syscoTotalUnits:scT, unitOfMeasure:u });
     n++;
   });
 
@@ -2706,7 +2707,7 @@ Total: $[total]
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: "user", content: prompt }]
