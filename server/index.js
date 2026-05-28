@@ -51,11 +51,10 @@ const SYSCO_PRICE_MIN = {
   "77232":   25,  // same under RD ID
   "6344790": 25,  // Chicken Wings 40lb
   "77200":   25,  // same under RD ID
-  // Other large-case items where search can return unit price
-  "7007376": 20,  // Serrano Peppers 40lb — search fallback grabs retail per-lb
-  "44137":   20,  // same under RD ID
+  // Peeled Garlic — large case, min prevents single-bag price
   "1821537": 15,  // Peeled Garlic 20lb
   "44146":   15,  // same under RD ID
+  // NOTE: Serrano Peppers 7007376/44137 removed — $2.98 CS for 1-pack 40LB IS the real case price (confirmed from Sysco product page)
 };
 
 
@@ -169,7 +168,10 @@ async function restoreFromGitHub() {
     if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
     if (data.oos) { priceStore.oos = data.oos; }
     if (data.matchCache) { matchCache = data.matchCache; }
-    if (data.crossVendor) { Object.assign(SYSCO_TO_RD, data.crossVendor); }
+    if (data.crossVendor) {
+      Object.assign(SYSCO_TO_RD, data.crossVendor);
+      Object.assign(SYSCO_TO_RD, SYSCO_TO_RD_LOCK); // LOCK always wins over backup
+    }
 
     // Clean bad prices BEFORE saving (don't persist known-wrong prices)
     cleanBadPrices();
@@ -701,11 +703,12 @@ const SYSCO_TO_RD_SEED = {
   "9903790": { rdId: "2010066", rdMult: 1 }, // Ketchup Jug 6/114oz
 };
 
-// Locked mappings — these override both the seed AND any saved cross-vendor file.
+// Locked mappings — these override both the seed AND any saved cross-vendor file or GitHub backup.
 // Use this for known-wrong auto-learned mappings that keep getting overridden.
 const SYSCO_TO_RD_LOCK = {
   "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must be 860043 not 860044
   "5895750": { rdId: "860135",  rdMult: 1 }, // Diced Tomatoes → must be 860135 not 860044
+  "8053456": { rdId: null,      rdMult: 1 }, // Chicken Thighs Sysco — not tracked in RD, skip cross-mapping
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -1967,6 +1970,7 @@ async function runScrape(source = "all") {
           const mapping = SYSCO_TO_RD[id];
           if (mapping) {
             const rdId = mapping.rdId || mapping;
+            if (!rdId || typeof rdId !== "string") return; // rdId: null = intentionally blocked (e.g. Chicken Thighs)
             const rdMult = mapping.rdMult || 1;
             const nowSc = new Date().toISOString();
             const prevSc = priceStore.sysco[rdId];
@@ -1997,6 +2001,7 @@ async function runScrape(source = "all") {
           const mapping = SYSCO_TO_RD[id];
           if (mapping) {
             const rdId = mapping.rdId || mapping;
+            if (!rdId || typeof rdId !== "string") return; // blocked item
             if (!priceStore.sysco[rdId]) {
               // Use adjusted price (handles per-lb items like Paneer)
               let reAdjP = price;
@@ -2007,7 +2012,7 @@ async function runScrape(source = "all") {
         });
 
         log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " +
-          matched.filter(m => SYSCO_TO_RD[m.id]).map(m => { const mp = SYSCO_TO_RD[m.id]; return m.id + "→" + (mp.rdId || mp) + (mp.rdMult > 1 ? "(×"+mp.rdMult+")" : ""); }).join(", "));
+          matched.filter(m => { const mp = SYSCO_TO_RD[m.id]; return mp && (mp.rdId || mp) && typeof (mp.rdId || mp) === "string"; }).map(m => { const mp = SYSCO_TO_RD[m.id]; return m.id + "→" + (mp.rdId || mp) + (mp.rdMult > 1 ? "(×"+mp.rdMult+")" : ""); }).join(", "));
         savePrices();
         validatePricesWithAI("sysco").catch(e => log("Sysco price validation error: " + e.message));
       } else { log("❌ Sysco: " + (result.error || "no items")); }
@@ -2107,6 +2112,7 @@ function patchItemKnowledge() {
     // ── New items added ────────────────────────────────────────────────────────
     "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed)
     "42504":  [6,"1 x 6ct pack","each",null,null],                   // Cucumbers — buy SINGLE 6ct pack at $3.89 (not case of 12 at $42.96)
+    "44137":  [null,null,"lb",40,"1 x 40 lb case"],                  // Serrano Peppers — Sysco 1/40LB $2.98 confirmed; RD case size unknown
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
     "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
