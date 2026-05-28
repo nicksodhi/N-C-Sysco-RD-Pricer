@@ -12,7 +12,7 @@ const DIFFERENT_CASE_SIZES = new Set([
   "1440528", // Paneer: RD 20lb vs Sysco 10lb
   "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
   "44211",   // Fresh Spinach: RD 10lb vs Sysco 4lb
-  "40138",   // Green Onions: RD 4lb bunch vs Sysco 2lb pack (both single)
+  "40138",   // Green Onions: RD 16lb (4 bunches) vs Sysco 2lb pack
   "42706",   // Green Bell Pepper: RD 5lb bag vs Sysco 22-25lb case
 ]);
 
