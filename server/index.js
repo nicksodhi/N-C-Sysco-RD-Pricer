@@ -2521,109 +2521,196 @@ app.post("/api/scrape", (req, res) => {
   runScrape(src).catch(e => log("Scrape: " + e.message));
 });
 
-// Grocery breakdown
+// Grocery breakdown — GOD MODE
 app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
   try {
-    const DIFF_SIZES = new Set(["55523","12728","44146","86525","2620442","64120","86527","1440528","2910159","29268","44211"]);
+    const rdOosSet = new Set(priceStore.oos?.rd || []);
+    const scOosSet = new Set(priceStore.oos?.sysco || []);
 
-    // Build the richest possible catalog — everything Claude needs to be accurate
+    // Price trend: compare current vs recent avg
+    function priceTrend(id, currentPrice, vendor) {
+      const hist = priceHistory[id];
+      if (!hist || hist.length < 3) return "";
+      const field = vendor === "rd" ? "rd" : "sc";
+      const recent = hist.slice(-10).filter(e => e[field] != null).map(e => e[field]);
+      if (recent.length < 2) return "";
+      const avg = recent.slice(0, -1).reduce((a, b) => a + b, 0) / (recent.length - 1);
+      const diff = currentPrice - avg;
+      if (Math.abs(diff) < 0.10) return "";
+      return diff > 0 ? ` ▲+$${diff.toFixed(2)} vs recent` : ` ▼$${Math.abs(diff).toFixed(2)} vs recent`;
+    }
+
+    // Per-unit cost string
+    function perUnit(price, id, vendor) {
+      const ps = PACK_SIZES[id];
+      if (!ps) return "";
+      const total = vendor === "rd" ? ps.rdTotal : ps.syscoTotal;
+      if (!total || total <= 0) return "";
+      return ` ($${(price / total).toFixed(2)}/${ps.unit})`;
+    }
+
+    // Days since update
+    function freshness(entry) {
+      const d = entry?.scrapedAt || entry?.date;
+      if (!d) return "";
+      const hours = (Date.now() - new Date(d)) / 3.6e6;
+      if (hours < 26) return " [today]";
+      if (hours < 50) return " [yesterday]";
+      return ` [${Math.floor(hours/24)}d ago]`;
+    }
+
+    // Build catalog — includes OOS items and Sysco-only items
     const catalog = [];
     RD_ITEMS.forEach(rdItem => {
       const rdE = priceStore.rd[rdItem.id];
-      if (!rdE?.price) return;
+      const isRdOos = rdOosSet.has(rdItem.id);
 
-      const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => (map.rdId || map) === rdItem.id);
+      const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => {
+        const rid = map.rdId || map;
+        return rid === rdItem.id && typeof rid === "string";
+      });
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       const syscoE = syscoUpc ? (priceStore.sysco[rdItem.id] || priceStore.sysco[syscoUpc]) : null;
+      const isScOos = syscoUpc ? scOosSet.has(syscoUpc) : false;
 
-      // Pack info from KB (ground truth) or PACK_SIZES
+      if (!rdE?.price && !syscoE?.price) return; // no data at either vendor
+
+      const ps = PACK_SIZES[rdItem.id];
       const kb = itemKnowledge[rdItem.id];
-      const rdPack  = kb?.rd?.caseContents  || PACK_SIZES[rdItem.id]?.rd  || "1 case";
-      const scPack  = kb?.sysco?.caseContents || syscoItem?.pack || PACK_SIZES[rdItem.id]?.sysco || "";
+      const rdPack = kb?.rd?.caseContents || ps?.rd || "1 case";
+      const scPack = kb?.sysco?.caseContents || syscoItem?.pack || ps?.sysco || "";
+      const rdBin = kb?.rd?.binLocation || (rdE?.scrapedCtx?.match(/Bin - (\d+)/)?.[1] ? "Bin " + rdE.scrapedCtx.match(/Bin - (\d+)/)[1] : "");
 
-      // Short name
       const shortName = rdItem.name
         .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen /gi, "")
         .replace(/ - \d+.*$/, "").trim();
 
-      // Raw scrape data — bin, stock status, price format
-      const rdCtx = rdE.scrapedCtx || "";
-      const rdBin = rdCtx.match(/Bin - (\d+)/)?.[1];
-      const rdStock = rdCtx.includes("Many in stock") ? "In stock" : rdCtx.includes("out of stock") ? "OUT OF STOCK" : "";
-      const rdRaw = rdE.rawScraped || "";
-
-      const cheaper = syscoE?.price ? (rdE.price <= syscoE.price ? "RD" : "Sysco") : "RD only";
-      const diffSize = DIFF_SIZES.has(rdItem.id);
-
-      // Build catalog line with all available data
       let line = shortName;
-      line += " | RD: $" + rdE.price + " — " + rdPack;
-      if (rdBin) line += " (Bin " + rdBin + ")";
-      if (rdStock) line += " [" + rdStock + "]";
-      if (rdRaw && rdRaw !== "null") line += " {format: " + rdRaw + "}";
-      if (syscoE?.price) {
-        line += " | Sysco: $" + syscoE.price + " — " + scPack;
-        line += " | CHEAPER: " + cheaper;
+
+      if (rdE?.price && !isRdOos) {
+        line += `\n  RD: $${rdE.price}${perUnit(rdE.price, rdItem.id, "rd")} | ${rdPack}`;
+        if (rdBin) line += ` | ${rdBin}`;
+        line += priceTrend(rdItem.id, rdE.price, "rd") + freshness(rdE);
+      } else if (isRdOos) {
+        line += `\n  RD: ⛔ OUT OF STOCK${rdE?.price ? ` (last $${rdE.price})` : ""} — MUST use Sysco`;
       } else {
-        line += " | Sysco: not on Nick List";
+        line += `\n  RD: not available`;
       }
-      if (diffSize) line += " *** DIFF CASE SIZE — compare per unit ***";
+
+      if (syscoE?.price && !isScOos) {
+        line += `\n  Sysco: $${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")} | ${scPack}`;
+        line += priceTrend(rdItem.id, syscoE.price, "sc") + freshness(syscoE);
+      } else if (isScOos) {
+        line += `\n  Sysco: ⛔ OUT OF STOCK`;
+      } else {
+        line += `\n  Sysco: not tracked`;
+      }
+
+      // Verdict
+      if (rdE?.price && !isRdOos && syscoE?.price && !isScOos) {
+        const rdPu = ps?.rdTotal ? rdE.price / ps.rdTotal : rdE.price;
+        const scPu = ps?.syscoTotal ? syscoE.price / ps.syscoTotal : syscoE.price;
+        const winner = rdPu <= scPu ? "RD" : "Sysco";
+        const saving = Math.abs(rdPu - scPu);
+        line += `\n  ✅ BUY: ${winner}${saving > 0.01 ? ` (saves $${saving.toFixed(2)}/${ps?.unit || "unit"})` : ""}`;
+        if (ps?.rdTotal !== ps?.syscoTotal && ps?.rdTotal && ps?.syscoTotal) {
+          line += `\n  ⚖ DIFFERENT CASE SIZES — per-unit cost is the real comparison`;
+        }
+      } else if ((isRdOos || !rdE?.price) && syscoE?.price && !isScOos) {
+        line += `\n  ✅ BUY: Sysco (RD unavailable)`;
+      } else if (rdE?.price && !isRdOos && !syscoE?.price) {
+        line += `\n  ✅ BUY: RD only`;
+      }
+
       catalog.push(line);
     });
 
-    if (catalog.length === 0) return res.status(500).json({ error: "No price data — run scrape first at /api/trigger" });
+    if (catalog.length === 0) return res.status(500).json({ error: "No price data — run scrape first" });
 
-    const prompt = `You are the purchasing assistant for Naan & Curry restaurant in Las Vegas.
-You have complete knowledge of every item tracked, with today's live prices, pack sizes, bin locations, and stock status.
-Parse the order list and produce a clean, accurate vendor breakdown.
+    const lastUpdated = priceStore.lastUpdated
+      ? new Date(priceStore.lastUpdated).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+      : "unknown";
 
-TODAY'S COMPLETE PRICE CATALOG (${catalog.length} items):
-${catalog.join("\n")}
+    const systemPrompt = `You are the expert purchasing manager for Naan & Curry, an Indian restaurant in Las Vegas, Nevada.
+You have full access to today's live vendor pricing, per-unit costs, stock status, bin locations, and price history.
+Prices are scraped daily from Restaurant Depot and Sysco. Data was last updated: ${lastUpdated}.
+Your job: parse the chef's order and assign every item to the cheapest available vendor with perfect accuracy.
+Trust the catalog completely. When the catalog says OUT OF STOCK, it is physically unavailable — never put it under RD.`;
 
-ORDER LIST FROM CHEF:
+    const prompt = `LIVE PRICE CATALOG — ${catalog.length} items, updated ${lastUpdated}:
+
+${catalog.join("\n\n")}
+
+---
+CHEF'S ORDER:
 ${list}
 
-MATCHING GUIDE:
-LQ / leg quarters = Fresh Chicken Leg Quarters
-chx breast / chicken breast = Boneless Skinless Chicken Breast  
-WM / whole milk = Whole Milk
-HWC / heavy cream / cream = Heavy Cream Whipping 40%
-wings = Chicken Wings
-leg meat = Chicken Leg Meat Boneless
-garlic = Peeled Garlic
-onion (without red/yellow) = Yellow Onion (most common)
+---
+ITEM NAME ALIASES (chef shorthand → catalog name):
+LQ / leg quarters / bone-in = Chicken Leg Quarters
+breast = Chicken Breast (Boneless Skinless)
+wings = Chicken Wings  
+leg meat / BLSM = Chicken Leg Meat
+WM = Whole Milk | HWC / cream = Heavy Cream 40%
+garlic = Peeled Garlic | onion = Yellow Onion
+green onion / scallion = Green Onions
+green pepper / bell pepper = Green Bell Pepper
+serrano / green chili = Serrano Peppers
+4-way / frozen mix / mixed veg = Frozen 4-Way Mix
+frozen spinach / chopped spinach = Frozen Spinach
+baby spinach / cleaned spinach = Fresh Spinach
+tomato puree = Tomato Puree (NOT Tomato Sauce — different items)
+tomato sauce = Tomato Sauce
+petite diced / diced tomato = Petite Diced Tomato
+roti / atta = Roti Atta (Golden Temple)
+fryer oil = Fryer Oil | salad oil / canola = Canola Salad Oil
+liquid butter / butter alt = Liquid Butter
+baking powder = Baking Powder (NOT baking soda — completely different product)
+cornstarch = Cornstarch
+paneer = Paneer | yogurt = Plain Yogurt
+shrimp = Shrimp 16-20 | tilapia = Fish (Tilapia)
 
-RULES:
-1. Every item in the order list must appear in the output — either assigned to a vendor or in ORDER MANUALLY
-2. Assign to CHEAPER vendor always
-3. If quantity given (x2, 2 cases, etc.) multiply and show math
-4. Items marked DIFF CASE SIZE: assign to cheaper but add note "(verify case volume)"
-5. OUT OF STOCK items at RD → check Sysco, else ORDER MANUALLY
-6. Use short clean names — no brand names, no SKU numbers
+RULES — follow without exception:
+1. Every item in the chef's order must appear in output. Zero exceptions.
+2. Always assign to the vendor with the LOWER per-unit cost. Never assign to a more expensive vendor.
+3. ⛔ OUT OF STOCK = physically unavailable. NEVER put OOS items under RD. Assign to Sysco or ORDER MANUALLY.
+4. Single-vendor items → assign to that vendor. No debate.
+5. Quantities: if written as x2 or "2 cases" → show: x2 (2 × $unit) — $total
+6. ⚖ DIFFERENT CASE SIZES items → note "(verify case volume)" after the price
+7. Items not in catalog → ORDER MANUALLY with a precise, helpful reason (e.g. "not tracked — check RD in-store", "baking soda ≠ baking powder, different product")
+8. Baking soda is NOT in catalog. It is NOT the same as baking powder.
+9. Clean short names only. No brands, no SKU numbers, no catalog codes.
+10. Math must be exact. Check every multiplication and total.
 
-OUTPUT — follow exactly, no markdown, no asterisks, no explanations:
+OUTPUT — exactly this format, nothing else, no extra text:
 
-🟢 RESTAURANT DEPOT
+🟢 RD
 [Item] — $[price]
-[Item] x[n] ([n] × $[unit]) — $[total]
-RD Cart Total: $[total]
+[Item] x[qty] — $[total]
+Total: $[total]
 
 🔵 SYSCO
 [Item] — $[price]
-Sysco Cart Total: $[total]
+Total: $[total]
 
 ⚠️ ORDER MANUALLY
-[Item] — [reason]
+[Item]
+[Item]
 
-💰 TOTAL ORDER COST: $[grand total]`;
+💰 $[grand total]`;
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: "user", content: prompt }]
+      }),
     });
     const data = await r.json();
     if (data.error) throw new Error("API error: " + (data.error.message || JSON.stringify(data.error)));
