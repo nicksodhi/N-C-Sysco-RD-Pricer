@@ -2530,6 +2530,43 @@ app.post("/api/grocery", async (req, res) => {
     const rdOosSet = new Set(priceStore.oos?.rd || []);
     const scOosSet = new Set(priceStore.oos?.sysco || []);
 
+    // Clean display names for the grocery catalog — matches what the app shows users
+    const DISPLAY_NAMES = {
+      "42545":  "Yellow Onions",        "42658":  "Red Onions",
+      "42725":  "Russet Potato",        "44146":  "Peeled Garlic",
+      "42513":  "Ginger",               "1440528":"Paneer",
+      "55519":  "Flowers",              "42606":  "Cauliflower",
+      "40138":  "Green Onions",         "79152":  "Carrots",
+      "44211":  "Fresh Spinach",        "42706":  "Green Bell Pepper",
+      "42570":  "Lemons",               "42647":  "Mint",
+      "42566":  "Cilantro",             "44137":  "Green Chilies",
+      "42504":  "Cucumbers",            "1530438":"Heavy Cream",
+      "370496": "Whole Milk",           "77232":  "Chicken Breast",
+      "77670":  "Chicken Leg Quarters", "77200":  "Chicken Wings",
+      "77658":  "Chicken Leg Meat",     "79042":  "Lamb Leg Boneless",
+      "1810019":"Goat Cubes",           "1440203":"Cheese Blend",
+      "14785":  "Plain Yogurt",         "40212":  "Shrimp 16-20",
+      "51457":  "Fish (Tilapia)",       "64046":  "Frozen Spinach",
+      "86525":  "Frozen Peas",          "64120":  "Frozen Broccoli",
+      "86527":  "Frozen 4-Way Mix",     "25267":  "Eggplant Pulp",
+      "45900":  "White Vinegar",        "1020152":"Liquid Butter",
+      "12728":  "Pan Spray",            "1020079":"Canola Salad Oil",
+      "1020075":"Soybean Oil",          "1020077":"Fryer Oil",
+      "55523":  "Lemon Juice",          "53556":  "Roti Atta",
+      "13417":  "Sambal Chili",         "2620442":"Coconut Milk",
+      "2061212":"All Purpose Flour",    "29268":  "Baking Powder",
+      "2910159":"Cornstarch",           "490266": "Rice – Royal",
+      "2550014":"Red Food Color",       "2550012":"Egg Yellow Color",
+      "16200":  "Garbanzo Beans",       "69810":  "Red Kidney Beans",
+      "1070496":"Salt",                 "21051":  "Sugar",
+      "2010066":"Ketchup",              "860043": "Tomato Puree",
+      "860044": "Tomato Sauce",         "860135": "Petite Diced Tomato",
+      "21039":  "Water",                "440038": "Coca-Cola",
+      "440039": "Diet Coke",            "440040": "Sprite",
+      "50103":  "Printer Paper Roll",   "77682":  "Chicken Thighs",
+      "43431":  "Green Bell Peppers (9ct)", "42658":"Red Onions",
+    };
+
     // Price trend: compare current vs recent avg
     function priceTrend(id, currentPrice, vendor) {
       const hist = priceHistory[id];
@@ -2585,9 +2622,11 @@ app.post("/api/grocery", async (req, res) => {
       const scPack = kb?.sysco?.caseContents || syscoItem?.pack || ps?.sysco || "";
       const rdBin = kb?.rd?.binLocation || (rdE?.scrapedCtx?.match(/Bin - (\d+)/)?.[1] ? "Bin " + rdE.scrapedCtx.match(/Bin - (\d+)/)[1] : "");
 
-      const shortName = rdItem.name
-        .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen /gi, "")
-        .replace(/ - \d+.*$/, "").trim();
+      const shortName = DISPLAY_NAMES[rdItem.id] || rdItem.name
+        .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen |Jumbo |Fresh |Boneless Skinless |Boneless, Skinless /gi, "")
+        .replace(/ - \d+.*$/, "")
+        .replace(/\bGS\/AN\b|\bIQF\b|\bSEAFOOD\b|\bWHL GAL\b/gi, "")
+        .replace(/\s+/g, " ").trim();
 
       let line = shortName;
 
@@ -2658,7 +2697,7 @@ wings = Chicken Wings
 leg meat / BLSM = Chicken Leg Meat
 WM = Whole Milk | HWC / cream = Heavy Cream 40%
 garlic = Peeled Garlic | onion = Yellow Onion
-green onion / scallion = Green Onions
+carrots / carrots 25lb / carrots 10lb / carrots (any size) = Carrots (catalog has 10lb bag — ignore size in order)
 green pepper / bell pepper = Green Bell Pepper
 serrano / green chili = Serrano Peppers
 4-way / frozen mix / mixed veg = Frozen 4-Way Mix
