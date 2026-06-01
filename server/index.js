@@ -27,6 +27,7 @@ const RD_PRICE_MAX = {
   "79042":  500,  // Lamb Leg (~$150-400)
   "1810019": 200, // Goat Bone-in 15lb (~$50-150)
   // NOTE: 86525 Frozen Peas removed — $38.20 IS the correct Case-of-12 price (12×2.5lb=30lb)
+  "40138":  20,   // Green Onions single 4lb pack — ~$10.35; rejects case-bleed or wrong product
 };
 
 // Minimum acceptable RD case price — rejects per-lb prices stored without ×weight multiplication
@@ -64,6 +65,8 @@ const SYSCO_PRICE_MAX = {
   "42647":   15,   // same under RD ID
   "1053826": 55,   // Frozen Peas 12/2.5LB — $35.92 confirmed; $63.95 was wrong (old 6409940 bleed)
   "86525":   55,   // same item stored under RD ID
+  "7350788": 15,   // Green Onion EA 2lb — $6.89 confirmed; CS case (~$27) must never be stored
+  "40138":   15,   // same item stored under RD ID
 };
 
 
@@ -1833,7 +1836,7 @@ const PACK_SIZES = {
   "42570":  { rd: "1 × 115 ct case",           sysco: "1 × 115 ct case",            rdTotal: 115,   syscoTotal: 115,   unit: "each"  }, // Lemons (2252013) — FIXED: was rdTotal:null
   "79152":  { rd: "1 × 10 lb bag",             sysco: "1 × 10 lb bag",              rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Carrots (3879962)
   "44137":  { rd: "1 × 40 lb box",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Serrano Peppers (7007376)
-  "40138":  { rd: "1 × 4 lb bunch",             sysco: "1 × 2 lb split (EA)",        rdTotal: 4,     syscoTotal: 2,     unit: "lb"    }, // Green Onions (7350788) — RD single 4lb bunch; Sysco buy EA 2lb
+  "40138":  { rd: "1 × 4 lb bunch",             sysco: "1 × 2 lb split (EA)",        rdTotal: 4,     syscoTotal: 2,     unit: "lb"    }, // Green Onions — always buy single packs; RD $10.35/4lb=$2.59/lb; Sysco $6.89/2lb=$3.45/lb → RD cheaper
   "42706":  { rd: "1 × 5 lb bag",              sysco: "1 × 22-25 lb case",          rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"    }, // Green Bell Pepper (1910231) — DIFF SIZES
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)",   sysco: "1 × 4 lb bag",               rdTotal: 10,    syscoTotal: 4,     unit: "lb"    }, // Baby Spinach (8474538) — DIFF SIZES
   "42566":  { rd: "1 case",                    sysco: "4 × 1 lb bunches (4 lb)",    rdTotal: null,  syscoTotal: 4,     unit: "lb"    }, // Cilantro (2219095) — RD case size not on order guide
