@@ -1624,6 +1624,8 @@ Return [] if nothing should be added.`;
 }
 
 async function runScrape(source = "all") {
+  priceStore.scraping = true;
+  try {
   if (source === "rd" || source === "all") {
     try {
       const result = await withTimeout(scrapeRD(), 180000, "RD");
@@ -1760,6 +1762,7 @@ async function runScrape(source = "all") {
   recordHistory();
   if (source === "all") crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
   backupToGitHub().catch(e => log("Backup error: " + e.message));
+  } finally { priceStore.scraping = false; }
 }
 
 // ── Item Knowledge Base ───────────────────────────────────────────────────────
@@ -2092,7 +2095,7 @@ Write ONE specific purchasing recommendation sentence. Return ONLY JSON: {"recom
 });
 
 app.get("/api/history", (req, res) => res.json({ data: priceHistory, lastRecorded: priceStore.lastUpdated || null }));
-app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceStore.sysco, lastUpdated: priceStore.lastUpdated, oos: priceStore.oos || { rd: [], sysco: [] } }));
+app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceStore.sysco, lastUpdated: priceStore.lastUpdated, oos: priceStore.oos || { rd: [], sysco: [] }, scraping: priceStore.scraping || false }));
 app.get("/api/status", (req, res) => res.json({ status: "running", lastUpdated: priceStore.lastUpdated, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length, log: priceStore.log.slice(0, 200) }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
