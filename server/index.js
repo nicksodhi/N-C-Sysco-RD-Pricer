@@ -43,7 +43,7 @@ const RD_PRICE_MIN = {
 // Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
 const SYSCO_PRICE_MIN = {
   // Chicken items — 40lb cases, minimum floor prevents per-10lb-pack price storage
-  "1803287": 20,  // Chicken Leg Quarters Halal 4×10lb = 40lb case — $37.93 expected
+  "4418117": 20,  // Chicken Leg Quarters Jumbo 1/40LB — $29.59 confirmed
   "77670":   20,  // same item stored under RD ID
   "0868459": 20,  // Chicken Leg Meat 4×10lb = 40lb case
   "77658":   20,  // same item stored under RD ID
@@ -375,6 +375,8 @@ const CACHE_SEED = {
   },
   sysco: {
     "Chicken Cvp Leg Quarter Small Halal": "1803287",
+    "Chicken Legs Quarters Jumbo Controlled Vacuum": "4418117",
+    "Chicken Leg Quarter Jumbo": "4418117",
     "Chicken Cvp Leg Meat Boneless Skinless": "0868459",
     "Flour All Purpose Hotel Restaurant Bleached": "8379251",
     "Tomato Puree 1.06 Fancy California": "4002325",
@@ -426,6 +428,9 @@ const CACHE_SEED = {
     "Cream Heavy Whipping": "6935464",
     "Cream Heavy 40%": "6935464",
     "Paneer": "7102961",
+    "Cilantro Cleaned, Washed & Fresh Herb": "2219095",
+    "Cilantro Washed Fresh Herb": "2219095",
+    "Cilantro Fresh": "7078475",
     "Cilantro Bunch Iceless": "7078475",
     "Onion Green Iceless": "7350788",
     "Pepper Green Bell Choice Fresh": "1910231",
@@ -439,7 +444,7 @@ const CACHE_SEED = {
 // Claude flags it as partial and keeps yesterday's prices.
 const scraperHealth = {
   rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
-  sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 },
+  sysco: { expectedItems: 53, minThreshold: 0.80, lastGoodCount: 0 },
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -622,7 +627,7 @@ const RD_ITEMS = [
 // Prices from Sysco PDF: CS = case price
 const SYSCO_ITEMS = [
   { id: "1094721", name: "Onion Yellow Jumbo Bag",                        pack: "1/50 LB" },
-  { id: "1803287", name: "Chicken Cvp Leg Quarter Small Halal",           pack: "4 x 10 LB"  },
+  { id: "4418117", name: "Chicken Legs Quarters Jumbo Controlled Vacuum",    pack: "1/40 LB"  }, // replaces 1803287 Small Halal — $29.59 confirmed
   { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4 x 10 LB" },
   { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",   pack: "1/25LB"  },
   { id: "4002325", name: "Tomato Puree 1.06 Fancy California",            pack: "6/#10"   },
@@ -639,6 +644,7 @@ const SYSCO_ITEMS = [
   { id: "2822379", name: "Cheese Cheddar Jack Fancy Shredded",                    pack: "4/5 LB"   },
   { id: "4564894", name: "Salt Granulated Plain",                              pack: "1/50 LB"  },
   { id: "7078475", name: "Cilantro Fresh",                                  pack: "1 CS"     },
+  { id: "2219095", name: "Cilantro Cleaned, Washed & Fresh Herb",          pack: "4/1 LB"   }, // confirmed SKU from order May 31 2026
   { id: "6344790", name: "Chicken Wings 1st And 2nd Joints Jumbo",          pack: "4/10 LB"  },
   { id: "1094663", name: "Onion Red Jumbo Bag",                             pack: "1/25LB"   },
   { id: "1821537", name: "Garlic Peeled Fresh",                             pack: "4/5LB"    },
@@ -682,7 +688,7 @@ const SYSCO_ITEMS = [
 // RD $43.95 heavy cream = full case price
 // Direct comparison is apples-to-apples
 const SYSCO_TO_RD_SEED = {
-  "1803287": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Halal
+  "4418117": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Jumbo 1/40LB — $29.59 confirmed (replaces 1803287)
   "0868459": { rdId: "77658",   rdMult: 1 }, // Chicken Leg Meat
   "5231238": { rdId: "77232",   rdMult: 1 }, // Chicken Breast
   "6344790": { rdId: "77200",   rdMult: 1 }, // Chicken Wings
@@ -697,7 +703,8 @@ const SYSCO_TO_RD_SEED = {
   "1543164": { rdId: "42725",   rdMult: 1 }, // Russet Potato
   "6914451": { rdId: "12728",   rdMult: 1 }, // Pan Spray
   "4564894": { rdId: "1070496", rdMult: 1 }, // Salt
-  "7078475": { rdId: "42566",   rdMult: 1 }, // Cilantro
+  "7078475": { rdId: "42566",   rdMult: 1 }, // Cilantro Fresh (old SKU)
+  "2219095": { rdId: "42566",   rdMult: 1 }, // Cilantro Cleaned 4/1LB (confirmed active SKU from order)
   "2822379": { rdId: "1440203", rdMult: 1 }, // Cheddar Jack
   "1821537": { rdId: "44146",   rdMult: 1 }, // Garlic Peeled
   "1094663": { rdId: "42658",   rdMult: 1 }, // Red Onion
@@ -1595,7 +1602,7 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","1803287":"Chicken Leg Quarter Halal","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
@@ -2160,7 +2167,7 @@ function patchItemKnowledge() {
     "77200":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
     "77232":  [40,"1 x 40 lb case","lb",20,"2 x 10 lb bags (20 lb)"],
     "77658":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
-    "77670":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
+    "77670":  [40,"1 x 40 lb case","lb",40,"1 x 40 lb case"],              // Chicken Leg Quarters — RD $31.60, Sysco 4418117 $29.59 (1/40LB single pack)
     "77682":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
     "44146":  [30,"6 x 5 lb bags (30 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
     "42513":  [30,"1 x 30 lb bulk case","lb",30,"1 x 30 lb bag"],
@@ -2209,8 +2216,12 @@ function patchItemKnowledge() {
     "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
     "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
     // ── New items added ────────────────────────────────────────────────────────
-    "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb pack"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed)
-    "42504":  [6,"1 x 6ct pack","each",null,null],                   // Cucumbers — buy SINGLE 6ct pack at $3.89 (not case of 12 at $42.96)
+    "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb split (EA)"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed); Sysco bought as SPLIT 1×2lb $6.89 EA
+    "42566":  [null,null,"lb",4,"4 x 1 lb bunches"],                      // Cilantro — Sysco 2219095 confirmed 4/1LB from order
+    "42606":  [null,null,"each",12,"12 heads"],                            // Cauliflower — Sysco 12/1EA confirmed from order
+    "42570":  [null,null,"each",115,"1 × 115ct case"],                     // Lemons — Sysco 1/115CT confirmed from order
+    "42725":  [null,null,"lb",50,"1 × 50 lb bag"],                         // Russet Potato — Sysco 1/50LB confirmed from order
+    "40212":  [null,null,"lb",10,"4 × 2.5 lb boxes (10 lb)"],             // Shrimp 16/20 — Sysco 4/2.5LB confirmed from order
     // "44137" Serrano Peppers already defined above as [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"] — Sysco $2.98/40lb confirmed
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
@@ -2430,12 +2441,15 @@ const PACK_SIZES = {
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
-  "40138":  { rd: "4 × 4 lb bunches (16 lb)", sysco: "1 × 2 lb pack",          rdTotal: 16,    syscoTotal: 2,     unit: "lb"   },
+  "40138":  { rd: "4 × 4 lb bunches (16 lb)", sysco: "1 × 2 lb split (EA)",    rdTotal: 16,    syscoTotal: 2,     unit: "lb"   }, // Sysco split $6.89 EA MARKET; RD case $29.77/16lb
   "42504":  { rd: "1 × 6ct pack",            sysco: "1 × 5 lb pack",           rdTotal: 6,     syscoTotal: 8,     unit: "each" },
   "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   },
   "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   },
   "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  },
-  "42606":  { rd: "12-head case",            sysco: "12-head case",            rdTotal: 12,    syscoTotal: 12,    unit: "head" },
+  "42606":  { rd: "12-head case",            sysco: "12 × 1 head",             rdTotal: 12,    syscoTotal: 12,    unit: "head" }, // Cauliflower — Sysco 12/1EA confirmed
+  "42566":  { rd: "1 case",                  sysco: "4 × 1 lb bunches",        rdTotal: null,  syscoTotal: 4,     unit: "lb"   }, // Cilantro — Sysco 2219095 4/1LB confirmed $21.65
+  "42570":  { rd: "1 case",                  sysco: "1 × 115ct case",           rdTotal: null,  syscoTotal: 115,   unit: "each" }, // Lemons — Sysco 1/115CT confirmed
+  "40212":  { rd: "1 × 10 lb box",          sysco: "4 × 2.5 lb boxes (10 lb)", rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Shrimp 4/2.5LB confirmed from order
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",        rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
   "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
   "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",         rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
