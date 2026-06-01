@@ -57,6 +57,12 @@ const SYSCO_PRICE_MIN = {
   // NOTE: Serrano Peppers 7007376/44137 removed — $2.98 CS for 1-pack 40LB IS the real case price (confirmed from Sysco product page)
 };
 
+// Maximum acceptable Sysco case price — rejects wrong search results (different product found)
+const SYSCO_PRICE_MAX = {
+  "2037125": 15,  // Mint 1lb — $6.10 confirmed; anything >$15 is wrong product
+  "42647":   15,  // same under RD ID
+};
+
 
 function loadPrices() {
   try {
@@ -264,6 +270,13 @@ function cleanBadPrices() {
       delete priceStore.sysco[id];
       cleaned++;
       console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-pack not case price");
+      return;
+    }
+    const max = SYSCO_PRICE_MAX[id];
+    if (max && entry.price > max) {
+      delete priceStore.sysco[id];
+      cleaned++;
+      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (max $" + max + ") — likely wrong product from search");
     }
   });
 
@@ -1525,22 +1538,31 @@ async function scrapeSysco() {
 
     // Read ALL rows currently visible — captures every item on the Nick List
     const allDiscovered = await page.evaluate(() => {
-      const rows = document.querySelectorAll("[class*='product-item-row']");
+      // Try multiple selector patterns in case Sysco updated CSS class names
+      const SELECTORS = [
+        "[class*='product-item-row']",
+        "[class*='list-row']",
+        "[class*='product-row']",
+        "[class*='item-row']",
+        "li[class*='product']",
+        "[data-testid*='product']",
+      ];
+      let rows = [];
+      for (const sel of SELECTORS) {
+        const found = document.querySelectorAll(sel);
+        if (found.length > 0) { rows = Array.from(found); break; }
+      }
       const found = [];
       rows.forEach(row => {
-        const nameEl = row.querySelector("[class*='item-details-col']");
-        const priceEl = row.querySelector("[class*='price-col']");
-        if (!nameEl || !priceEl) return;
-        const text = row.innerText;
-        // Extract UPC — usually a 7-digit number in the item details
+        const text = row.innerText || "";
         const upcM = text.match(/\b(\d{7})\b/);
-        const name = nameEl.innerText.trim().split("\n")[0].trim();
-        const priceText = priceEl.innerText.trim();
-        const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-        const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
+        const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+        const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
         const m = csM || anyM;
+        const nameEl = row.querySelector("[class*='item-details-col'], [class*='product-name'], [class*='item-name']");
+        const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
         if (upcM && m && name) {
-          found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: priceText });
+          found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0] });
         }
       });
       return found;
@@ -1579,22 +1601,45 @@ async function scrapeSysco() {
         await new Promise(r => setTimeout(r, 1200));
 
         const results = await page.evaluate((upc) => {
-          const rows = document.querySelectorAll("[class*='product-item-row']");
-          const found = [];
+          // Try multiple selector patterns — Sysco changes class names periodically
+          const SELECTORS = [
+            "[class*='product-item-row']",
+            "[class*='list-row']",
+            "[class*='product-row']",
+            "[class*='search-result']",
+            "[class*='item-row']",
+            "li[class*='product']",
+            "[data-testid*='product']",
+          ];
+          let rows = [];
+          for (const sel of SELECTORS) {
+            const found = document.querySelectorAll(sel);
+            if (found.length > 0) { rows = Array.from(found); break; }
+          }
+
+          const results = [];
           rows.forEach(row => {
-            const text = row.innerText;
-            const nameEl = row.querySelector("[class*='item-details-col']");
-            const priceEl = row.querySelector("[class*='price-col']");
-            if (!nameEl || !priceEl) return;
-            const name = nameEl.innerText.trim().split("\n")[0].trim();
-            const priceText = priceEl.innerText.trim();
+            const text = row.innerText || "";
             const hasUpc = text.includes(upc);
-            const csM = priceText.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-            const anyM = priceText.match(/\$([\d,]+\.[\d]{2})/);
+            const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+            const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
             const m = csM || anyM;
-            if (m) found.push({ name, price: parseFloat(m[1].replace(",", "")), raw: priceText, hasUpc });
+            if (m) results.push({ name: text.split("\n")[0].trim(), price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc });
           });
-          return found;
+
+          // Fallback: search full page text for UPC near a CS price
+          if (results.length === 0) {
+            const bodyText = document.body.innerText || "";
+            if (bodyText.includes(upc)) {
+              const idx = bodyText.indexOf(upc);
+              const nearby = bodyText.slice(Math.max(0, idx - 300), idx + 300);
+              const csM = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+              const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
+              const m = csM || anyM;
+              if (m) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc: true });
+            }
+          }
+          return results;
         }, item.id);
 
         const exact = results.find(r => r.hasUpc);
@@ -1603,7 +1648,13 @@ async function scrapeSysco() {
           log("Sysco: " + item.name + " → $" + best.price + " (search fallback)");
           allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
         } else {
-          log("Sysco: " + item.name + " not found in search");
+          // Log page structure to diagnose CSS changes
+          const diagInfo = await page.evaluate(() => {
+            const allClasses = new Set();
+            document.querySelectorAll("[class]").forEach(el => el.className.toString().split(/\s+/).forEach(c => { if (c.includes("row") || c.includes("product") || c.includes("item") || c.includes("price") || c.includes("list")) allClasses.add(c); }));
+            return { classHints: [...allClasses].slice(0, 10), hasCS: (document.body.innerText || "").includes("CS") };
+          });
+          log("Sysco: " + item.name + " not found in search" + (diagInfo.hasCS ? " (CS prices visible on page — CSS class changed?)" : " (no CS prices on page — empty results or different layout)") + " classes:" + diagInfo.classHints.join(","));
         }
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.press("Backspace");
@@ -1973,6 +2024,8 @@ async function runScrape(source = "all") {
             if (id === "7102961" && price < 20) adjP = Math.round(price*10*100)/100;
             const syscoMin = SYSCO_PRICE_MIN[id];
             if (syscoMin && adjP < syscoMin) return;
+            const syscoMax = SYSCO_PRICE_MAX[id];
+            if (syscoMax && adjP > syscoMax) return;
             priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
             const mapping = SYSCO_TO_RD[id];
             if (mapping) {
@@ -2003,6 +2056,11 @@ async function runScrape(source = "all") {
           const syscoMin = SYSCO_PRICE_MIN[id];
           if (syscoMin && adjP < syscoMin) {
             log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (min expected $" + syscoMin + ") — likely per-pack not case price");
+            return;
+          }
+          const syscoMax = SYSCO_PRICE_MAX[id];
+          if (syscoMax && adjP > syscoMax) {
+            log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (max expected $" + syscoMax + ") — likely wrong product from search");
             return;
           }
           priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
