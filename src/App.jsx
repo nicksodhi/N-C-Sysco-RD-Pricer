@@ -62,7 +62,6 @@ const ITEMS = [
   { id:"45900",   name:"White Vinegar",        cat:"Oils"     },
   { id:"1020152", name:"Liquid Butter",        cat:"Oils"     },
   { id:"12728",   name:"Pan Spray",            cat:"Oils"     },
-  { id:"1020079", name:"Canola Salad Oil",     cat:"Oils"     },
   { id:"1020075", name:"Soybean Oil",          cat:"Oils"     },
   { id:"1020077", name:"Fryer Oil",            cat:"Oils"     },
   { id:"55523",   name:"Lemon Juice",          cat:"Oils"     },
