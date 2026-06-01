@@ -399,6 +399,7 @@ const CACHE_SEED = {
     "Ginger Root Fresh": "1184902",
     "Cauliflower Cello Wrapped Fresh": "1243724",
     "Tilapia Fillet Boneless Skinless Iqf": "0496671",
+    "Pea Green Packaged": "1053826",
     "Pea Green Petit Grade A Packaged": "6409940",
     "Milk Coconut Unsweetened": "1425982",
     "Paste Chili Ground Sambal Oelek": "2638660",
@@ -651,7 +652,7 @@ const SYSCO_ITEMS = [
   { id: "1184902", name: "Ginger Root Fresh",                               pack: "1/30 LB"  },
   { id: "1243724", name: "Cauliflower Cello Wrapped Fresh",                 pack: "12/1EA"   },
   { id: "0496671", name: "Tilapia Fillet Boneless Skinless Iqf",            pack: "2/5LB"    },
-  { id: "6409940", name: "Pea Green Petit Grade A Packaged",                pack: "12/2.5LB" },
+  { id: "1053826", name: "Pea Green Packaged",                                        pack: "12/2.5LB" }, // replaces 6409940 — confirmed from Nick List
   { id: "1425982", name: "Milk Coconut Unsweetened",                        pack: "24/13.5OZ"},
   { id: "2638660", name: "Paste Chili Ground Sambal Oelek",                 pack: "3/136 OZ" },
   { id: "4113049", name: "Vinegar White Distilled 50 Grain",                pack: "4/1 GAL"  },
@@ -711,7 +712,7 @@ const SYSCO_TO_RD_SEED = {
   "1184902": { rdId: "42513",   rdMult: 1 }, // Ginger
   "1243724": { rdId: "42606",   rdMult: 1 }, // Cauliflower
   "0496671": { rdId: "51457",   rdMult: 1 }, // Tilapia
-  "6409940": { rdId: "86525",   rdMult: 1 }, // Peas
+  "1053826": { rdId: "86525",   rdMult: 1 }, // Pea Green Packaged 12/2.5LB (replaces 6409940)
   "1425982": { rdId: "2620442", rdMult: 1 }, // Coconut Milk
   "2638660": { rdId: "13417",   rdMult: 1 }, // Sambal Oelek
   "4113049": { rdId: "45900",   rdMult: 1 }, // White Vinegar
@@ -2432,11 +2433,8 @@ const PACK_SIZES = {
   "370496": { rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon",           rdTotal: 512,   syscoTotal: 512,   unit: "oz"   },
   "1020152":{ rd: "3 × 1 gallon jugs",        sysco: "3 × 1 gallon",           rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
   "55523":  { rd: "4 × 1 gallon jugs",        sysco: "6 × 0.5 gallon jugs",    rdTotal: 512,   syscoTotal: 384,   unit: "oz"   },
-  "12728":  { rd: "1 × 17 oz can",           sysco: "6 × 14 oz cans",         rdTotal: 17,    syscoTotal: 84,    unit: "oz"   },
-  "1440203":{ rd: "1 × 5 lb bag",            sysco: "4 × 5 lb bags",          rdTotal: 5,     syscoTotal: 20,    unit: "lb"   },
-  "44146":  { rd: "1 × 30 lb bag",           sysco: "4 × 5 lb bags (20 lb)", rdTotal: 30,    syscoTotal: 20,    unit: "lb"   },
   "86525":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "2620442":{ rd: "1 × 400ml can",           sysco: "24 × 13.5 oz cans",      rdTotal: 400,   syscoTotal: 9720,  unit: "ml"   },
+  "2620442":{ rd: "12 × 400ml cans",         sysco: "24 × 13.5 oz cans",      rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"   },
   "45900":  { rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon",           rdTotal: 512,   syscoTotal: 512,   unit: "oz"   },
   "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
   "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
@@ -2451,22 +2449,28 @@ const PACK_SIZES = {
   "42570":  { rd: "1 case",                  sysco: "1 × 115ct case",           rdTotal: null,  syscoTotal: 115,   unit: "each" }, // Lemons — Sysco 1/115CT confirmed
   "40212":  { rd: "1 × 10 lb box",          sysco: "4 × 2.5 lb boxes (10 lb)", rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Shrimp 4/2.5LB confirmed from order
   "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",        rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "1440528":{ rd: "4 × 5 lb loaves (20 lb)", sysco: "2 × 5 lb loaves (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   },
-  "2910159":{ rd: "1 × 3 lb box",            sysco: "24 × 1 lb boxes",         rdTotal: 3,     syscoTotal: 24,    unit: "lb"   },
-  "29268":  { rd: "6 × 5 lb cans",           sysco: "6 × 5 lb cans",           rdTotal: 30,    syscoTotal: 30,    unit: "lb"   },
-  "12728":  { rd: "6 × 17 oz cans (102 oz)", sysco: "6 × 14 oz cans (84 oz)",  rdTotal: 102,   syscoTotal: 84,    unit: "oz"   },
-  "1440203":{ rd: "4 × 5 lb bags (20 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 20,    syscoTotal: 20,    unit: "lb"   },
-  "44146":  { rd: "6 × 5 lb bags (30 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 30,    syscoTotal: 20,    unit: "lb"   },
   // Same size — included so UI can still show pack info
-  "77200":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77658":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77670":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77232":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77682":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",      rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "42658":  { rd: "1 × 25 lb bag",           sysco: "1 × 25 lb bag",          rdTotal: 25,    syscoTotal: 25,    unit: "lb"   },
-  "42725":  { rd: "1 × 50 lb case",          sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
-  "42513":  { rd: "1 × 30 lb case",          sysco: "1 × 30 lb bag",          rdTotal: 30,    syscoTotal: 30,    unit: "lb"   },
-  "21039":  { rd: "24 × 500ml bottles",      sysco: "24 × 500ml bottles",     rdTotal: 12000, syscoTotal: 12000, unit: "ml"   },
+  "77200":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77658":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "77670":  { rd: "1 × 40 lb case",          sysco: "1 × 40 lb case",          rdTotal: 40,    syscoTotal: 40,    unit: "lb"   }, // 4418117 confirmed 1/40LB
+  "77232":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
+  "42658":  { rd: "1 × 25 lb bag",           sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   },
+  "42725":  { rd: "1 × 50 lb case",          sysco: "1 × 50 lb bag",           rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
+  "42513":  { rd: "1 × 30 lb case",          sysco: "1 × 30 lb bag",           rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Ginger 1/30LB confirmed
+  "21039":  { rd: "24 × 500ml bottles",      sysco: "24 × 500ml bottles",      rdTotal: 12000, syscoTotal: 12000, unit: "ml"   },
+  "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes (10 lb)",  rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Tilapia 2/5LB confirmed
+  "1020075":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Soybean Oil 1/35LB confirmed
+  "1020079":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Canola Salad Oil 1/35LB confirmed
+  "1020077":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Fryer Oil 1/35LB confirmed
+  "1070496":{ rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",           rdTotal: 50,    syscoTotal: 50,    unit: "lb"   }, // Salt 1/50LB confirmed
+  "53556":  { rd: "2 × 20 lb bags (40 lb)",  sysco: "1 × 50 lb bag",           rdTotal: 40,    syscoTotal: 50,    unit: "lb"   }, // Roti Atta — RD 40lb, Sysco 50lb DIFF SIZES
+  "3960200":{ rd: "1 × 2.5 lb bag",          sysco: "1 × 30 lb bag",           rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   }, // Frozen 4-Way Mix confirmed 1/30LB
+  "2620442":{ rd: "12 × 400ml cans",         sysco: "24 × 13.5 oz cans",       rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"   }, // Coconut Milk — Sysco 24/13.5OZ confirmed
+  "86525":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags (30 lb)",rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   }, // Peas — new SKU 1053826 12/2.5LB confirmed
+  "29268":  { rd: "6 × 5 lb cans (30 lb)",   sysco: "6 × 5 lb cans (30 lb)",   rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Baking Powder 6/5LB confirmed
+  "12728":  { rd: "6 × 17 oz cans (102 oz)", sysco: "6 × 14 oz cans (84 oz)",  rdTotal: 102,   syscoTotal: 84,    unit: "oz"   }, // Pan Spray — Sysco 6/14OZ confirmed
+  "1440203":{ rd: "4 × 5 lb bags (20 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 20,    syscoTotal: 20,    unit: "lb"   }, // Cheddar Jack 4/5LB confirmed
+  "44146":  { rd: "6 × 5 lb bags (30 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 30,    syscoTotal: 20,    unit: "lb"   }, // Garlic — 4/5LB Sysco confirmed
 };
 
 // Get full item knowledge base
