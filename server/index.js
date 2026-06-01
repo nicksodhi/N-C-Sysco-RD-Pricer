@@ -2160,80 +2160,97 @@ function saveItemKnowledge() {
 }
 
 function patchItemKnowledge() {
+  // SOURCE OF TRUTH — cross-referenced with confirmed Nick List PDF + RD order guide + order CSVs
+  // Format: [rdTotal, rdCaseContents, unit, syscoTotal, syscoCaseContents]
   const P = {
-    "77200":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
-    "77232":  [40,"1 x 40 lb case","lb",20,"2 x 10 lb bags (20 lb)"],
-    "77658":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
-    "77670":  [40,"1 x 40 lb case","lb",40,"1 x 40 lb case"],              // Chicken Leg Quarters — RD $31.60, Sysco 4418117 $29.59 (1/40LB single pack)
-    "77682":  [40,"1 x 40 lb case","lb",40,"4 x 10 lb bags (40 lb)"],
-    "44146":  [30,"6 x 5 lb bags (30 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
-    "42513":  [30,"1 x 30 lb bulk case","lb",30,"1 x 30 lb bag"],
-    "42545":  [50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
-    "42658":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
-    "42725":  [50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
-    "42570":  [115,"1 x 115 count case","each",115,"1 x 115 count"],
-    "44137":  [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"],
-    "79152":  [10,"1 x 10 lb bag","lb",10,"1 x 10 lb bag"],
-    "42606":  [12,"12-head case","each",12,"12 x 1 head cello wrapped"],
-    "42566":  [21,"6 x 3.5 oz bags","oz",21,"6 x 3.5 oz bags (30 ct)"],
-    "42647":  [1,"1 x 1 lb package","lb",1,"1 x 1 lb package"],
-    "1530438":[384,"6 x 64 oz jugs (384 oz)","oz",384,"12 x 32 oz bottles (384 oz)"],
-    "370496": [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
-    "1440203":[20,"4 x 5 lb bags (20 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
-    "1440528":[20,"4 x 5 lb loaves (20 lb)","lb",10,"2 x 5 lb blocks (10 lb)"],
-    "14785":  [32,"1 x 32 lb container","lb",null,null],
-    "1020077":[35,"1 x 35 lb bag","lb",35,"1 x 35 lb bag"],
-    "1020075":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
-    "1020152":[3,"3 x 1 gallon jugs","gallon",3,"3 x 1 gallon jugs"],
-    "55523":  [4,"4 x 1 gallon jugs","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
-    "45900":  [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
-    "21051":  [25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
-    "1070496":[50,"1 x 50 lb bag","lb",50,"1 x 50 lb bag"],
-    "2061212":[25,"1 x 25 lb bag","lb",25,"1 x 25 lb bag"],
-    "53556":  [40,"2 x 20 lb bags (40 lb)","lb",50,"1 x 50 lb bag"],
-    "2910159":[3,"1 x 3 lb box","lb",24,"24 x 1 lb boxes"],
-    "29268":  [30,"6 x 5 lb cans","lb",30,"6 x 5 lb cans (30 lb)"],
-    "16200":  [54,"6 x #10 cans","lb",54,"6 x #10 cans"],
-    "69810":  [60,"6 x #10 cans","lb",60,"6 x #10 cans"],
-    "860135": [102,"6 x #10 cans","oz",102,"6 x #10 cans"],
-    "490266": [40,"1 x 40 lb bag","lb",null,null],
-    "86525":  [2.5,"1 x 2.5 lb bag","lb",30,"12 x 2.5 lb bags (30 lb)"],
-    "64120":  [2,"1 x 2 lb bag","lb",24,"12 x 2 lb bags (24 lb)"],
-    "64046":  [36,"12 x 3 lb bags (36 lb)","lb",36,"12 x 3 lb bags (36 lb)"],
-    "86527":  [25,"10 x 2.5 lb bags (25 lb)","lb",30,"1 x 30 lb bag"],
-    "51457":  [10,"1 x 10 lb box","lb",10,"2 x 5 lb boxes"],
-    "40212":  [10,"1 x 10 lb box","lb",10,"4 x 2.5 lb bags"],
-    "13417":  [408,"3 x 136 oz containers","oz",408,"3 x 136 oz containers"],
-    "2620442":[4800,"12 x 400 ml cans","ml",9720,"24 x 13.5 oz cans"],
-    "12728":  [102,"6 x 17 oz cans (102 oz)","oz",84,"6 x 14 oz cans (84 oz)"],
-    "2550012":[4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
-    "21039":  [12000,"24 x 500 ml bottles","ml",12000,"24 x 500 ml bottles"],
-    "1810019":[15,"1 x 15 lb box","lb",null,null],
-    "79042":  [42,"variable weight ~40-42 lb","lb",null,null],
-    "44211":  [10,"4 x 2.5 lb bags (10 lb)","lb",4,"1 x 4 lb bag"],
-    // ── New items added ────────────────────────────────────────────────────────
-    "40138":  [16,"4 x 4 lb bunches (16 lb)","lb",2,"1 x 2 lb split (EA)"],         // Green Onions — RD order guide case=4 bunches ($29.77/$1.86/lb confirmed); Sysco bought as SPLIT 1×2lb $6.89 EA
-    "42566":  [null,null,"lb",4,"4 x 1 lb bunches"],                      // Cilantro — Sysco 2219095 confirmed 4/1LB from order
-    "42606":  [null,null,"each",12,"12 heads"],                            // Cauliflower — Sysco 12/1EA confirmed from order
-    "42570":  [null,null,"each",115,"1 × 115ct case"],                     // Lemons — Sysco 1/115CT confirmed from order
-    "42725":  [null,null,"lb",50,"1 × 50 lb bag"],                         // Russet Potato — Sysco 1/50LB confirmed from order
-    "40212":  [null,null,"lb",10,"4 × 2.5 lb boxes (10 lb)"],             // Shrimp 16/20 — Sysco 4/2.5LB confirmed from order
-    // "44137" Serrano Peppers already defined above as [40,"1 x 40 lb box","lb",40,"1 x 40 lb case"] — Sysco $2.98/40lb confirmed
-    "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
-    "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
-    "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
-    "860044": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Sauce — Sysco 4978884 6/#10 $26.88
-    "440038": [24,"24 x 16.9 oz bottles","oz",null,null],           // Coca-Cola (RD only)
-    "50103":  [30,"3 trays x 10 rolls (30 total)","roll",null,null],// Printer Paper (RD only)
+    // ── Chicken (all 40lb cases confirmed) ──────────────────────────────────────
+    "77200":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Wings 4/10LB ✓
+    "77232":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Breast 4/10LB ✓ (was 20 — FIXED)
+    "77658":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Leg Meat 4/10LB ✓
+    "77670":  [40, "1 x 40 lb case",           "lb", 40, "1 x 40 lb case"],           // Chicken LQ — Sysco 4418117 1/40LB ✓
+    "77682":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Thighs (blocked)
+    // ── Produce ─────────────────────────────────────────────────────────────────
+    "42545":  [50, "1 x 50 lb bag",            "lb", 50, "1 x 50 lb bag"],            // Yellow Onion 1/50LB ✓
+    "42658":  [25, "1 x 25 lb bag",            "lb", 25, "1 x 25 lb bag"],            // Red Onion 1/25LB ✓
+    "42725":  [50, "1 x 50 lb bag",            "lb", 50, "1 x 50 lb bag"],            // Russet Potato 1/50LB ✓
+    "44146":  [30, "6 x 5 lb bags (30 lb)",    "lb", 20, "4 x 5 lb bags (20 lb)"],   // Peeled Garlic — DIFF SIZES ✓
+    "42513":  [30, "1 x 30 lb bulk case",      "lb", 30, "1 x 30 lb bag"],            // Ginger 1/30LB ✓
+    "42606":  [12, "12-head case",             "each", 12, "12 x 1 head cello wrapped"], // Cauliflower 12/1EA ✓
+    "42570":  [115,"1 x 115 count case",       "each",115, "1 x 115 count"],          // Lemons 1/115CT ✓
+    "79152":  [10, "1 x 10 lb bag",            "lb", 10, "1 x 10 lb bag"],            // Carrots 1/10LB ✓
+    "44137":  [40, "1 x 40 lb box",            "lb", 40, "1 x 40 lb case"],           // Serrano 1/40LB ✓
+    "40138":  [16, "4 x 4 lb bunches (16 lb)", "lb",  2, "1 x 2 lb split (EA)"],      // Green Onions — Sysco split $6.89 EA
+    "42706":  [ 5, "1 x 5 lb bag",            "lb", 23.5,"1 x 22-25 lb case"],        // Green Bell Pepper ✓
+    "44211":  [10, "4 x 2.5 lb bags (10 lb)", "lb",  4, "1 x 4 lb bag"],              // Fresh Spinach — DIFF SIZES ✓
+    "42566":  [null,"RD case",                 "lb",  4, "4 x 1 lb bunches"],          // Cilantro 4/1LB (2219095) ✓
+    "42647":  [ 1, "1 x 1 lb package",         "lb",  1, "1 x 1 lb package"],          // Mint 1/1LB ✓
+    "42504":  [ 6, "1 x 6ct pack",            "each", 5, "1 x 5 lb pack"],            // Cucumbers — FIXED sysco 8→5 (1/5LB)
+    // ── Dairy ───────────────────────────────────────────────────────────────────
+    "1530438":[384,"6 x 64 oz jugs (384 oz)",  "oz",384,"12 x 32 oz bottles (384 oz)"],// Heavy Cream 12/32OZ ✓
+    "370496": [512,"4 x 1 gallon jugs (512 oz)","oz",512,"4 x 1 gallon jugs (512 oz)"],// Whole Milk 4/1GAL ✓
+    "1440203":[ 20,"4 x 5 lb bags (20 lb)",    "lb", 20,"4 x 5 lb bags (20 lb)"],     // Cheddar Jack 4/5LB ✓
+    "1440528":[ 20,"4 x 5 lb loaves (20 lb)",  "lb", 10,"2 x 5 lb blocks (10 lb)"],   // Paneer — DIFF SIZES ✓
+    "14785":  [ 32,"1 x 32 lb container",       "lb",null,null],                       // Yogurt (RD only)
+    // ── Oils & Liquids ───────────────────────────────────────────────────────────
+    "1020077":[ 35,"1 x 35 lb jug",            "lb", 35,"1 x 35 lb jug"],             // Fryer Oil 1/35LB ✓
+    "1020075":[ 35,"1 x 35 lb container",       "lb", 35,"1 x 35 lb container"],       // Soybean Oil 1/35LB ✓
+    "1020152":[384,"3 x 1 gallon jugs (384 oz)","oz",384,"3 x 1 gallon jugs (384 oz)"],// Liquid Butter 3/1GAL ✓
+    "55523":  [512,"4 x 1 gallon jugs (512 oz)","oz",384,"6 x 0.5 gallon jugs (384 oz)"],// Lemon Juice — DIFF SIZES ✓
+    "45900":  [512,"4 x 1 gallon jugs (512 oz)","oz",512,"4 x 1 gallon jugs (512 oz)"],// White Vinegar 4/1GAL ✓
+    "12728":  [102,"6 x 17 oz cans (102 oz)",  "oz", 84,"6 x 14 oz cans (84 oz)"],    // Pan Spray — DIFF SIZES ✓
+    "2550012":[  4,"4 x 1 gallon jugs",       "gallon",4,"4 x 1 gallon jugs"],         // Egg Yellow Color 4/1GAL ✓
+    "2620442":[4800,"12 x 400 ml cans",         "ml",9720,"24 x 13.5 oz cans"],        // Coconut Milk — DIFF SIZES ✓
+    "13417":  [408,"3 x 136 oz containers",    "oz",408,"3 x 136 oz containers"],      // Sambal 3/136OZ ✓
+    "21039":  [12000,"24 x 500 ml bottles",    "ml",12000,"24 x 500 ml bottles"],      // Water 24/500ML ✓
+    // ── Dry / Pantry ─────────────────────────────────────────────────────────────
+    "21051":  [ 25,"1 x 25 lb bag",            "lb", 25,"1 x 25 lb bag"],             // Sugar 1/25LB ✓
+    "1070496":[ 50,"1 x 50 lb bag",            "lb", 50,"1 x 50 lb bag"],             // Salt 1/50LB ✓
+    "2061212":[ 25,"1 x 25 lb bag",            "lb", 25,"1 x 25 lb bag"],             // All Purpose Flour 1/25LB ✓
+    "53556":  [ 40,"2 x 20 lb bags (40 lb)",   "lb", 50,"1 x 50 lb bag"],             // Roti Atta — DIFF SIZES ✓
+    "2910159":[  3,"1 x 3 lb box",             "lb", 24,"24 x 1 lb boxes"],            // Cornstarch — DIFF SIZES ✓
+    "29268":  [ 30,"6 x 5 lb cans",            "lb", 30,"6 x 5 lb cans (30 lb)"],     // Baking Powder 6/5LB ✓
+    "16200":  [ 54,"6 x #10 cans",             "lb", 54,"6 x #10 cans"],              // Garbanzo Beans ✓
+    "69810":  [ 60,"6 x #10 cans",             "lb", 60,"6 x #10 cans"],              // Kidney Beans ✓
+    "860135": [102,"6 x #10 cans",             "oz",102,"6 x #10 cans"],              // Petite Diced Tomato ✓
+    "860043": [  6,"6 x #10 cans",            "each",  6,"6 x #10 cans"],             // Tomato Puree ✓
+    "860044": [  6,"6 x #10 cans",            "each",  6,"6 x #10 cans"],             // Tomato Sauce 4978884 ✓
+    "2010066":[684,"6 x 114 oz jugs",          "oz",684,"6 x 114 oz jugs"],            // Ketchup 6/114OZ ✓
+    "490266": [ 40,"1 x 40 lb bag",            "lb",null,null],                        // Basmati Rice (RD only)
+    // ── Frozen / Seafood ─────────────────────────────────────────────────────────
+    "86525":  [ 2.5,"1 x 2.5 lb bag",          "lb", 30,"12 x 2.5 lb bags (30 lb)"],  // Peas — DIFF SIZES ✓
+    "64120":  [  2,"1 x 2 lb bag",             "lb", 24,"12 x 2 lb bags (24 lb)"],    // Broccoli — DIFF SIZES ✓
+    "64046":  [  3,"1 x 3 lb bag",             "lb", 36,"12 x 3 lb bags (36 lb)"],    // Frozen Spinach — FIXED rdT 36→3 ✓
+    "86527":  [ 2.5,"1 x 2.5 lb bag",          "lb", 30,"1 x 30 lb bag"],             // 4-Way Mix — FIXED rdT 25→2.5 ✓
+    "51457":  [ 10,"1 x 10 lb box",            "lb", 10,"2 x 5 lb boxes (10 lb)"],    // Tilapia 2/5LB ✓
+    "40212":  [ 10,"1 x 10 lb box",            "lb", 10,"4 x 2.5 lb bags (10 lb)"],   // Shrimp 4/2.5LB ✓
+    // ── RD-only items ────────────────────────────────────────────────────────────
+    "1810019":[ 15,"1 x 15 lb box",            "lb",null,null],                        // Goat Cubes
+    "79042":  [ 42,"variable weight ~42 lb",   "lb",null,null],                        // Lamb Leg Boneless
+    "440038": [ 24,"24 x 16.9 oz bottles",     "oz",null,null],                        // Coca-Cola
+    "50103":  [ 30,"3 trays x 10 rolls",       "roll",null,null],                      // Printer Paper
   };
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
-    if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:scT?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
-    if (itemKnowledge[id].rd && rdT != null) Object.assign(itemKnowledge[id].rd, { totalUnits:rdT, caseContents:rdC, unitOfMeasure:u });
-    if (scT && itemKnowledge[id].sysco) Object.assign(itemKnowledge[id].sysco, { totalUnits:scT, caseContents:scC, unitOfMeasure:u });
+    if (!itemKnowledge[id]) {
+      itemKnowledge[id] = { rd:{}, sysco:scT!=null?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
+    }
+    // Force-overwrite — patch values always win over file/AI-builder data
+    if (!itemKnowledge[id].rd) itemKnowledge[id].rd = {};
+    if (rdT != null) {
+      itemKnowledge[id].rd.totalUnits    = rdT;
+      itemKnowledge[id].rd.caseContents  = rdC;
+      itemKnowledge[id].rd.unitOfMeasure = u;
+    }
+    if (scT != null) {
+      if (!itemKnowledge[id].sysco) itemKnowledge[id].sysco = {};
+      itemKnowledge[id].sysco.totalUnits    = scT;
+      itemKnowledge[id].sysco.caseContents  = scC;
+      itemKnowledge[id].sysco.unitOfMeasure = u;
+    }
     if (!itemKnowledge[id].comparison) itemKnowledge[id].comparison = {};
-    if (rdT != null) Object.assign(itemKnowledge[id].comparison, { rdTotalUnits:rdT, syscoTotalUnits:scT||null, unitOfMeasure:u });
-    else if (scT) Object.assign(itemKnowledge[id].comparison, { syscoTotalUnits:scT, unitOfMeasure:u });
+    itemKnowledge[id].comparison.rdTotalUnits    = rdT;
+    itemKnowledge[id].comparison.syscoTotalUnits = scT;
+    itemKnowledge[id].comparison.unitOfMeasure   = u;
     n++;
   });
 
