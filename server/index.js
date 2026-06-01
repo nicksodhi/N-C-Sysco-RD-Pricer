@@ -2931,11 +2931,6 @@ app.listen(PORT, () => {
   restoreFromGitHub()
     .catch(e => log("Restore error: " + e.message))
     .finally(() => {
-      // Record current prices into history immediately (populates history tab right away)
-      if (Object.keys(priceStore.rd).length > 0 || Object.keys(priceStore.sysco).length > 0) {
-        recordHistory();
-        log("📅 History seeded from current prices on startup");
-      }
       setTimeout(() => runScrape("all").catch(console.error), 5000);
     });
 });
