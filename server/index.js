@@ -2484,6 +2484,22 @@ const PACK_SIZES = {
   "12728":  { rd: "6 × 17 oz cans (102 oz)", sysco: "6 × 14 oz cans (84 oz)",  rdTotal: 102,   syscoTotal: 84,    unit: "oz"   }, // Pan Spray — Sysco 6/14OZ confirmed
   "1440203":{ rd: "4 × 5 lb bags (20 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 20,    syscoTotal: 20,    unit: "lb"   }, // Cheddar Jack 4/5LB confirmed
   "44146":  { rd: "6 × 5 lb bags (30 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 30,    syscoTotal: 20,    unit: "lb"   }, // Garlic — 4/5LB Sysco confirmed
+  // ── Items added to eliminate AI-KB fallback for calculations ─────────────────
+  "79152":  { rd: "1 × 10 lb bag",            sysco: "1 × 10 lb bag",           rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Carrots 1/10LB ✓
+  "44137":  { rd: "1 × 40 lb box",            sysco: "1 × 40 lb case",          rdTotal: 40,    syscoTotal: 40,    unit: "lb"   }, // Serrano 1/40LB ✓
+  "42647":  { rd: "1 × 1 lb package",         sysco: "1 × 1 lb package",        rdTotal: 1,     syscoTotal: 1,     unit: "lb"   }, // Mint 1/1LB ✓
+  "42513":  { rd: "1 × 30 lb case",           sysco: "1 × 30 lb bag",           rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Ginger 1/30LB ✓
+  "21051":  { rd: "1 × 25 lb bag",            sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   }, // Sugar 1/25LB ✓
+  "2061212":{ rd: "1 × 25 lb bag",            sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   }, // All Purpose Flour 1/25LB ✓
+  "13417":  { rd: "3 × 136 oz containers",    sysco: "3 × 136 oz containers",   rdTotal: 408,   syscoTotal: 408,   unit: "oz"   }, // Sambal 3/136OZ ✓
+  "2910159":{ rd: "1 × 3 lb box",             sysco: "24 × 1 lb boxes",         rdTotal: 3,     syscoTotal: 24,    unit: "lb"   }, // Cornstarch DIFF SIZES ✓
+  "16200":  { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 54,    syscoTotal: 54,    unit: "lb"   }, // Garbanzo Beans 6/#10 ✓
+  "69810":  { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 60,    syscoTotal: 60,    unit: "lb"   }, // Kidney Beans 6/#10 ✓
+  "860135": { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 102,   syscoTotal: 102,   unit: "oz"   }, // Petite Diced Tomato ✓
+  "14785":  { rd: "1 × 32 lb container",      sysco: null,                      rdTotal: 32,    syscoTotal: null,  unit: "lb"   }, // Plain Yogurt (RD only)
+  "490266": { rd: "1 × 40 lb bag",            sysco: null,                      rdTotal: 40,    syscoTotal: null,  unit: "lb"   }, // Basmati Rice (RD only)
+  "1440528":{ rd: "4 × 5 lb loaves (20 lb)",  sysco: "2 × 5 lb blocks (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   }, // Paneer DIFF SIZES ✓
+  "2550012":{ rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon jugs",       rdTotal: 4,     syscoTotal: 4,     unit: "gallon"},// Egg Yellow Color 4/1GAL ✓
 };
 
 // Get full item knowledge base
@@ -2509,54 +2525,61 @@ app.post("/api/unit-compare", async (req, res) => {
   const { itemId, itemName, rdPrice, scPrice } = req.body;
   if (!itemId || !rdPrice || !scPrice) return res.status(400).json({ error: "Missing fields" });
 
+  // PACK_SIZES is manually verified and authoritative — always takes priority over AI-built KB
   const packInfo = PACK_SIZES[itemId];
-  const kb = itemKnowledge[itemId]; // Use knowledge base if available
+  const kb = itemKnowledge[itemId];
 
-  // Build context — prefer knowledge base over manual PACK_SIZES
-  const rdPack  = kb?.rd?.caseContents  || kb?.rd?.packSize  || packInfo?.rd  || "1 case";
-  const scPack  = kb?.sysco?.caseContents || kb?.sysco?.packSize || packInfo?.sysco || "1 case";
-  const rdTotal = kb?.comparison?.rdTotalUnits    || packInfo?.rdTotal    || null;
-  const scTotal = kb?.comparison?.syscoTotalUnits || packInfo?.syscoTotal || null;
-  const unit    = kb?.comparison?.unitOfMeasure   || packInfo?.unit       || "unit";
-  const notes   = kb?.comparison?.notes || "";
+  const rdPack  = packInfo?.rd    || kb?.rd?.caseContents    || kb?.rd?.packSize    || "1 case";
+  const scPack  = packInfo?.sysco || kb?.sysco?.caseContents || kb?.sysco?.packSize || "1 case";
+  const rdTotal = packInfo?.rdTotal    || kb?.comparison?.rdTotalUnits    || null;
+  const scTotal = packInfo?.syscoTotal || kb?.comparison?.syscoTotalUnits || null;
+  const unit    = packInfo?.unit || kb?.comparison?.unitOfMeasure || "unit";
 
-  const prompt = `You are a wholesale purchasing assistant for Naan & Curry restaurant in Las Vegas.
+  // Compute per-unit prices server-side — never ask Claude to do division (it gets pack sizes wrong)
+  const rdPerUnit = rdTotal ? Math.round((parseFloat(rdPrice) / rdTotal) * 10000) / 10000 : null;
+  const scPerUnit = scTotal ? Math.round((parseFloat(scPrice) / scTotal) * 10000) / 10000 : null;
 
-ITEM: ${itemName}
-Restaurant Depot: $${rdPrice} for ${rdPack}${rdTotal ? " ("+rdTotal+" "+unit+" total)" : ""}
-Sysco: $${scPrice} for ${scPack}${scTotal ? " ("+scTotal+" "+unit+" total)" : ""}
-${notes ? "Additional context: " + notes : ""}
+  let cheaper = "same", savingsPct = 0, savingsPerUnit = 0;
+  if (rdPerUnit && scPerUnit) {
+    if (rdPerUnit < scPerUnit) {
+      cheaper = "rd";
+      savingsPerUnit = Math.round((scPerUnit - rdPerUnit) * 10000) / 10000;
+      savingsPct = Math.round((scPerUnit - rdPerUnit) / scPerUnit * 10000) / 100;
+    } else if (scPerUnit < rdPerUnit) {
+      cheaper = "sysco";
+      savingsPerUnit = Math.round((rdPerUnit - scPerUnit) * 10000) / 10000;
+      savingsPct = Math.round((rdPerUnit - scPerUnit) / rdPerUnit * 10000) / 100;
+    }
+  }
 
-Calculate precisely:
-1. Price per ${unit} for each vendor (use total units if provided)
-2. Which vendor is cheaper per ${unit} and by how much (% and $)  
-3. A plain English one-sentence recommendation for a restaurant buyer
-
-Return ONLY JSON:
-{
-  "rdPerUnit": 0.00,
-  "scPerUnit": 0.00,
-  "unit": "${unit}",
-  "rdPack": "${rdPack}",
-  "scPack": "${scPack}",
-  "cheaper": "rd|sysco|same",
-  "savingsPct": 0,
-  "savingsPerUnit": 0.00,
-  "recommendation": "one sentence plain English",
-  "dataSource": "${kb ? 'knowledge_base' : 'manual'}"
-}`;
+  // Claude writes one recommendation sentence — math is already done above
+  const prompt = `Naan & Curry Las Vegas wholesale purchasing.
+${itemName}: RD $${rdPrice} for ${rdPack}${rdTotal ? ` (${rdTotal} ${unit})` : ""} = $${rdPerUnit ?? "?"} per ${unit}. Sysco $${scPrice} for ${scPack}${scTotal ? ` (${scTotal} ${unit})` : ""} = $${scPerUnit ?? "?"} per ${unit}.
+${cheaper === "rd" ? "RD is cheaper by " + savingsPct + "%." : cheaper === "sysco" ? "Sysco is cheaper by " + savingsPct + "%." : "Same price per unit."}
+Write ONE specific recommendation sentence. Return ONLY JSON: {"recommendation":"..."}`;
 
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 500, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 150, messages: [{ role: "user", content: prompt }] }),
     });
     const data = await r.json();
     const txt = data.content?.find(b => b.type === "text")?.text || "{}";
     const m = txt.match(/\{[\s\S]*\}/);
-    if (!m) return res.status(500).json({ error: "AI parse error" });
-    res.json(JSON.parse(m[0]));
+    const parsed = m ? JSON.parse(m[0]) : {};
+    res.json({
+      rdPerUnit:      rdPerUnit  ?? 0,
+      scPerUnit:      scPerUnit  ?? 0,
+      unit,
+      rdPack,
+      scPack,
+      cheaper,
+      savingsPct,
+      savingsPerUnit,
+      recommendation: parsed.recommendation || "",
+      dataSource:     packInfo ? "pack_sizes" : kb ? "knowledge_base" : "unknown",
+    });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
