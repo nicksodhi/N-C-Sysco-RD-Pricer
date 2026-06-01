@@ -276,6 +276,24 @@ function cleanBadPrices() {
     }
   });
 
+  // Clean wrongly cross-mapped prices from Chicken Thighs (8053456)
+  // These end up under produce/grocery RD IDs when the LOCK wasn't applied
+  const CHICKEN_THIGHS_PRICE = 76.30; // known price — update this comment if price changes
+  Object.entries(priceStore.sysco).forEach(([id, entry]) => {
+    const isChickenId = ["8053456","77232","77658","77670","77682","77200"].includes(id);
+    if (!isChickenId && entry.syscoUpc === "8053456") {
+      delete priceStore.sysco[id];
+      cleaned++;
+      console.log("🧹 Cleaned Chicken Thighs (8053456) wrongly cross-mapped to " + id);
+    }
+    // Belt-and-suspenders: $76.30 on non-chicken non-beverage item is clearly wrong
+    if (!isChickenId && entry.price === CHICKEN_THIGHS_PRICE && !["21039","440038","440039","440040","50103"].includes(id)) {
+      delete priceStore.sysco[id];
+      cleaned++;
+      console.log("🧹 Cleaned $76.30 Chicken Thighs contamination from Sysco[" + id + "]");
+    }
+  });
+
   if (cleaned > 0) savePrices();
 }
 
@@ -1947,11 +1965,33 @@ async function runScrape(source = "all") {
         // Health check
         const scHealth = await checkScraperHealth("sysco", result.items.length, matched.length);
         if (!scHealth.healthy && scHealth.action === "keep_yesterday") {
-          log("🛡️ Health guard: keeping yesterday's Sysco prices (partial scrape)");
+          log("🛡️ Health guard: partial Sysco scrape (" + matched.length + "/" + scHealth.expectedItems + ") — merging confirmed prices, keeping yesterday for the rest");
+          // Apply today's confirmed prices on top of yesterday's — don't fully discard partial scrape
+          matched.forEach(({ id, price }) => {
+            if (!id || price <= 0) return;
+            let adjP = price;
+            if (id === "7102961" && price < 20) adjP = Math.round(price*10*100)/100;
+            const syscoMin = SYSCO_PRICE_MIN[id];
+            if (syscoMin && adjP < syscoMin) return;
+            priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
+            const mapping = SYSCO_TO_RD[id];
+            if (mapping) {
+              const rdId = mapping.rdId || mapping;
+              if (!rdId || typeof rdId !== "string") return;
+              priceStore.sysco[rdId] = { price: adjP * (mapping.rdMult || 1), date: new Date().toISOString(), syscoUpc: id, partialScrape: true };
+            }
+          });
+          // Mark remaining (non-updated) prices as stale
+          const updatedIds = new Set(matched.map(m => m.id));
           Object.keys(priceStore.sysco).forEach(id => {
-            if (priceStore.sysco[id]) { priceStore.sysco[id].stale = true; priceStore.sysco[id].staleReason = scHealth.reason; }
+            if (!updatedIds.has(id) && priceStore.sysco[id]) {
+              priceStore.sysco[id].stale = true;
+              priceStore.sysco[id].staleReason = scHealth.reason;
+            }
           });
           savePrices();
+          log("🛡️ Health guard: applied " + matched.length + " confirmed prices, marked rest as stale");
+          log("🤖 Scraper health decision [sysco]: " + scHealth.action + " — " + scHealth.reason + " (severity: " + scHealth.severity + ")");
           return;
         }
         let savedCount = 0;
