@@ -11,6 +11,10 @@ app.use(express.static(path.join(__dirname, "../build")));
 
 // ── Price store — persisted to disk so Railway restarts keep data ─────────────
 const fs = require("fs");
+// Ensure /data directory exists — Railway volumes may not auto-create it on first deploy
+try { fs.mkdirSync("/data", { recursive: true }); console.log("✅ /data directory ready"); }
+catch(e) { console.log("⚠️  /data mkdir:", e.message); }
+
 const PRICES_FILE = "/data/nc_prices.json";
 
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
