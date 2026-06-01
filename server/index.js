@@ -301,6 +301,9 @@ const CACHE_SEED = {
     "Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs": "490266",
     "Chef's Quality - Liquid Butter Alternative - gallon": "1020152",
     "Evian - Natural Spring Water, 24 Ct, 500 mL": "21039",
+    // Canola Salad Oil on RD order guide — redirect to Soybean Oil (we only buy soybean)
+    "Chef's Quality - 100% Canola Salad Oil - 35 lbs": "1020075",
+    "Chef's Quality - 100% Canola Salad Oil": "1020075",
     "Peeled Garlic": "44146",
     "Taylor Farms - Bagged Cilantro": "42566",
     "Jumbo Spanish Onions - 50 lbs": "42545",
@@ -1417,6 +1420,13 @@ Return ONLY JSON array:
 async function validatePricesWithAI(vendor) {
   const store = vendor === "rd" ? priceStore.rd : priceStore.sysco;
   const suspicious = [];
+  // Guard bypass: if new price is within known price bounds AND old price exceeded them,
+  // the old price was bad — keep the new price without asking AI.
+  // Prevents validatePricesWithAI from reverting correct prices that replaced bad cached values.
+  // e.g. Peas 86525: $63.95 (bad, exceeds SYSCO_PRICE_MAX:55) → $35.92 (good, within bounds) = KEEP
+  const priceMaxMap = vendor === "rd" ? RD_PRICE_MAX : SYSCO_PRICE_MAX;
+  const priceMinMap = vendor === "rd" ? RD_PRICE_MIN : SYSCO_PRICE_MIN;
+
   Object.entries(store).forEach(([id, entry]) => {
     const itemHistory = priceHistory[id] || [];
     if (itemHistory.length < 2) return;
@@ -1424,11 +1434,20 @@ async function validatePricesWithAI(vendor) {
     const prevPrice = vendor === "rd" ? prev.rd : prev.sc;
     if (!prevPrice || !entry.price) return;
     const changePct = Math.abs((entry.price - prevPrice) / prevPrice) * 100;
-    if (changePct > 20) {
-      const itemList = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
-      const item = itemList.find(i => i.id === id);
-      suspicious.push({ id, name: item?.name || id, prev: prevPrice, current: entry.price, changePct: Math.round(changePct) });
+    if (changePct <= 20) return;
+
+    // Skip AI review if new price passes our guards but old price would have failed them
+    const maxP = priceMaxMap[id], minP = priceMinMap ? priceMinMap[id] : null;
+    const newOk   = (!maxP || entry.price <= maxP) && (!minP || entry.price >= minP);
+    const prevBad = (maxP && prevPrice > maxP) || (minP && prevPrice < minP);
+    if (newOk && prevBad) {
+      log("Price validation: TRUSTING " + id + " at $" + entry.price + " — prev $" + prevPrice + " violated guard; new price is within bounds, keeping it");
+      return;
     }
+
+    const itemList = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
+    const item = itemList.find(i => i.id === id);
+    suspicious.push({ id, name: item?.name || id, prev: prevPrice, current: entry.price, changePct: Math.round(changePct) });
   });
   if (suspicious.length === 0) { log("Price validation: no suspicious changes detected"); return; }
   log("Price validation: " + suspicious.length + " suspicious price changes — asking AI...");
@@ -2041,7 +2060,11 @@ app.get("/api/browser-test", async (req, res) => {
   } catch(e) { res.json({ success: false, error: e.message }); }
 });
 
-// ── Grocery breakdown — GOD MODE ──────────────────────────────────────────────
+// ── Grocery breakdown — two-pass: Claude parses → server does all math ──────
+// Why two-pass: Claude is great at parsing chef shorthand and reading catalog
+// verdicts. Claude is bad at arithmetic. Server-side integer math = zero errors.
+// Pass 1: Claude reads catalog + order → returns pure JSON (no math, no format)
+// Pass 2: Server validates OOS, computes totals in cents, formats output string
 app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
@@ -2068,7 +2091,7 @@ app.post("/api/grocery", async (req, res) => {
       "86525":  "Frozen Peas",          "64120":  "Frozen Broccoli",
       "86527":  "Frozen 4-Way Mix",     "25267":  "Eggplant Pulp",
       "45900":  "White Vinegar",        "1020152":"Liquid Butter",
-      "12728":  "Pan Spray",            "1020075":"Soybean Oil",
+      "12728":  "Pan Spray",            "1020075":"Cooking Oil",
       "1020077":"Fryer Oil",            "55523":  "Lemon Juice",
       "53556":  "Roti Atta",            "13417":  "Sambal Chili",
       "2620442":"Coconut Milk",         "2061212":"All Purpose Flour",
@@ -2081,7 +2104,7 @@ app.post("/api/grocery", async (req, res) => {
       "860135": "Petite Diced Tomato",  "21039":  "Water",
       "440038": "Coca-Cola",            "440039": "Diet Coke",
       "440040": "Sprite",               "50103":  "Printer Paper Roll",
-      "77682":  "Chicken Thighs",       "43431":  "Green Bell Peppers (9ct)",
+      "43431":  "Green Bell Peppers (9ct)",
     };
 
     function perUnit(price, id, vendor) {
@@ -2092,6 +2115,7 @@ app.post("/api/grocery", async (req, res) => {
       return ` ($${(price / total).toFixed(2)}/${ps.unit})`;
     }
 
+    // Build catalog — same logic as before
     const catalog = [];
     RD_ITEMS.forEach(rdItem => {
       const rdE = priceStore.rd[rdItem.id];
@@ -2119,15 +2143,12 @@ app.post("/api/grocery", async (req, res) => {
         const scPu = ps?.syscoTotal ? syscoE.price / ps.syscoTotal : syscoE.price;
         const caseDiff = Math.abs(rdE.price - syscoE.price);
         const diffSizes = ps?.rdTotal && ps?.syscoTotal && ps.rdTotal !== ps.syscoTotal;
-        if (caseDiff < 2) {
-          verdict = "SYSCO"; verdictTag = `same price ±$${caseDiff.toFixed(2)} → SYSCO preference rule`;
-        } else if (!diffSizes && rdPu <= scPu) {
-          verdict = "RD"; verdictTag = `RD cheaper by $${caseDiff.toFixed(2)}`;
-        } else if (!diffSizes) {
-          verdict = "SYSCO"; verdictTag = `Sysco cheaper by $${caseDiff.toFixed(2)}`;
-        } else {
+        if (caseDiff < 2) { verdict = "SYSCO"; verdictTag = `same price ±$${caseDiff.toFixed(2)} → SYSCO preference`; }
+        else if (!diffSizes && rdPu <= scPu) { verdict = "RD"; verdictTag = `RD cheaper $${caseDiff.toFixed(2)}`; }
+        else if (!diffSizes) { verdict = "SYSCO"; verdictTag = `Sysco cheaper $${caseDiff.toFixed(2)}`; }
+        else {
           verdict = rdPu <= scPu ? "RD" : "SYSCO";
-          verdictTag = `per-unit: RD $${rdPu.toFixed(3)}/${ps.unit} vs Sysco $${scPu.toFixed(3)}/${ps.unit} ⚖DIFF CASE SIZE`;
+          verdictTag = `per-unit: RD $${rdPu.toFixed(3)}/${ps.unit} vs Sysco $${scPu.toFixed(3)}/${ps.unit}`;
         }
       } else if ((isRdOos || !rdE?.price) && syscoE?.price && !isScOos) {
         verdict = "SYSCO"; verdictTag = "RD unavailable";
@@ -2138,96 +2159,177 @@ app.post("/api/grocery", async (req, res) => {
       let rdPart = isRdOos ? "RD:⛔OOS" : rdE?.price ? `RD:$${rdE.price}${perUnit(rdE.price, rdItem.id, "rd")}` : "RD:N/A";
       if (rdBin && rdE?.price && !isRdOos) rdPart += `(${rdBin})`;
       let scPart = isScOos ? "Sysco:⛔OOS" : syscoE?.price ? `Sysco:$${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")}` : "Sysco:N/A";
-      catalog.push(`[${verdict}] ${shortName} | ${verdictTag} | ${rdPart} | ${scPart}`);
+
+      // Include rdId in catalog line so Claude can pass it back in JSON
+      catalog.push(`[${verdict}] ${shortName} [id:${rdItem.id}] | ${verdictTag} | ${rdPart} | ${scPart}`);
     });
 
     if (catalog.length === 0) return res.status(500).json({ error: "No price data — run scrape first" });
+
     const lastUpdated = priceStore.lastUpdated
       ? new Date(priceStore.lastUpdated).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
       : "unknown";
 
-    const systemPrompt = `You are the purchasing assistant for Naan & Curry, an Indian restaurant in Las Vegas, Nevada.
-You have full access to today's live vendor pricing, per-unit costs, stock status, bin locations, and price history.
-Prices are scraped daily from Restaurant Depot and Sysco. Data was last updated: ${lastUpdated}.
-Your job: parse the chef's order and assign every item to the cheapest available vendor with perfect accuracy.
-Trust the catalog completely. When the catalog says OUT OF STOCK, it is physically unavailable — never put it under RD.
-CRITICAL: Output ONLY the final formatted result. No thinking, no reasoning, no notes, no explanations, no asterisks, no intermediate steps. Just the list.`;
+    // ── PASS 1: Claude parses order → JSON only, zero math ───────────────────
+    const systemPrompt = `You are a purchasing parser for Naan & Curry restaurant Las Vegas.
+Your ONLY job: read the chef's order and match each item to the catalog. Return pure JSON only.
+Do NOT calculate totals. Do NOT add commentary. Do NOT add formatting. Just JSON.`;
 
-    const prompt = `LIVE PRICE CATALOG — ${catalog.length} items, updated ${lastUpdated}:
+    const parsePrompt = `LIVE PRICE CATALOG (${lastUpdated}):
+Format per line: [VENDOR] Name [id:RDID] | reason | RD:$price(per-unit) | Sysco:$price(per-unit)
 
-${catalog.join("\n\n")}
+${catalog.join("\n")}
 
 ---
 CHEF'S ORDER:
 ${list}
 
 ---
-ITEM NAME ALIASES (chef shorthand → catalog name):
+ALIASES (chef shorthand → catalog name):
 LQ / leg quarters / bone-in = Chicken Leg Quarters
-breast = Chicken Breast (Boneless Skinless)
+breast = Chicken Breast
 wings = Chicken Wings
 leg meat / BLSM = Chicken Leg Meat
-WM = Whole Milk | HWC / cream = Heavy Cream 40%
-garlic = Peeled Garlic | onion = Yellow Onion
-carrots / carrots 25lb / carrots 10lb / carrots (any size) = Carrots (catalog has 10lb bag — ignore size in order)
+WM = Whole Milk | HWC / cream = Heavy Cream
+garlic = Peeled Garlic | onion = Yellow Onions
 green pepper / bell pepper = Green Bell Pepper
-serrano / green chili = Serrano Peppers
+serrano / green chili = Green Chilies
 4-way / frozen mix / mixed veg = Frozen 4-Way Mix
 frozen spinach / chopped spinach = Frozen Spinach
-baby spinach / cleaned spinach = Fresh Spinach
-tomato puree = Tomato Puree (NOT Tomato Sauce — different items)
+baby spinach / fresh spinach = Fresh Spinach
+tomato puree = Tomato Puree (NOT Tomato Sauce)
 tomato sauce = Tomato Sauce
 petite diced / diced tomato = Petite Diced Tomato
-roti / atta = Roti Atta (Golden Temple)
-fryer oil / frying oil = Fryer Oil | salad oil / canola / canola oil / cooking oil / vegetable oil = Soybean Oil (we only use soybean)
+roti / atta = Roti Atta
+fryer oil / frying oil = Fryer Oil
+cooking oil / salad oil / canola oil / canola / vegetable oil / soybean oil / soybean = Cooking Oil
+  (all cooking/salad/canola oil maps to Soybean Oil item 1020075 — we do not track canola separately)
 liquid butter / butter alt = Liquid Butter
-baking powder = Baking Powder (NOT baking soda — completely different product)
-cornstarch = Cornstarch
+baking powder = Baking Powder (NOT baking soda)
 paneer = Paneer | yogurt = Plain Yogurt
-shrimp = Shrimp 16-20 | tilapia = Fish (Tilapia)
+shrimp = Shrimp 16-20 | tilapia / fish = Fish (Tilapia)
+coconut milk = Coconut Milk | sambal / chili paste = Sambal Chili
 
-RULES — follow without exception:
-1. Every item in the chef's order must appear in output. Zero exceptions.
-2. THE CATALOG VERDICT IS THE FINAL ANSWER. Each catalog line starts with [RD] or [SYSCO]. Assign every item to that vendor. Do not override it.
-3. [SYSCO] = buy from Sysco. [RD] = buy from RD. [?] = no price data, ORDER MANUALLY.
-4. The $2 rule is already computed in the catalog. "same price ±$X → SYSCO preference rule" means SYSCO wins.
-5. ⛔OOS = out of stock. Never assign an OOS item to that vendor.
-6. Quantities: x2 means 2 cases → Item x2 — $total
-7. Items not in catalog → ORDER MANUALLY.
-8. Short names only. No brands, no notes, no parenthetical explanations.
-9. Math must be exact.
-10. Output ONLY the final list. No reasoning, no working.
+RULES — read carefully:
+1. Match EVERY item from the chef's order. Zero omissions.
+2. vendor: copy EXACTLY from catalog — [RD]→"RD", [SYSCO]→"SYSCO", [?]→"MANUAL"
+3. ⛔OOS → vendor must be "MANUAL" regardless of catalog verdict
+4. Not in catalog → vendor = "MANUAL", price = null
+5. price: the CASE price from the catalog (the dollar amount after "RD:$" or "Sysco:$")
+   IMPORTANT: ignore the per-unit in parentheses — e.g. "RD:$95.20($2.38/lb)" → price is 95.20
+6. rdId: copy the number from [id:XXXXX] in the catalog line
+7. qty: integer from the order (x2, 2 cases, etc.) — default 1
+8. name: 2-4 words, clean, no brand names
 
-OUTPUT — exactly this format, nothing else, no extra text:
-
-🟢 RD
-[Item] — $[price]
-[Item] x[qty] — $[total]
-Total: $[total]
-
-🔵 SYSCO
-[Item] — $[price]
-Total: $[total]
-
-⚠️ ORDER MANUALLY
-[Item]
-[Item]
-
-💰 $[grand total]`;
+Return ONLY this JSON — no markdown fences, no preamble, no explanation:
+{
+  "lines": [
+    {"chef_item": "exact chef text", "name": "Short Name", "rdId": "77232", "vendor": "RD", "qty": 1, "price": 95.20},
+    {"chef_item": "weird thing", "name": "Weird Thing", "rdId": null, "vendor": "MANUAL", "qty": 1, "price": null}
+  ]
+}`;
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: parsePrompt }],
+      }),
     });
+
     const data = await r.json();
     if (data.error) throw new Error("API error: " + (data.error.message || JSON.stringify(data.error)));
-    const result = data.content?.find(b => b.type === "text")?.text;
-    if (!result) throw new Error("Empty response from Claude");
-    res.json({ result });
+
+    const rawText = data.content?.find(b => b.type === "text")?.text || "";
+    log("Grocery parse: " + rawText.slice(0, 300));
+
+    // Robust JSON extraction — handles if Claude wrapped in ```json blocks
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON in Claude response: " + rawText.slice(0, 200));
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.lines || !Array.isArray(parsed.lines)) throw new Error("Bad JSON structure from Claude");
+
+    // ── PASS 2: Server-side OOS guard, integer-cent math, format output ───────
+    // All arithmetic done in integer cents — no floating point rounding errors ever.
+    const rdLines = [], syscoLines = [], manualLines = [];
+
+    for (const line of parsed.lines) {
+      const name   = (line.name || line.chef_item || "Unknown").trim();
+      const qty    = Math.max(1, Math.round(parseFloat(line.qty) || 1));
+      const price  = (typeof line.price === "number" && line.price > 0) ? line.price : null;
+      const rdId   = line.rdId ? String(line.rdId).trim() : null;
+      let vendor   = (line.vendor || "MANUAL").toUpperCase().trim();
+
+      // Belt-and-suspenders OOS guard — server overrides Claude if needed
+      if (vendor === "RD" && rdId && rdOosSet.has(rdId)) {
+        log(`Grocery OOS override: ${name} (${rdId}) is OOS at RD → MANUAL`);
+        vendor = "MANUAL";
+      }
+      if (vendor === "SYSCO" && rdId) {
+        const syscoUpc = Object.keys(SYSCO_TO_RD).find(upc => {
+          const map = SYSCO_TO_RD[upc];
+          return (map.rdId || map) === rdId;
+        });
+        if (syscoUpc && scOosSet.has(syscoUpc)) {
+          log(`Grocery OOS override: ${name} is OOS at Sysco → MANUAL`);
+          vendor = "MANUAL";
+        }
+      }
+
+      // Integer cents — eliminates all floating point addition errors
+      const priceCents = price ? Math.round(price * 100) : 0;
+      const totalCents = priceCents * qty;
+
+      if (vendor === "RD") rdLines.push({ name, qty, priceCents, totalCents });
+      else if (vendor === "SYSCO") syscoLines.push({ name, qty, priceCents, totalCents });
+      else manualLines.push({ name });
+    }
+
+    // Totals — pure integer addition, convert to dollars only at display time
+    const rdTotalCents    = rdLines.reduce((s, l) => s + l.totalCents, 0);
+    const syscoTotalCents = syscoLines.reduce((s, l) => s + l.totalCents, 0);
+    const grandTotalCents = rdTotalCents + syscoTotalCents;
+    const fmt = (cents) => (cents / 100).toFixed(2);
+
+    let result = "";
+
+    if (rdLines.length > 0) {
+      result += "🟢 RD\n";
+      rdLines.forEach(l => {
+        if (!l.priceCents) { result += `${l.name} — price unknown\n`; }
+        else if (l.qty > 1) { result += `${l.name} x${l.qty} — $${fmt(l.totalCents)}\n`; }
+        else { result += `${l.name} — $${fmt(l.priceCents)}\n`; }
+      });
+      result += `Total: $${fmt(rdTotalCents)}\n`;
+    }
+
+    if (syscoLines.length > 0) {
+      if (result) result += "\n";
+      result += "🔵 SYSCO\n";
+      syscoLines.forEach(l => {
+        if (!l.priceCents) { result += `${l.name} — price unknown\n`; }
+        else if (l.qty > 1) { result += `${l.name} x${l.qty} — $${fmt(l.totalCents)}\n`; }
+        else { result += `${l.name} — $${fmt(l.priceCents)}\n`; }
+      });
+      result += `Total: $${fmt(syscoTotalCents)}\n`;
+    }
+
+    if (manualLines.length > 0) {
+      if (result) result += "\n";
+      result += "⚠️ ORDER MANUALLY\n";
+      manualLines.forEach(l => { result += `${l.name}\n`; });
+    }
+
+    if (grandTotalCents > 0) result += `\n💰 $${fmt(grandTotalCents)}`;
+
+    res.json({ result: result.trim() });
+
   } catch(e) { log("Grocery error: " + e.message); res.status(500).json({ error: e.message }); }
 });
-
 // ── Cron + startup ────────────────────────────────────────────────────────────
 // Daily 6am Las Vegas = 1pm UTC
 cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape"); runScrape("all").catch(console.error); });
