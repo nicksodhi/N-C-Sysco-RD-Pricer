@@ -2418,5 +2418,16 @@ app.listen(PORT, () => {
   log("🚀 Server port " + PORT);
   restoreFromGitHub()
     .catch(e => log("Restore error: " + e.message))
-    .finally(() => { setTimeout(() => runScrape("all").catch(console.error), 5000); });
+    .finally(() => {
+      // Only scrape on startup if prices are stale (>12h since last update).
+      // Prevents re-scraping on every code deploy / container restart.
+      const lastUpdate = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
+      const hoursSince = lastUpdate ? (Date.now() - lastUpdate.getTime()) / 3600000 : 999;
+      if (hoursSince > 12) {
+        log("\u23F0 Startup scrape triggered \u2014 last update " + Math.round(hoursSince) + "h ago");
+        setTimeout(() => runScrape("all").catch(console.error), 5000);
+      } else {
+        log("\u23ED\uFE0F  Skipping startup scrape \u2014 prices fresh (" + Math.round(hoursSince * 60) + " min ago)");
+      }
+    });
 });
