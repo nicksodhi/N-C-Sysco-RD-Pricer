@@ -45,6 +45,14 @@ const RD_PRICE_MIN = {
   "1020077": 20, // Fryer Oil 35lb — same range; per-lb price would be rejected
 };
 
+// Confirmed prices for items the RD scraper cannot auto-detect
+// (virtual scroll rendering gaps, lazy-loaded sections that unload before extraction)
+// These seed the store on startup if the item has no current live price.
+// Any live scrape result overwrites these immediately.
+const RD_PRICE_SEED = {
+  "1020075": { price: 39.34, note: "Soybean Salad Oil 35lb - confirmed 2026-06-01, Bin 426" },
+};
+
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
 // Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
 const SYSCO_PRICE_MIN = {
@@ -265,6 +273,24 @@ function cleanBadPrices() {
     }
   });
   if (cleaned > 0) savePrices();
+
+  // Apply confirmed price seeds for items scraper cannot auto-detect
+  // Only fills gaps — never overwrites a price already in the store
+  let seeded = 0;
+  Object.entries(RD_PRICE_SEED).forEach(([id, seed]) => {
+    if (!priceStore.rd[id] || !priceStore.rd[id].price) {
+      priceStore.rd[id] = {
+        price: seed.price,
+        date: new Date().toISOString(),
+        source: "confirmed_seed",
+        confidence: "high",
+        note: seed.note,
+      };
+      seeded++;
+      console.log("🌱 Price seed applied: RD[" + id + "] = $" + seed.price + " (" + seed.note + ")");
+    }
+  });
+  if (seeded > 0) savePrices();
 }
 
 const log = (msg) => {
@@ -1118,8 +1144,8 @@ async function scrapeRD() {
       "79042":  ["Boneless Lamb Leg", "Halal Boneless Lamb"],
       // Bin 5101 — Green Onions & Cleaned Spinach share same bin; normal algo cross-attributes
       "40138":  ["Green Onions, Rootless", "Green Onions Rootless", "Rootless & Iceless", "Green Onions"],
-      // Bin 426 — Soybean Oil is adjacent to Canola Oil (bin 424); price bleeds across
-      "1020075":["Soybean Salad Oil", "Chef\'s Quality - Soybean Salad"],
+      // Bin 426 — Soybean Oil adjacent to Canola (424); wide net to catch any RD page rendering
+      "1020075":["Soybean Salad Oil", "Soybean Salad", "Soybean Oil", "Soybean", "1020075"],
     };
     for (const [itemId, nameVariants] of Object.entries(singleUnitNames)) {
       const alreadyFound = items.find(i => {
@@ -2075,6 +2101,20 @@ app.post("/api/scrape", (req, res) => {
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Scrape: " + e.message));
 });
+// Debug: scrapes RD and logs ALL extracted item names containing oil/soybean
+// Call once: GET /api/debug-rd-oil — then check /api/status for results
+app.get("/api/debug-rd-oil", async (req, res) => {
+  res.json({ message: "Scraping RD for oil/soybean items — check /api/status in 3 min" });
+  try {
+    const result = await scrapeRD();
+    const oilItems = result.items.filter(i =>
+      /oil|soybean|salad|canola|fry|butter/i.test(i.name)
+    );
+    log("DEBUG oil items: " + JSON.stringify(oilItems.map(i => i.name + " $" + i.price)));
+    log("DEBUG ALL extracted names (" + result.items.length + "): " + result.items.map(i => i.name).join(" | "));
+  } catch(e) { log("DEBUG oil error: " + e.message); }
+});
+
 app.get("/api/browser-test", async (req, res) => {
   try {
     const browser = await launchBrowser();
