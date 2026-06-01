@@ -1,21 +1,22 @@
 import { useState, useMemo, useEffect } from "react";
 
-// Items where case VOLUMES genuinely differ between vendors — price not directly comparable
+// Items where case VOLUMES genuinely differ between vendors — per-unit math required
+// Confirmed against RD order guide PDF (2026-06-01) + Sysco Nick List
 const DIFFERENT_CASE_SIZES = new Set([
-  "55523",   // Lemon Juice: RD 4gal vs Sysco 3gal
-  "12728",   // Pan Spray: RD 102oz vs Sysco 84oz
-  "44146",   // Peeled Garlic: RD 30lb vs Sysco 20lb
-  "86525",   // Peas: RD 2.5lb vs Sysco 30lb
-  "2620442", // Coconut Milk: RD 4800ml vs Sysco 9720ml
-  "64120",   // Broccoli: RD 2lb vs Sysco 24lb
-  "86527",   // Mixed Veg: RD 25lb vs Sysco 30lb
-  "1440528", // Paneer: RD 20lb vs Sysco 10lb
-  "2910159", // Cornstarch: RD 3lb vs Sysco 24lb
-  "44211",   // Fresh Spinach: RD 10lb vs Sysco 4lb
-  "40138",   // Green Onions: RD 16lb (4 bunches) vs Sysco 2lb pack
-  "42706",   // Green Bell Pepper: RD 5lb bag vs Sysco 22-25lb case
-  "53556",   // Roti Atta: RD 2x20lb=40lb vs Sysco 1x50lb (confirmed Nick List)
-  "3960200", // Frozen 4-Way Mix: RD 2.5lb vs Sysco 30lb single bag (1/30LB confirmed)
+  "55523",   // Lemon Juice: RD 4×1gal (512oz) vs Sysco 6×0.5gal (384oz)
+  "12728",   // Pan Spray: RD 6×17oz (102oz) vs Sysco 6×14oz (84oz)
+  "44146",   // Peeled Garlic: RD 6×5lb (30lb) vs Sysco 4×5lb (20lb)
+  "1440528", // Paneer: RD 4×5lb (20lb) vs Sysco 2×5lb (10lb)
+  "2910159", // Cornstarch: RD 1×3lb vs Sysco 24×1lb (24lb)
+  "44211",   // Fresh Spinach: RD 4×2.5lb (10lb) vs Sysco 1×4lb
+  "40138",   // Green Onions: RD 1×4lb bunch vs Sysco 1×2lb EA
+  "42706",   // Green Bell Pepper: RD 1×5lb bag vs Sysco 1×22-25lb case
+  "53556",   // Roti Atta: RD 2×20lb (40lb) vs Sysco 1×50lb
+  // REMOVED — now confirmed same total size on both vendors:
+  // "86525" Peas: both 12×2.5lb=30lb ✓  "64120" Broccoli: both 12×2lb=24lb ✓
+  // "64046" Spinach: both 12×3lb=36lb ✓  "86527" 4-Way Mix: both 30lb ✓
+  // "2620442" Coconut Milk: both 24×13.5oz cans ✓
+  // "3960200" was wrong key (Sysco UPC) — correct RD ID is 86527 above ✓
 ]);
 
 const ITEMS = [
@@ -28,10 +29,10 @@ const ITEMS = [
   { id:"1440528", name:"Paneer",               cat:"Dairy"    },
   { id:"55519",   name:"Flowers",              cat:"Produce"  },
   { id:"42606",   name:"Cauliflower",          cat:"Produce"  },
-  { id:"40138",   name:"Green Onions",          cat:"Produce"  },
+  { id:"40138",   name:"Green Onions",         cat:"Produce"  },
   { id:"79152",   name:"Carrots",              cat:"Produce"  },
   { id:"44211",   name:"Fresh Spinach",        cat:"Produce"  },
-  { id:"42706",   name:"Green Bell Pepper",     cat:"Produce"  },
+  { id:"42706",   name:"Green Bell Pepper",    cat:"Produce"  },
   { id:"42570",   name:"Lemons",               cat:"Produce"  },
   { id:"42647",   name:"Mint",                 cat:"Produce"  },
   { id:"42566",   name:"Cilantro",             cat:"Produce"  },
@@ -62,7 +63,7 @@ const ITEMS = [
   { id:"45900",   name:"White Vinegar",        cat:"Oils"     },
   { id:"1020152", name:"Liquid Butter",        cat:"Oils"     },
   { id:"12728",   name:"Pan Spray",            cat:"Oils"     },
-  { id:"1020075", name:"Soybean Oil",          cat:"Oils"     },
+  { id:"1020075", name:"Cooking Oil",          cat:"Oils"     },
   { id:"1020077", name:"Fryer Oil",            cat:"Oils"     },
   { id:"55523",   name:"Lemon Juice",          cat:"Oils"     },
   // ── Dry Goods ────────────────────────────────────────────────────────────────
@@ -230,8 +231,6 @@ export default function App() {
                 </div>
               </div>
             )}
-
-
           </>)}
 
           <button onClick={()=>setUnitCompare(null)} style={{marginTop:14,width:"100%",padding:11,border:"none",borderRadius:10,background:"#111",color:"#fff",fontWeight:600,cursor:"pointer",fontSize:13}}>Close</button>
@@ -416,8 +415,6 @@ ${rows.map(r => `<tr>
 
   // Also include items missing price from one vendor that have been seen before
   const missingItems = ITEMS.filter(item => {
-    // Keep OOS items in main list — they show last confirmed price with OOS badge
-    // if (rdOosIds.has(item.id) || scOosIds.has(item.id)) return false;
     const rdP = rd[item.id]?.price;
     const scP = sc[item.id]?.price;
     const hasHistory = history[item.id]?.length > 1;
@@ -477,7 +474,6 @@ ${rows.map(r => `<tr>
                           background: rdBest ? "#F0FDF4" : "#EFF6FF",
                           color: rdBest ? "#16A34A" : "#2563EB",
                           border: DIFFERENT_CASE_SIZES.has(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
-                          title: DIFFERENT_CASE_SIZES.has(item.id) ? "Case sizes differ — tap Compare for details" : ""
                         }}>
                           {rdBest ? "Buy at RD" : "Buy at Sysco"}
                         </div>
@@ -575,7 +571,6 @@ ${rows.map(r => `<tr>
             <div style={{ textAlign: "center", padding: "30px 20px", color: "#999", fontSize: 13 }}>No history found</div>
           )}
 
-          {/* Render list — search results or all items */}
           {(historySearch.length > 1 ? historyResults : ITEMS.filter(i => history[i.id]?.length > 0)).map(item => {
             const entries = history[item.id] || [];
             const last7  = entries.slice(-7).reverse();
@@ -584,11 +579,9 @@ ${rows.map(r => `<tr>
             const prev   = entries[entries.length - 2];
             const rdChange = prev?.rd && latest?.rd ? latest.rd - prev.rd : null;
             const isOpen = selectedItem?.id === item.id;
-            const [view7, setView7] = [selectedItem?.view7, (v) => setSelectedItem(s => ({ ...s, view7: v }))];
 
             return (
               <div key={item.id} style={{ marginBottom: 8 }}>
-                {/* Row button */}
                 <button onClick={() => setSelectedItem(isOpen ? null : { ...item, view7: true })}
                   style={{ width: "100%", background: "#fff", border: isOpen ? "1px solid #111" : "1px solid #EEEEE9", borderRadius: isOpen ? "12px 12px 0 0" : 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left", borderBottom: isOpen ? "none" : undefined }}>
                   <span style={{ fontSize: 18 }}></span>
@@ -604,10 +597,8 @@ ${rows.map(r => `<tr>
                   <div style={{ fontSize: 13, color: "#999", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</div>
                 </button>
 
-                {/* Expanded panel */}
                 {isOpen && (
                   <div style={{ background: "#fff", border: "1px solid #111", borderTop: "none", borderRadius: "0 0 12px 12px", overflow: "hidden", marginBottom: 2 }}>
-                    {/* 7d / 30d toggle */}
                     <div style={{ display: "flex", borderBottom: "1px solid #EEEEE9", padding: "8px 14px", gap: 8 }}>
                       {[["7d","Last 7 Days"], ["30d","Last 30 Days"]].map(([key, lbl]) => (
                         <button key={key} onClick={() => setSelectedItem(s => ({ ...s, view7: key === "7d" }))}
@@ -616,7 +607,6 @@ ${rows.map(r => `<tr>
                         </button>
                       ))}
                     </div>
-                    {/* Column headers */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", padding: "7px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "#999", letterSpacing: .5 }}>DATE</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, textAlign: "right" }}>RD</div>
@@ -670,12 +660,9 @@ ${rows.map(r => `<tr>
             </div>
           )}
 
-          {/* Confirmed out of stock from scraper */}
           {oosItems.length > 0 && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", letterSpacing: .5, marginBottom: 8, paddingLeft: 2 }}>
-                🔴 OUT OF STOCK
-              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#DC2626", letterSpacing: .5, marginBottom: 8, paddingLeft: 2 }}>🔴 OUT OF STOCK</div>
               {oosItems.map((item) => {
                 const rdOos = rdOosIds.has(item.id);
                 const scOos = scOosIds.has(item.id);
@@ -702,12 +689,9 @@ ${rows.map(r => `<tr>
             </>
           )}
 
-          {/* Items missing from one vendor based on history */}
           {missingItems.length > 0 && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>
-                ⚠️ MISSING VENDOR PRICE
-              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>⚠️ MISSING VENDOR PRICE</div>
               {missingItems.map((item) => {
                 const rdP = rd[item.id]?.price;
                 const scP = sc[item.id]?.price;
@@ -728,7 +712,6 @@ ${rows.map(r => `<tr>
             </>
           )}
 
-          {/* Also show items with zero history and no current price */}
           {ITEMS.filter(i => !rd[i.id] && !sc[i.id] && !history[i.id]?.length).length > 0 && (
             <>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 2 }}>NEVER SCRAPED</div>
@@ -774,7 +757,7 @@ PRODUCT CATALOG (id: name | RD price | Sysco price):
 ${catalog.map(i => i.id + ": " + i.name + " | RD: " + (i.rdPrice ? "$"+i.rdPrice : "N/A") + " | Sysco: " + (i.scPrice ? "$"+i.scPrice : "N/A")).join("\n")}
 
 Rules:
-- Match abbreviations and casual names ("chx breast"=chicken breast, "LQ"=leg quarters, "WM"=whole milk)
+- Match abbreviations and casual names ("chx breast"=chicken breast, "LQ"=leg quarters, "WM"=whole milk, "cooking oil"=Cooking Oil)
 - Extract quantity from each line (e.g. "2 milks" → qty:2, "3x chicken" → qty:3, "chicken" → qty:1)
 - Quantities apply to cases unless otherwise stated
 - If no reasonable product match exists, put in unmatched
@@ -807,7 +790,6 @@ Return ONLY this JSON structure:
       const purSC = bothItems.reduce((s,i)=>s+(i.scPrice * i.qty),0);
       setResult({ bothItems, purRD, purSC, skipped, unmatched });
     } catch(e) {
-      // Fallback to local fuzzy match
       const lines = list.split("\n").map(l=>l.trim()).filter(l=>l.length>2);
       const bothItems=[], skipped=[], unmatched=[];
       lines.forEach(line => {
@@ -844,16 +826,13 @@ Return ONLY this JSON structure:
 
       {result && (
         <div style={{ marginTop: 14 }}>
-
           {result.bothItems.length === 0 && (
             <div style={{ textAlign: "center", padding: "24px", color: "#999", background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", marginBottom: 12 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>No items with pricing from both vendors</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>Check skipped items below</div>
             </div>
           )}
 
           {result.bothItems.length > 0 && (<>
-            {/* Totals */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div style={{ background: result.purRD <= result.purSC ? "#F0FDF4" : "#fff", border: result.purRD <= result.purSC ? "2px solid #16A34A" : "1px solid #EEEEE9", borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
                 {result.purRD <= result.purSC && <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", letterSpacing: .5, marginBottom: 4 }}>✓ CHEAPER</div>}
@@ -869,7 +848,6 @@ Return ONLY this JSON structure:
               </div>
             </div>
 
-            {/* Savings */}
             <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "11px 14px", marginBottom: 14, textAlign: "center" }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#92400E" }}>
                 {result.purRD <= result.purSC
@@ -878,7 +856,6 @@ Return ONLY this JSON structure:
               </div>
             </div>
 
-            {/* Item breakdown table */}
             <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>ITEM BREAKDOWN</div>
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "8px 14px", background: "#F7F7F5", borderBottom: "1px solid #EEEEE9" }}>
@@ -891,7 +868,6 @@ Return ONLY this JSON structure:
                 return (
                   <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1fr 64px 64px", padding: "10px 14px", borderBottom: i < result.bothItems.length - 1 ? "1px solid #F3F3EF" : "none", alignItems: "center", gap: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 15 }}></span>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
                         {item.qty > 1 && <div style={{ fontSize: 10, color: "#999" }}>×{item.qty} cases</div>}
@@ -900,7 +876,6 @@ Return ONLY this JSON structure:
                     <div style={{ fontSize: 13, fontWeight: 700, color: rdWins ? "#16A34A" : "#888", textAlign: "right" }}>
                       {fmt2(item.rdPrice * item.qty)}
                       {item.qty > 1 && <div style={{ fontSize: 9, color: "#AAA", fontWeight: 500 }}>{fmt2(item.rdPrice)} ea</div>}
-
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: !rdWins ? "#2563EB" : "#888", textAlign: "right" }}>
                       {fmt2(item.scPrice * item.qty)}
@@ -917,14 +892,12 @@ Return ONLY this JSON structure:
             </div>
           </>)}
 
-          {/* Skipped — missing one vendor price */}
           {result.skipped.length > 0 && (
             <>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>⚠️ SKIPPED — MISSING VENDOR PRICING</div>
               <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", overflow: "hidden", marginBottom: 14 }}>
                 {result.skipped.map((item, i) => (
                   <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "10px 14px", borderBottom: i < result.skipped.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10, opacity: 0.7 }}>
-                    <span style={{ fontSize: 15 }}></span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>{item.name}</div>
                       <div style={{ fontSize: 11, color: "#AAA", marginTop: 1 }}>{item.reason}</div>
@@ -937,7 +910,6 @@ Return ONLY this JSON structure:
             </>
           )}
 
-          {/* Not recognized */}
           {result.unmatched.length > 0 && (
             <>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#C0BAB0", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>❓ NOT RECOGNIZED</div>
@@ -1005,7 +977,7 @@ function OrderView({ rd, sc }) {
     setLoading(false);
   }
 
-  // Parse the AI result into structured sections
+  // Parse the result into structured sections
   function parseResult(text) {
     if (!text) return null;
     const sections = { rd: [], sysco: [], manual: [], rdTotal: null, syscoTotal: null, orderTotal: null };
@@ -1016,10 +988,10 @@ function OrderView({ rd, sc }) {
       if (l.startsWith("🟢")) { current = "rd"; return; }
       if (l.startsWith("🔵")) { current = "sysco"; return; }
       if (l.startsWith("⚠️")) { current = "manual"; return; }
-      if (l.match(/RD Cart Total/i)) { sections.rdTotal = l.replace(/.*:\s*/, "").trim(); return; }
-      if (l.match(/Sysco Cart Total/i)) { sections.syscoTotal = l.replace(/.*:\s*/, "").trim(); return; }
-      if (l.match(/TOTAL ORDER/i)) { sections.orderTotal = l.replace(/.*:\s*/, "").trim(); return; }
-      if (l.startsWith("-") && current) sections[current].push(l.replace(/^-\s*/, ""));
+      if (l.startsWith("Total:") && current === "rd") { sections.rdTotal = l.replace("Total:", "").trim(); return; }
+      if (l.startsWith("Total:") && current === "sysco") { sections.syscoTotal = l.replace("Total:", "").trim(); return; }
+      if (l.startsWith("💰")) { sections.orderTotal = l.replace("💰", "").trim(); return; }
+      if (current) sections[current].push(l);
     });
     return sections;
   }
@@ -1039,8 +1011,6 @@ function OrderView({ rd, sc }) {
 
       {parsed && (
         <div style={{ marginTop: 14 }}>
-
-          {/* RD section */}
           {parsed.rd.length > 0 && (
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 10 }}>
               <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1061,7 +1031,6 @@ function OrderView({ rd, sc }) {
             </div>
           )}
 
-          {/* Sysco section */}
           {parsed.sysco.length > 0 && (
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #EEEEE9", overflow: "hidden", marginBottom: 10 }}>
               <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1082,7 +1051,6 @@ function OrderView({ rd, sc }) {
             </div>
           )}
 
-          {/* Manual / not in system */}
           {parsed.manual.length > 0 && (
             <div style={{ background: "#fff", borderRadius: 12, border: "1px dashed #E0E0D8", overflow: "hidden", marginBottom: 10 }}>
               <div style={{ padding: "12px 14px", borderBottom: "1px solid #F3F3EF", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1097,7 +1065,6 @@ function OrderView({ rd, sc }) {
             </div>
           )}
 
-          {/* Grand total */}
           {parsed.orderTotal && (
             <div style={{ background: "#111", borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>💰 Total Order Cost</div>
@@ -1107,14 +1074,12 @@ function OrderView({ rd, sc }) {
         </div>
       )}
 
-      {/* Raw fallback if parsing failed but result exists */}
       {result && !parsed?.rd.length && !parsed?.sysco.length && (
         <div style={{ marginTop: 10, background: "#fff", border: "1px solid #EEEEE9", borderRadius: 12, padding: "14px" }}>
           <div style={{ fontSize: 13, lineHeight: 1.9, whiteSpace: "pre-wrap", color: "#111" }}>{result}</div>
         </div>
       )}
 
-      {/* Quick reference — items from pasted list */}
       {matched.length > 0 && (
         <div style={{ marginTop: 20, paddingBottom: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 2 }}>PRICE REFERENCE</div>
@@ -1122,17 +1087,14 @@ function OrderView({ rd, sc }) {
             {matched.map((item, i) => {
               const rdP = item.rdPrice, scP = item.scPrice;
               const rdBest = rdP && scP ? rdP <= scP : !!rdP;
-              const vendor = rdP && scP ? (rdBest ? "RD" : "Sysco") : rdP ? "RD" : "Sysco";
-              const green = "#16A34A", blue = "#2563EB";
               return (
                 <div key={item.id} style={{ display: "flex", alignItems: "center", padding: "11px 14px", borderBottom: i < matched.length - 1 ? "1px solid #F3F3EF" : "none", gap: 10 }}>
                   <div style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "#111" }}>{item.name}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: rdBest ? green : "#CCC", width: 56, textAlign: "right" }}>{rdP ? fmt(rdP) : "—"}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: !rdBest && scP ? blue : "#CCC", width: 56, textAlign: "right" }}>{scP ? fmt(scP) : "—"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: rdBest ? "#16A34A" : "#CCC", width: 56, textAlign: "right" }}>{rdP ? fmt(rdP) : "—"}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: !rdBest && scP ? "#2563EB" : "#CCC", width: 56, textAlign: "right" }}>{scP ? fmt(scP) : "—"}</div>
                 </div>
               );
             })}
-            {/* Column headers pinned to bottom */}
             <div style={{ display: "flex", padding: "8px 14px", borderTop: "1px solid #EEEEE9", background: "#F7F7F5" }}>
               <div style={{ flex: 1 }} />
               <div style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", width: 56, textAlign: "right", letterSpacing: .3 }}>RD</div>
