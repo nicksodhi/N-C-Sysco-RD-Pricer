@@ -109,6 +109,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [scraping, setScraping] = useState(false);
   const [auditItem, setAuditItem] = useState(null);
   const [unitCompare, setUnitCompare] = useState(null);   // { item, loading, result, error }
 
@@ -133,6 +134,13 @@ export default function App() {
   const [history, setHistory] = useState({}); // { itemId: [{date, rd, sc}] }
 
   useEffect(() => {
+    // Immediately load cached prices so UI never shows blank on reload
+    try {
+      const cachedRd = localStorage.getItem("nc_rd_cache");
+      const cachedSc = localStorage.getItem("nc_sc_cache");
+      if (cachedRd) setRd(JSON.parse(cachedRd));
+      if (cachedSc) setSc(JSON.parse(cachedSc));
+    } catch {}
     Promise.all([pull(), fetchHistory()]).finally(() => setLoading(false));
     const t = setInterval(() => { pull(); fetchHistory(); }, 5 * 60 * 1000);
     return () => clearInterval(t);
@@ -153,11 +161,20 @@ export default function App() {
     try {
       const r = await fetch("/api/prices"); if (!r.ok) return;
       const d = await r.json();
-      if (d.rd && Object.keys(d.rd).length) setRd(p => ({ ...p, ...d.rd }));
-      if (d.sysco && Object.keys(d.sysco).length) setSc(p => ({ ...p, ...d.sysco }));
+      const rdCount = Object.keys(d.rd || {}).length;
+      const scCount = Object.keys(d.sysco || {}).length;
+      if (rdCount > 0) {
+        setRd(p => ({ ...p, ...d.rd }));
+        // Cache to localStorage so page reloads show prices instantly
+        try { localStorage.setItem("nc_rd_cache", JSON.stringify(d.rd)); } catch {}
+      }
+      if (scCount > 0) {
+        setSc(p => ({ ...p, ...d.sysco }));
+        try { localStorage.setItem("nc_sc_cache", JSON.stringify(d.sysco)); } catch {}
+      }
       if (d.oos) setOos(d.oos);
+      if (d.scraping !== undefined) setScraping(d.scraping);
       setSynced(new Date().toISOString());
-      // Always re-fetch history after prices update so today shows immediately
       fetchHistory();
     } catch {}
   }
@@ -292,6 +309,14 @@ export default function App() {
             {syncing ? "Syncing…" : synced ? ago(synced) : "Sync"}
           </button>
         </div>
+
+        {/* Scraping banner — shows while live scrape is in progress */}
+        {scraping && (
+          <div style={{ background: "#FFF8E1", borderBottom: "1px solid #FFE082", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#856404" }}>
+            <span style={{ display: "inline-block", animation: "spin .9s linear infinite" }}>↻</span>
+            Refreshing prices… showing last known values
+          </div>
+        )}
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 0, marginBottom: 0 }}>
