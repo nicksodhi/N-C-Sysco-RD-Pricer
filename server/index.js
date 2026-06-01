@@ -422,8 +422,9 @@ const CACHE_SEED = {
     "Bean Kidney Dark Red": "4014973",
     "Tomato Diced Salsa Style": "5895750",
     "Onion Yellow Jumbo Bag": "1094721",
-    "Cream Heavy Whipping 40%": "2139911",
-    "Cream Heavy Whipping": "2139911",
+    "Cream Heavy Whipping 40%": "6935464",
+    "Cream Heavy Whipping": "6935464",
+    "Cream Heavy 40%": "6935464",
     "Paneer": "7102961",
     "Cilantro Bunch Iceless": "7078475",
     "Onion Green Iceless": "7350788",
@@ -625,7 +626,7 @@ const SYSCO_ITEMS = [
   { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4 x 10 LB" },
   { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",   pack: "1/25LB"  },
   { id: "4002325", name: "Tomato Puree 1.06 Fancy California",            pack: "6/#10"   },
-  { id: "2139911", name: "Cream Heavy Whipping 40%",                                pack: "6/64OZ"  },
+  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life Stabilized", pack: "12/32 OZ" },
   { id: "4676306", name: "Milk Whole Gallon",                             pack: "4/1 GAL" },
   { id: "4119079", name: "Oil Soybean Vegetable Pure",                    pack: "1/35LB"  },
   { id: "5087572", name: "Sugar Granulated Extra Fine Cane",              pack: "1/25LB"  },
@@ -728,7 +729,7 @@ const SYSCO_TO_RD_SEED = {
   "4014973": { rdId: "69810", rdMult: 1 }, // Bean Kidney Dark Red
   "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
   "1094721": { rdId: "42545",   rdMult: 1 }, // Yellow Onion 50lb
-  "2139911": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 6x64oz
+  "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 12x32oz — confirmed $48.00 CS
   "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions Iceless (single EA)
   "1910231": { rdId: "42706",   rdMult: 1 }, // Green Bell Pepper Choice Fresh
   "9903790": { rdId: "2010066", rdMult: 1 }, // Ketchup Jug 6/114oz
@@ -1594,7 +1595,7 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","1803287":"Chicken Leg Quarter Halal","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","1803287":"Chicken Leg Quarter Halal","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
@@ -2172,7 +2173,7 @@ function patchItemKnowledge() {
     "42606":  [12,"12-head case","each",12,"12 x 1 head cello wrapped"],
     "42566":  [21,"6 x 3.5 oz bags","oz",21,"6 x 3.5 oz bags (30 ct)"],
     "42647":  [1,"1 x 1 lb package","lb",1,"1 x 1 lb package"],
-    "1530438":[384,"6 x 64 oz jugs (384 oz)","oz",384,"6 x 64 oz jugs (384 oz)"],
+    "1530438":[384,"6 x 64 oz jugs (384 oz)","oz",384,"12 x 32 oz bottles (384 oz)"],
     "370496": [4,"4 x 1 gallon jugs","gallon",4,"4 x 1 gallon jugs"],
     "1440203":[20,"4 x 5 lb bags (20 lb)","lb",20,"4 x 5 lb bags (20 lb)"],
     "1440528":[20,"4 x 5 lb loaves (20 lb)","lb",10,"2 x 5 lb blocks (10 lb)"],
@@ -2416,7 +2417,7 @@ async function backupItemKnowledgeToGitHub() {
 const PACK_SIZES = {
   // rdId: { rd: "pack description", sysco: "pack description", rdTotal: total_units, syscoTotal: total_units, unit: "lb|oz|ml|each" }
   "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
-  "1530438":{ rd: "6 × 64 oz jugs",          sysco: "6 × 64 oz jugs",          rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
+  "1530438":{ rd: "6 × 64 oz jugs",          sysco: "12 × 32 oz bottles",      rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
   "370496": { rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon",           rdTotal: 512,   syscoTotal: 512,   unit: "oz"   },
   "1020152":{ rd: "3 × 1 gallon jugs",        sysco: "3 × 1 gallon",           rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
   "55523":  { rd: "4 × 1 gallon jugs",        sysco: "6 × 0.5 gallon jugs",    rdTotal: 512,   syscoTotal: 384,   unit: "oz"   },
