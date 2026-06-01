@@ -407,7 +407,7 @@ const CACHE_SEED = {
     "Water Spring In Plastic Bottle": "2886075",
     "Shrimp White Peeled And Deveined 16/20": "5106388",
     "Coloring Food Egg Shade Yellow": "4112262",
-    "Oil Salad Canola Zero Trans Fat": "5061643",
+    "Oil Salad Canola Zero Trans Fat": "4119079", // redirect canola to soybean — not buying canola anymore
     "Corn Starch Food Grade": "4073441",
     "Powder Baking Double Acting": "5517701",
     "Broccoli Floret Poly Packaging Grade A": "6988158",
@@ -433,7 +433,8 @@ const CACHE_SEED = {
     "Cilantro Washed Fresh Herb": "2219095",
     "Cilantro Fresh": "7078475",
     "Cilantro Bunch Iceless": "7078475",
-    "Onion Green Iceless": "7350788",
+    "Sauce Tomato California": "4978884",
+    "Tomato Sauce California": "4978884",
     "Pepper Green Bell Choice Fresh": "1910231",
     "Ketchup Jug Red In Plastic Bottle With Pump": "9903790",
     "Ketchup Jug Red Plastic Bottle": "9903790",
@@ -445,7 +446,7 @@ const CACHE_SEED = {
 // Claude flags it as partial and keeps yesterday's prices.
 const scraperHealth = {
   rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
-  sysco: { expectedItems: 53, minThreshold: 0.80, lastGoodCount: 0 },
+  sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 },
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -561,7 +562,6 @@ const RD_ITEMS = [
   { id: "45900",   name: "Chef's Quality - White Vinegar - gallon" },
   { id: "12728",   name: "Chef's Quality - All Purpose Pan Spray - 17 oz" },
   { id: "1020152", name: "Chef's Quality - Liquid Butter Alternative - gallon" },
-  { id: "1020079", name: "Chef's Quality - 100% Canola Salad Oil - 35 lbs" },
   { id: "1020077", name: "Chef's Quality - Clear Liquid Fry Oil - 35 lbs" },
   { id: "25267",   name: "Athena - Fire Roasted Grilled Eggplant Pulp - 2 kg" },
   { id: "16200",   name: "Chef's Quality - Garbanzo Beans - #10 can" },
@@ -644,7 +644,6 @@ const SYSCO_ITEMS = [
   { id: "6914451", name: "Pan Coating Butter It",                          pack: "6/14 OZ"  },
   { id: "2822379", name: "Cheese Cheddar Jack Fancy Shredded",                    pack: "4/5 LB"   },
   { id: "4564894", name: "Salt Granulated Plain",                              pack: "1/50 LB"  },
-  { id: "7078475", name: "Cilantro Fresh",                                  pack: "1 CS"     },
   { id: "2219095", name: "Cilantro Cleaned, Washed & Fresh Herb",          pack: "4/1 LB"   }, // confirmed SKU from order May 31 2026
   { id: "6344790", name: "Chicken Wings 1st And 2nd Joints Jumbo",          pack: "4/10 LB"  },
   { id: "1094663", name: "Onion Red Jumbo Bag",                             pack: "1/25LB"   },
@@ -659,7 +658,6 @@ const SYSCO_ITEMS = [
   { id: "2886075", name: "Water Spring In Plastic Bottle",                  pack: "24/500ML" },
   { id: "5106388", name: "Shrimp White Peeled And Deveined 16/20", pack: "4/2.5 LB" },
   { id: "4112262", name: "Coloring Food Egg Shade Yellow", pack: "4/1 GAL" },
-  { id: "5061643", name: "Oil Salad Canola Zero Trans Fat", pack: "1/35 LB" },
   { id: "4073441", name: "Corn Starch Food Grade", pack: "24/1 LB" },
   { id: "5517701", name: "Powder Baking Double Acting", pack: "6/5 LB" },
   { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A", pack: "12/2 LB" },
@@ -675,7 +673,7 @@ const SYSCO_ITEMS = [
   { id: "4014684", name: "Flour Wheat Whole Stone Ground", pack: "1/50LB" },
   { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite", pack: "6/#10" },
   { id: "4014973", name: "Bean Kidney Dark Red", pack: "6/#10" },
-  { id: "5895750", name: "Tomato Diced Salsa Style", pack: "6/#10" },
+  { id: "4978884", name: "Sauce Tomato California",                               pack: "6/#10"   }, // Tomato Sauce — $26.88 confirmed
   { id: "7350788", name: "Onion Green Iceless",                              pack: "4/2 LB"    }, // buy EA ($6.85/2lb), not full case
   { id: "1910231", name: "Pepper Green Bell Choice Fresh",                   pack: "1/22-25#"  }, // 22-25lb case
   { id: "9903790", name: "Ketchup Jug Red In Plastic Bottle With Pump",     pack: "6/114 OZ"  }, // case of 6, $43.95
@@ -704,7 +702,6 @@ const SYSCO_TO_RD_SEED = {
   "1543164": { rdId: "42725",   rdMult: 1 }, // Russet Potato
   "6914451": { rdId: "12728",   rdMult: 1 }, // Pan Spray
   "4564894": { rdId: "1070496", rdMult: 1 }, // Salt
-  "7078475": { rdId: "42566",   rdMult: 1 }, // Cilantro Fresh (old SKU)
   "2219095": { rdId: "42566",   rdMult: 1 }, // Cilantro Cleaned 4/1LB (confirmed active SKU from order)
   "2822379": { rdId: "1440203", rdMult: 1 }, // Cheddar Jack
   "1821537": { rdId: "44146",   rdMult: 1 }, // Garlic Peeled
@@ -719,7 +716,6 @@ const SYSCO_TO_RD_SEED = {
   "2886075": { rdId: "21039",   rdMult: 1 }, // Evian Water
   "5106388": { rdId: "40212", rdMult: 1 }, // Shrimp White Peeled And Deveined 16/20
   "4112262": { rdId: "2550012", rdMult: 1 }, // Coloring Food Egg Shade Yellow
-  "5061643": { rdId: "1020079", rdMult: 1 }, // Oil Salad Canola Zero Trans Fat
   "4073441": { rdId: "2910159", rdMult: 1 }, // Corn Starch Food Grade
   "5517701": { rdId: "29268", rdMult: 1 }, // Powder Baking Double Acting
   "6988158": { rdId: "64120", rdMult: 1 }, // Broccoli Floret Poly Packaging Grade A
@@ -736,7 +732,7 @@ const SYSCO_TO_RD_SEED = {
   "4062337": { rdId: "16200", rdMult: 1 }, // Bean Garbanzo Fancy No Sulfite
   "4014973": { rdId: "69810", rdMult: 1 }, // Bean Kidney Dark Red
   "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
-  "1094721": { rdId: "42545",   rdMult: 1 }, // Yellow Onion 50lb
+  "4978884": { rdId: "860044",  rdMult: 1 }, // Sauce Tomato California 6/#10 $26.88
   "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 12x32oz — confirmed $48.00 CS
   "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions Iceless (single EA)
   "1910231": { rdId: "42706",   rdMult: 1 }, // Green Bell Pepper Choice Fresh
@@ -1603,7 +1599,7 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue; // already found
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
@@ -2187,7 +2183,6 @@ function patchItemKnowledge() {
     "1440528":[20,"4 x 5 lb loaves (20 lb)","lb",10,"2 x 5 lb blocks (10 lb)"],
     "14785":  [32,"1 x 32 lb container","lb",null,null],
     "1020077":[35,"1 x 35 lb bag","lb",35,"1 x 35 lb bag"],
-    "1020079":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020075":[35,"1 x 35 lb container","lb",35,"1 x 35 lb container"],
     "1020152":[3,"3 x 1 gallon jugs","gallon",3,"3 x 1 gallon jugs"],
     "55523":  [4,"4 x 1 gallon jugs","gallon",3,"6 x 0.5 gallon jugs (3 gal)"],
@@ -2227,6 +2222,7 @@ function patchItemKnowledge() {
     "42706":  [5,"1 x 5 lb bag","lb",23.5,"1 x 22-25 lb case"],    // Green Bell Pepper (OOS at RD)
     "2010066":[684,"6 x 114 oz jugs","oz",684,"6 x 114 oz jugs"],  // Ketchup (same both vendors)
     "860043": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Puree (same both)
+    "860044": [6,"6 x #10 cans","each",6,"6 x #10 cans"],          // Tomato Sauce — Sysco 4978884 6/#10 $26.88
     "440038": [24,"24 x 16.9 oz bottles","oz",null,null],           // Coca-Cola (RD only)
     "50103":  [30,"3 trays x 10 rolls (30 total)","roll",null,null],// Printer Paper (RD only)
   };
@@ -2444,6 +2440,7 @@ const PACK_SIZES = {
   "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   },
   "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   },
   "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  },
+  "860044": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  }, // Tomato Sauce — Sysco 4978884 $26.88 confirmed
   "42606":  { rd: "12-head case",            sysco: "12 × 1 head",             rdTotal: 12,    syscoTotal: 12,    unit: "head" }, // Cauliflower — Sysco 12/1EA confirmed
   "42566":  { rd: "1 case",                  sysco: "4 × 1 lb bunches",        rdTotal: null,  syscoTotal: 4,     unit: "lb"   }, // Cilantro — Sysco 2219095 4/1LB confirmed $21.65
   "42570":  { rd: "1 case",                  sysco: "1 × 115ct case",           rdTotal: null,  syscoTotal: 115,   unit: "each" }, // Lemons — Sysco 1/115CT confirmed
@@ -2460,7 +2457,6 @@ const PACK_SIZES = {
   "21039":  { rd: "24 × 500ml bottles",      sysco: "24 × 500ml bottles",      rdTotal: 12000, syscoTotal: 12000, unit: "ml"   },
   "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes (10 lb)",  rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Tilapia 2/5LB confirmed
   "1020075":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Soybean Oil 1/35LB confirmed
-  "1020079":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Canola Salad Oil 1/35LB confirmed
   "1020077":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Fryer Oil 1/35LB confirmed
   "1070496":{ rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",           rdTotal: 50,    syscoTotal: 50,    unit: "lb"   }, // Salt 1/50LB confirmed
   "53556":  { rd: "2 × 20 lb bags (40 lb)",  sysco: "1 × 50 lb bag",           rdTotal: 40,    syscoTotal: 50,    unit: "lb"   }, // Roti Atta — RD 40lb, Sysco 50lb DIFF SIZES
@@ -2668,7 +2664,7 @@ app.post("/api/grocery", async (req, res) => {
       "86525":  "Frozen Peas",          "64120":  "Frozen Broccoli",
       "86527":  "Frozen 4-Way Mix",     "25267":  "Eggplant Pulp",
       "45900":  "White Vinegar",        "1020152":"Liquid Butter",
-      "12728":  "Pan Spray",            "1020079":"Canola Salad Oil",
+      "12728":  "Pan Spray",
       "1020075":"Soybean Oil",          "1020077":"Fryer Oil",
       "55523":  "Lemon Juice",          "53556":  "Roti Atta",
       "13417":  "Sambal Chili",         "2620442":"Coconut Milk",
@@ -2817,7 +2813,7 @@ tomato puree = Tomato Puree (NOT Tomato Sauce — different items)
 tomato sauce = Tomato Sauce
 petite diced / diced tomato = Petite Diced Tomato
 roti / atta = Roti Atta (Golden Temple)
-fryer oil = Fryer Oil | salad oil / canola = Canola Salad Oil
+fryer oil / frying oil = Fryer Oil | salad oil / canola / canola oil / cooking oil / vegetable oil = Soybean Oil (we only use soybean, not canola)
 liquid butter / butter alt = Liquid Butter
 baking powder = Baking Powder (NOT baking soda — completely different product)
 cornstarch = Cornstarch
