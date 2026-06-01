@@ -28,6 +28,8 @@ const RD_PRICE_MAX = {
   "1810019": 200, // Goat Bone-in 15lb (~$50-150)
   // NOTE: 86525 Frozen Peas removed — $38.20 IS the correct Case-of-12 price (12×2.5lb=30lb)
   "40138":  20,   // Green Onions single 4lb pack — ~$10.35; rejects case-bleed or wrong product
+  "1020075": 100,  // Soybean Oil 35lb — $39.34 confirmed; >$100 means wrong product grabbed
+  "1020077": 100,  // Fryer Oil 35lb — same ceiling
 };
 
 // Minimum acceptable RD case price — rejects per-lb prices stored without ×weight multiplication
@@ -39,6 +41,8 @@ const RD_PRICE_MIN = {
   "77200":  30,  // Chicken Wings 40lb
   "79042":  50,  // Lamb Leg 40lb
   "1810019": 20, // Goat Bone-in 15lb
+  "1020075": 20, // Soybean Oil 35lb — $39.34 confirmed; per-lb ~$1.12 would be rejected
+  "1020077": 20, // Fryer Oil 35lb — same range; per-lb price would be rejected
 };
 
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
