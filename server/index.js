@@ -1681,7 +1681,7 @@ function patchItemKnowledge() {
     "42570":  [115, "1 x 115 count case",       "each",115,  "1 x 115 count"],
     "79152":  [10,  "1 x 10 lb bag",            "lb",  10,   "1 x 10 lb bag"],
     "44137":  [40,  "1 x 40 lb box",            "lb",  40,   "1 x 40 lb case"],
-    "40138":  [16,  "4 x 4 lb bunches (16 lb)", "lb",  2,    "1 x 2 lb split (EA)"],
+    "40138":  [4,   "1 x 4 lb bunch",           "lb",  2,    "1 x 2 lb split (EA)"],  // RD single 4lb bunch confirmed
     "42706":  [5,   "1 x 5 lb bag",             "lb",  23.5, "1 x 22-25 lb case"],
     "44211":  [10,  "4 x 2.5 lb bags (10 lb)",  "lb",  4,    "1 x 4 lb bag"],
     "42566":  [null,"RD case",                  "lb",  4,    "4 x 1 lb bunches"],
@@ -1698,7 +1698,7 @@ function patchItemKnowledge() {
     "55523":  [512, "4 x 1 gallon (512 oz)",    "oz",  384,  "6 x 0.5 gallon (384 oz)"],
     "12728":  [102, "6 x 17 oz cans (102 oz)",  "oz",  84,   "6 x 14 oz cans (84 oz)"],
     "2550012":[4,   "4 x 1 gallon jugs",        "gallon",4,  "4 x 1 gallon jugs"],
-    "2620442":[4800,"12 x 400 ml cans",         "ml",  9720, "24 x 13.5 oz cans"],
+    "2620442":[24,  "24 x 13.5 oz cans",        "can", 24,   "24 x 13.5 oz cans"],  // both vendors same size confirmed
     "13417":  [408, "3 x 136 oz containers",    "oz",  408,  "3 x 136 oz containers"],
     "21039":  [12000,"24 x 500 ml bottles",     "ml",  12000,"24 x 500 ml bottles"],
     "21051":  [25,  "1 x 25 lb bag",            "lb",  25,   "1 x 25 lb bag"],
@@ -1715,9 +1715,9 @@ function patchItemKnowledge() {
     "2010066":[684, "6 x 114 oz jugs (684 oz)", "oz",  684,  "6 x 114 oz jugs (684 oz)"],
     "490266": [40,  "1 x 40 lb bag",            "lb",  null, null],
     "86525":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "12 x 2.5 lb bags (30 lb)"],  // RD is Case-of-12 confirmed
-    "64120":  [2,   "1 x 2 lb bag",             "lb",  24,   "12 x 2 lb bags (24 lb)"],
-    "64046":  [3,   "1 x 3 lb bag",             "lb",  36,   "12 x 3 lb bags (36 lb)"],
-    "86527":  [2.5, "1 x 2.5 lb bag",           "lb",  30,   "1 x 30 lb bag"],
+    "64120":  [24,  "12 x 2 lb bags (24 lb)",   "lb",  24,   "12 x 2 lb bags (24 lb)"],  // RD Case of 12 confirmed
+    "64046":  [36,  "12 x 3 lb bags (36 lb)",   "lb",  36,   "12 x 3 lb bags (36 lb)"],  // RD Case of 12 confirmed
+    "86527":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "1 x 30 lb bag"],  // RD Case of 12 confirmed
     "51457":  [10,  "1 x 10 lb box",            "lb",  10,   "2 x 5 lb boxes (10 lb)"],
     "40212":  [10,  "1 x 10 lb box",            "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
     "1810019":[15,  "1 x 15 lb box",            "lb",  null, null],
@@ -1833,7 +1833,7 @@ const PACK_SIZES = {
   "42570":  { rd: "1 × 115 ct case",           sysco: "1 × 115 ct case",            rdTotal: 115,   syscoTotal: 115,   unit: "each"  }, // Lemons (2252013) — FIXED: was rdTotal:null
   "79152":  { rd: "1 × 10 lb bag",             sysco: "1 × 10 lb bag",              rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Carrots (3879962)
   "44137":  { rd: "1 × 40 lb box",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Serrano Peppers (7007376)
-  "40138":  { rd: "4 × 4 lb bunches (16 lb)",  sysco: "1 × 2 lb split (EA)",        rdTotal: 16,    syscoTotal: 2,     unit: "lb"    }, // Green Onions (7350788) — Sysco buy EA $6.89
+  "40138":  { rd: "1 × 4 lb bunch",             sysco: "1 × 2 lb split (EA)",        rdTotal: 4,     syscoTotal: 2,     unit: "lb"    }, // Green Onions (7350788) — RD single 4lb bunch; Sysco buy EA 2lb
   "42706":  { rd: "1 × 5 lb bag",              sysco: "1 × 22-25 lb case",          rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"    }, // Green Bell Pepper (1910231) — DIFF SIZES
   "44211":  { rd: "4 × 2.5 lb bags (10 lb)",   sysco: "1 × 4 lb bag",               rdTotal: 10,    syscoTotal: 4,     unit: "lb"    }, // Baby Spinach (8474538) — DIFF SIZES
   "42566":  { rd: "1 case",                    sysco: "4 × 1 lb bunches (4 lb)",    rdTotal: null,  syscoTotal: 4,     unit: "lb"    }, // Cilantro (2219095) — RD case size not on order guide
@@ -1857,9 +1857,9 @@ const PACK_SIZES = {
   "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
   // ── FROZEN ────────────────────────────────────────────────────────────────────
   "86525":  { rd: "12 × 2.5 lb bags (30 lb)",   sysco: "12 × 2.5 lb bags (30 lb)",   rdTotal: 30,    syscoTotal: 30,    unit: "lb"    }, // Frozen Peas (1053826) — SAME SIZE; RD $38.20 CS, Sysco $35.92 CS
-  "64120":  { rd: "1 × 2 lb bag",               sysco: "12 × 2 lb bags (24 lb)",     rdTotal: 2,     syscoTotal: 24,    unit: "lb"    }, // Frozen Broccoli (6988158) — DIFF SIZES
-  "64046":  { rd: "1 × 3 lb bag",               sysco: "12 × 3 lb bags (36 lb)",     rdTotal: 3,     syscoTotal: 36,    unit: "lb"    }, // Frozen Spinach (2523833) — DIFF SIZES
-  "86527":  { rd: "1 × 2.5 lb bag",             sysco: "1 × 30 lb bag",              rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"    }, // Frozen 4-Way Mix (3960200) — DIFF SIZES
+  "64120":  { rd: "12 × 2 lb bags (24 lb)",     sysco: "12 × 2 lb bags (24 lb)",     rdTotal: 24,    syscoTotal: 24,    unit: "lb"    }, // Frozen Broccoli (6988158) — Case of 12 confirmed
+  "64046":  { rd: "12 × 3 lb bags (36 lb)",     sysco: "12 × 3 lb bags (36 lb)",     rdTotal: 36,    syscoTotal: 36,    unit: "lb"    }, // Frozen Spinach (2523833) — Case of 12 confirmed
+  "86527":  { rd: "12 × 2.5 lb bags (30 lb)",   sysco: "1 × 30 lb bag",              rdTotal: 30,    syscoTotal: 30,    unit: "lb"    }, // Frozen 4-Way Mix (3960200) — Case of 12 confirmed
   // ── OILS & FATS ───────────────────────────────────────────────────────────────
   "1020075":{ rd: "1 × 35 lb jug",              sysco: "1 × 35 lb jug",              rdTotal: 35,    syscoTotal: 35,    unit: "lb"    }, // Soybean Oil (4119079)
   "1020077":{ rd: "1 × 35 lb jug",              sysco: "1 × 35 lb jug",              rdTotal: 35,    syscoTotal: 35,    unit: "lb"    }, // Fryer Oil / Clear Fry (4518403)
@@ -1887,7 +1887,7 @@ const PACK_SIZES = {
   "2550014":{ rd: "4 × 1 gallon jugs",           sysco: null,                          rdTotal: 4,     syscoTotal: null,  unit: "gallon"}, // Red Food Color — RD only
   // ── BEVERAGES / WATER ─────────────────────────────────────────────────────────
   "21039":  { rd: "24 × 500 ml bottles",         sysco: "24 × 500 ml bottles",        rdTotal: 12000, syscoTotal: 12000, unit: "ml"    }, // Evian Water (2886075)
-  "2620442":{ rd: "12 × 400 ml cans (4800 ml)",  sysco: "24 × 13.5 oz cans (9720 ml)",rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"    }, // Coconut Milk (1425982) — DIFF SIZES
+  "2620442":{ rd: "24 × 13.5 oz cans",           sysco: "24 × 13.5 oz cans",         rdTotal: 24,    syscoTotal: 24,    unit: "can"   }, // Coconut Milk (1425982) — CONFIRMED same size both vendors
 };
 // Note: No duplicate keys. No Sysco UPCs used as keys. 3960200 removed (was Sysco UPC, maps to RD 86527 which is already here).
 
