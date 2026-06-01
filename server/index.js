@@ -681,6 +681,13 @@ const SYSCO_TO_RD_LOCK = {
   "8053456": { rdId: null,      rdMult: 1 }, // Chicken Thighs Sysco — not tracked in RD, block
 };
 
+// Items ordered as single units (EA/MARKET price), not by the full case.
+// The Sysco Nick List shows MARKET pricing for these — scraper must look for
+// EA/MKT price suffix, NOT the CS case price, or it grabs the wrong number.
+const SYSCO_EA_ITEMS = new Set([
+  "7350788", // Green Onions Iceless — buy single 2lb EA; Nick List shows $X.XX MKT/EA not CS
+]);
+
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
 let SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED };
 
@@ -1263,7 +1270,7 @@ async function scrapeSysco() {
     });
     await new Promise(r => setTimeout(r, 2000));
 
-    const allDiscovered = await page.evaluate(() => {
+    const allDiscovered = await page.evaluate((eaIds) => {
       const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
       let rows = [];
       for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
@@ -1271,15 +1278,19 @@ async function scrapeSysco() {
       rows.forEach(row => {
         const text = row.innerText || "";
         const upcM = text.match(/\b(\d{7})\b/);
-        const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+        const upc  = upcM?.[1];
+        const isEa = upc && eaIds.includes(upc);
+        // EA/MKT items: prefer market/each price over case price
+        const eaM  = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+        const csM  = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
         const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
-        const m = csM || anyM;
+        const m = isEa ? (eaM || anyM) : (csM || anyM);
         const nameEl = row.querySelector("[class*='item-details-col'], [class*='product-name'], [class*='item-name']");
         const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
-        if (upcM && m && name) found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0] });
+        if (upcM && m && name) found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0], isEa });
       });
       return found;
-    });
+    }, [...SYSCO_EA_ITEMS]);
 
     const knownIds = new Set(SYSCO_ITEMS.map(i => i.id));
     let newItemsFound = 0;
@@ -1305,7 +1316,8 @@ async function scrapeSysco() {
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
         await new Promise(r => setTimeout(r, 1200));
-        const results = await page.evaluate((upc) => {
+        const isEaItem = SYSCO_EA_ITEMS.has(item.id);
+        const results = await page.evaluate((upc, isEa) => {
           const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
           let rows = [];
           for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
@@ -1313,9 +1325,11 @@ async function scrapeSysco() {
           rows.forEach(row => {
             const text = row.innerText || "";
             const hasUpc = text.includes(upc);
-            const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+            // EA/MKT items: prefer market/each price — do NOT grab CS case price
+            const eaM  = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+            const csM  = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
             const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
-            const m = csM || anyM;
+            const m = isEa ? (eaM || anyM) : (csM || anyM);
             if (m) results.push({ name: text.split("\n")[0].trim(), price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc });
           });
           if (results.length === 0) {
@@ -1323,17 +1337,19 @@ async function scrapeSysco() {
             if (bodyText.includes(upc)) {
               const idx = bodyText.indexOf(upc);
               const nearby = bodyText.slice(Math.max(0, idx - 300), idx + 300);
-              const csM = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+              const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+              const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
               const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
-              const m = csM || anyM;
+              const m = isEa ? (eaM || anyM) : (csM || anyM);
               if (m) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc: true });
             }
           }
           return results;
-        }, item.id);
+        }, item.id, isEaItem);
         const exact = results.find(r => r.hasUpc), best = exact || results[0];
         if (best) {
-          log("Sysco: " + item.name + " → $" + best.price + " (search fallback)");
+          const priceType = isEaItem ? " [EA/MKT price]" : "";
+          log("Sysco: " + item.name + " → $" + best.price + priceType + " (search fallback)");
           allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
         } else {
           const diagInfo = await page.evaluate(() => {
