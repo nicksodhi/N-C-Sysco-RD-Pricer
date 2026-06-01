@@ -156,8 +156,10 @@ async function restoreFromGitHub() {
   const token = process.env.GITHUB_TOKEN;
   const repo  = process.env.GITHUB_REPO;
   if (!token || !repo) return;
-  const hasLocal = Object.keys(priceStore.rd).length > 0;
-  if (hasLocal) { log("Restore: local prices exist, skipping GitHub restore"); return; }
+  // Require >50 RD prices before treating as "local" — prevents the startup price seed
+  // (which saves 1 item) from blocking the GitHub restore and losing lastUpdated
+  const hasLocal = Object.keys(priceStore.rd).length > 50;
+  if (hasLocal) { log("Restore: local prices exist (" + Object.keys(priceStore.rd).length + " items), skipping GitHub restore"); return; }
   try {
     log("Restore: no local prices, fetching from GitHub backup...");
     const apiBase = "https://api.github.com/repos/" + repo + "/contents/backup/prices.json";
@@ -330,7 +332,9 @@ function cleanBadPrices() {
       console.log("🌱 Price seed applied: RD[" + id + "] = $" + seed.price + " (" + seed.note + ")");
     }
   });
-  if (seeded > 0) savePrices();
+  // Only save if we have a valid lastUpdated — prevents writing null timestamp
+  // which would make every restart think prices are 999h old
+  if (seeded > 0 && priceStore.lastUpdated) savePrices();
 }
 
 const log = (msg) => {
@@ -1624,6 +1628,15 @@ Return [] if nothing should be added.`;
 }
 
 async function runScrape(source = "all") {
+  // Concurrency guard — never run two scrapes at once (two Puppeteers = OOM crash)
+  if (priceStore.scraping) { log("\u23ED\uFE0F  Scrape skipped \u2014 already running"); return; }
+  // Cooldown guard — minimum 30 min between manual scrapes (prevents Sync button spam)
+  // "forced" bypasses cooldown: used by 6am cron and startup staleness check
+  if (source !== "forced") {
+    const lastUp = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
+    const minSince = lastUp ? (Date.now() - lastUp.getTime()) / 60000 : 999;
+    if (minSince < 30) { log("\u23ED\uFE0F  Scrape skipped \u2014 prices only " + Math.round(minSince) + " min old"); return; }
+  }
   priceStore.scraping = true;
   try {
   if (source === "rd" || source === "all") {
@@ -2099,6 +2112,15 @@ app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceS
 app.get("/api/status", (req, res) => res.json({ status: "running", lastUpdated: priceStore.lastUpdated, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length, log: priceStore.log.slice(0, 200) }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
+  // Cooldown: block re-trigger if a scrape finished < 30 min ago (prevents double-scrapes)
+  const lastUpdate = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
+  const minSince = lastUpdate ? (Date.now() - lastUpdate.getTime()) / 60000 : 999;
+  if (priceStore.scraping) {
+    return res.json({ message: "Scrape already in progress", skipped: true });
+  }
+  if (minSince < 30) {
+    return res.json({ message: "Prices are fresh (" + Math.round(minSince) + " min ago) — skipping", skipped: true, minSince: Math.round(minSince) });
+  }
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Trigger: " + e.message));
 });
@@ -2441,7 +2463,7 @@ Return ONLY this JSON — no markdown fences, no preamble, no explanation:
 });
 // ── Cron + startup ────────────────────────────────────────────────────────────
 // Daily 6am Las Vegas = 1pm UTC
-cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape"); runScrape("all").catch(console.error); });
+cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape"); runScrape("forced").catch(console.error); });
 
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../build/index.html")));
 
@@ -2452,15 +2474,16 @@ app.listen(PORT, () => {
     .catch(e => log("Restore error: " + e.message))
     .then(() => restoreCacheFromGitHub().catch(e => log("Cache restore error: " + e.message)))
     .finally(() => {
-      // Only scrape on startup if prices are stale (>12h since last update).
-      // Prevents re-scraping on every code deploy / container restart.
+      // Startup scrape safety net: only fires if server missed a FULL day of scrapes.
+      // 23h threshold prevents false triggers on midnight deploys (daily cron is 6am PDT
+      // = 1pm UTC, so last scrape is always ~0-23h ago under normal operation).
       const lastUpdate = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
       const hoursSince = lastUpdate ? (Date.now() - lastUpdate.getTime()) / 3600000 : 999;
-      if (hoursSince > 12) {
-        log("\u23F0 Startup scrape triggered \u2014 last update " + Math.round(hoursSince) + "h ago");
-        setTimeout(() => runScrape("all").catch(console.error), 5000);
+      if (hoursSince > 23) {
+        log("\u23F0 Startup scrape triggered \u2014 last update " + Math.round(hoursSince) + "h ago (missed daily window)");
+        setTimeout(() => runScrape("forced").catch(console.error), 5000);
       } else {
-        log("\u23ED\uFE0F  Skipping startup scrape \u2014 prices fresh (" + Math.round(hoursSince * 60) + " min ago)");
+        log("\u23ED\uFE0F  Skipping startup scrape \u2014 prices " + Math.round(hoursSince) + "h old");
       }
     });
 });
