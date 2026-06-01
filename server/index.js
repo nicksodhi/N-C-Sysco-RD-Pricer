@@ -304,9 +304,9 @@ const CACHE_SEED = {
     "Royal Chef's Secret - Extra Long Grain Basmati Rice - 40 lbs": "490266",
     "Chef's Quality - Liquid Butter Alternative - gallon": "1020152",
     "Evian - Natural Spring Water, 24 Ct, 500 mL": "21039",
-    // Canola Salad Oil on RD order guide — redirect to Soybean Oil (we only buy soybean)
-    "Chef's Quality - 100% Canola Salad Oil - 35 lbs": "1020075",
-    "Chef's Quality - 100% Canola Salad Oil": "1020075",
+    // Canola Salad Oil on RD order guide — NOT tracked (we buy soybean only)
+    // DO NOT redirect to 1020075: canola price ($38.92) ≠ soybean price ($39.34)
+    // Letting auto-discover queue it is fine — user rejects it on review
     "Peeled Garlic": "44146",
     "Taylor Farms - Bagged Cilantro": "42566",
     "Jumbo Spanish Onions - 50 lbs": "42545",
@@ -1106,6 +1106,8 @@ async function scrapeRD() {
       }
     }
 
+    // Items that need targeted scan — normal extraction fails (adjacent items share bins,
+    // price gets attributed to wrong neighbour, or name/price are too far apart on page).
     const singleUnitNames = {
       "42647":  ["Herb - Mint", "Mint - 1 lb", "Herb - Mint-"],
       "55519":  ["Orchid Flowers", "Micro Orchid"],
@@ -1114,6 +1116,10 @@ async function scrapeRD() {
       "77670":  ["Chicken Leg Quarters", "Leg Quarters"],
       "1810019":["Bone in Goat", "Goat Cube"],
       "79042":  ["Boneless Lamb Leg", "Halal Boneless Lamb"],
+      // Bin 5101 — Green Onions & Cleaned Spinach share same bin; normal algo cross-attributes
+      "40138":  ["Green Onions, Rootless", "Green Onions Rootless", "Rootless & Iceless", "Green Onions"],
+      // Bin 426 — Soybean Oil is adjacent to Canola Oil (bin 424); price bleeds across
+      "1020075":["Soybean Salad Oil", "Chef\'s Quality - Soybean Salad"],
     };
     for (const [itemId, nameVariants] of Object.entries(singleUnitNames)) {
       const alreadyFound = items.find(i => {
