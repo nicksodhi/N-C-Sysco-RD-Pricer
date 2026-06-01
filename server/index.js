@@ -26,6 +26,7 @@ const RD_PRICE_MAX = {
   "77200":  200,  // Chicken Wings 40lb (~$60-150)
   "79042":  500,  // Lamb Leg (~$150-400)
   "1810019": 200, // Goat Bone-in 15lb (~$50-150)
+  "86525":  12,   // Frozen Peas single 2.5lb bag — ~$4-8; $38.20 was wrong adjacent-item bleed
 };
 
 // Minimum acceptable RD case price — rejects per-lb prices stored without ×weight multiplication
@@ -54,13 +55,15 @@ const SYSCO_PRICE_MIN = {
   // Peeled Garlic — large case, min prevents single-bag price
   "1821537": 15,  // Peeled Garlic 20lb
   "44146":   15,  // same under RD ID
-  // NOTE: Serrano Peppers 7007376/44137 removed — $2.98 CS for 1-pack 40LB IS the real case price (confirmed from Sysco product page)
+  // NOTE: Serrano Peppers 7007376/44137 removed — $2.98 CS for 1-pack 40LB IS the real case price
 };
 
 // Maximum acceptable Sysco case price — rejects wrong search results (different product found)
 const SYSCO_PRICE_MAX = {
-  "2037125": 15,  // Mint 1lb — $6.10 confirmed; anything >$15 is wrong product
-  "42647":   15,  // same under RD ID
+  "2037125": 15,   // Mint 1lb — $6.10 confirmed; >$15 is wrong product
+  "42647":   15,   // same under RD ID
+  "1053826": 55,   // Frozen Peas 12/2.5LB — $35.92 confirmed; $63.95 was wrong (old 6409940 bleed)
+  "86525":   55,   // same item stored under RD ID
 };
 
 
@@ -86,9 +89,7 @@ function savePrices() {
   } catch(e) { console.log("Could not save prices:", e.message); }
 }
 
-// ── GitHub backup — commits prices.json to repo after every scrape ────────────
-// Requires GITHUB_TOKEN and GITHUB_REPO env vars in Railway
-// GITHUB_REPO format: "username/repo-name"
+// ── GitHub backup ─────────────────────────────────────────────────────────────
 async function githubCommit(token, repo, filePath, content, message) {
   const apiBase = "https://api.github.com/repos/" + repo + "/contents/" + filePath;
   const headers = {
@@ -96,13 +97,11 @@ async function githubCommit(token, repo, filePath, content, message) {
     "Content-Type": "application/json",
     "User-Agent": "naan-curry-price-tracker",
   };
-  // Always fetch latest SHA right before committing to avoid conflicts
   let sha = null;
   try {
     const get = await fetch(apiBase, { headers });
     if (get.ok) { const j = await get.json(); sha = j.sha; }
   } catch {}
-
   const body = { message, content, ...(sha ? { sha } : {}) };
   const put = await fetch(apiBase, { method: "PUT", headers, body: JSON.stringify(body) });
   if (put.ok) return true;
@@ -114,42 +113,28 @@ async function backupToGitHub() {
   const token = process.env.GITHUB_TOKEN;
   const repo  = process.env.GITHUB_REPO;
   if (!token || !repo) { log("GitHub backup: skipped (no GITHUB_TOKEN or GITHUB_REPO)"); return; }
-
   try {
     const data = {
-      rd: priceStore.rd,
-      sysco: priceStore.sysco,
-      lastUpdated: priceStore.lastUpdated,
-      oos: priceStore.oos || { rd: [], sysco: [] },
-      matchCache: matchCache,
-      crossVendor: SYSCO_TO_RD,
+      rd: priceStore.rd, sysco: priceStore.sysco,
+      lastUpdated: priceStore.lastUpdated, oos: priceStore.oos || { rd: [], sysco: [] },
+      matchCache, crossVendor: SYSCO_TO_RD,
     };
-
     const encoded = Buffer.from(JSON.stringify(data, null, 2)).toString("base64");
     const date = new Date().toISOString().slice(0, 10);
-
-    // Commit prices first, then history sequentially (avoids SHA conflicts)
     await githubCommit(token, repo, "backup/prices.json", encoded, "Price backup " + date);
     log("✅ GitHub backup: prices.json committed to " + repo);
-
-    // Now history
     const hEncoded = Buffer.from(JSON.stringify(priceHistory)).toString("base64");
     await githubCommit(token, repo, "backup/history.json", hEncoded, "History backup " + date);
     log("✅ GitHub backup: history.json committed");
-
   } catch(e) { log("❌ GitHub backup error: " + e.message); }
 }
 
-// ── Restore from GitHub backup on startup (if local files missing) ────────────
 async function restoreFromGitHub() {
   const token = process.env.GITHUB_TOKEN;
   const repo  = process.env.GITHUB_REPO;
   if (!token || !repo) return;
-
-  // Only restore if local prices are empty (fresh deploy)
   const hasLocal = Object.keys(priceStore.rd).length > 0;
   if (hasLocal) { log("Restore: local prices exist, skipping GitHub restore"); return; }
-
   try {
     log("Restore: no local prices, fetching from GitHub backup...");
     const apiBase = "https://api.github.com/repos/" + repo + "/contents/backup/prices.json";
@@ -159,9 +144,7 @@ async function restoreFromGitHub() {
     if (!r.ok) { log("Restore: no backup found on GitHub (" + r.status + ")"); return; }
     const j = await r.json();
     const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
-
     if (data.rd) {
-      // Mark all restored prices as "low" confidence until re-scraped
       priceStore.rd = Object.fromEntries(Object.entries(data.rd).map(([id, entry]) => [
         id, { ...entry, confidence: entry.confidence === "high" ? "medium" : "low", source: entry.source || "restored" }
       ]));
@@ -176,53 +159,39 @@ async function restoreFromGitHub() {
     if (data.matchCache) { matchCache = data.matchCache; }
     if (data.crossVendor) {
       Object.assign(SYSCO_TO_RD, data.crossVendor);
-      Object.assign(SYSCO_TO_RD, SYSCO_TO_RD_LOCK); // LOCK always wins over backup
+      Object.assign(SYSCO_TO_RD, SYSCO_TO_RD_LOCK);
     }
-
-    // Clean bad prices BEFORE saving (don't persist known-wrong prices)
     cleanBadPrices();
-    savePrices();
-    saveCache();
-    saveCrossVendor();
+    savePrices(); saveCache(); saveCrossVendor();
     log("✅ Restore: " + Object.keys(priceStore.rd).length + " RD + " + Object.keys(priceStore.sysco).length + " Sysco prices restored from GitHub");
-
-    // Restore history — MERGE with local history, don't overwrite
-    // This preserves any local entries that didn't make it to GitHub backup
     try {
       const hBase = "https://api.github.com/repos/" + repo + "/contents/backup/history.json";
       const hR = await fetch(hBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
       if (hR.ok) {
         const hJ = await hR.json();
         const githubHistory = JSON.parse(Buffer.from(hJ.content, "base64").toString("utf8"));
-        // Merge: for each item, combine local + GitHub entries, dedup by date, keep all unique dates
         Object.entries(githubHistory).forEach(([id, entries]) => {
           if (!priceHistory[id]) {
             priceHistory[id] = entries;
           } else {
-            // Merge entries — keep all dates from both, prefer local if same date
             const localDates = new Set(priceHistory[id].map(e => e.date));
             const toAdd = entries.filter(e => !localDates.has(e.date));
             priceHistory[id] = [...priceHistory[id], ...toAdd]
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .slice(-90); // keep max 90 days
+              .sort((a, b) => a.date.localeCompare(b.date)).slice(-90);
           }
         });
         saveHistory();
         log("✅ Restore: history merged for " + Object.keys(priceHistory).length + " items");
       }
     } catch(e) { log("History restore error: " + e.message); }
-
-    // Record TODAY's prices AFTER history is loaded — merges today on top correctly
     recordHistory();
-
-    // Also restore item knowledge base from GitHub
     try {
       const kbBase = "https://api.github.com/repos/" + repo + "/contents/backup/item_knowledge.json";
       const kbR = await fetch(kbBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
       if (kbR.ok) {
         const kbJ = await kbR.json();
         itemKnowledge = JSON.parse(Buffer.from(kbJ.content, "base64").toString("utf8"));
-        patchItemKnowledge(); // apply verified facts over any stale KB data
+        patchItemKnowledge();
         saveItemKnowledge();
         log("✅ Restore: item knowledge base restored for " + Object.keys(itemKnowledge).length + " items");
       }
@@ -233,10 +202,8 @@ async function restoreFromGitHub() {
 const _loaded = loadPrices();
 let priceStore = { ..._loaded, log: [], oos: _loaded.oos || { rd: [], sysco: [] } };
 
-// Clean up any previously cached bad prices on startup
 function cleanBadPrices() {
   let cleaned = 0;
-
   // Paneer (1440528): Sysco price is per-lb, case = 10lb total. Multiply if stored wrong.
   const paneerEntry = priceStore.sysco["1440528"];
   if (paneerEntry?.price && paneerEntry.price < 20) {
@@ -246,67 +213,50 @@ function cleanBadPrices() {
     priceStore.sysco["7102961"] = { ...paneerEntry, price: corrected };
     savePrices();
   }
-
   Object.entries(priceStore.rd).forEach(([id, entry]) => {
     const max = RD_PRICE_MAX[id];
     if (max && entry.price > max) {
-      delete priceStore.rd[id];
-      cleaned++;
+      delete priceStore.rd[id]; cleaned++;
       console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (max $" + max + ")");
       return;
     }
     const min = RD_PRICE_MIN[id];
     if (min && entry.price < min) {
-      delete priceStore.rd[id];
-      cleaned++;
-      console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-lb stored as case price");
+      delete priceStore.rd[id]; cleaned++;
+      console.log("🧹 Cleaned bad cached price: " + id + " was $" + entry.price + " (min $" + min + ")");
     }
   });
-
-  // Clean bad Sysco prices — reject per-unit/per-pack prices stored as case prices
   Object.entries(priceStore.sysco).forEach(([id, entry]) => {
     const min = SYSCO_PRICE_MIN[id];
     if (min && entry.price < min) {
-      delete priceStore.sysco[id];
-      cleaned++;
-      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (min $" + min + ") — likely per-pack not case price");
+      delete priceStore.sysco[id]; cleaned++;
+      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (min $" + min + ")");
       return;
     }
     const max = SYSCO_PRICE_MAX[id];
     if (max && entry.price > max) {
-      delete priceStore.sysco[id];
-      cleaned++;
-      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (max $" + max + ") — likely wrong product from search");
+      delete priceStore.sysco[id]; cleaned++;
+      console.log("🧹 Cleaned bad Sysco cached price: " + id + " was $" + entry.price + " (max $" + max + ")");
     }
   });
-
-  // Clean single-unit RD items where a case price was accidentally stored
   Object.entries(priceStore.rd).forEach(([id, entry]) => {
     if (RD_SINGLE_UNIT.has(id) && !RD_PRICE_MAX[id] && entry.price > 25) {
-      delete priceStore.rd[id];
-      cleaned++;
-      console.log("🧹 Cleaned bad single-unit cached price: " + id + " was $" + entry.price + " (single-unit items must be ≤$25)");
+      delete priceStore.rd[id]; cleaned++;
+      console.log("🧹 Cleaned bad single-unit cached price: " + id + " was $" + entry.price);
     }
   });
-
-  // Clean wrongly cross-mapped prices from Chicken Thighs (8053456)
-  // These end up under produce/grocery RD IDs when the LOCK wasn't applied
-  const CHICKEN_THIGHS_PRICE = 76.30; // known price — update this comment if price changes
+  const CHICKEN_THIGHS_PRICE = 76.30;
   Object.entries(priceStore.sysco).forEach(([id, entry]) => {
     const isChickenId = ["8053456","77232","77658","77670","77682","77200"].includes(id);
     if (!isChickenId && entry.syscoUpc === "8053456") {
-      delete priceStore.sysco[id];
-      cleaned++;
+      delete priceStore.sysco[id]; cleaned++;
       console.log("🧹 Cleaned Chicken Thighs (8053456) wrongly cross-mapped to " + id);
     }
-    // Belt-and-suspenders: $76.30 on non-chicken non-beverage item is clearly wrong
     if (!isChickenId && entry.price === CHICKEN_THIGHS_PRICE && !["21039","440038","440039","440040","50103"].includes(id)) {
-      delete priceStore.sysco[id];
-      cleaned++;
+      delete priceStore.sysco[id]; cleaned++;
       console.log("🧹 Cleaned $76.30 Chicken Thighs contamination from Sysco[" + id + "]");
     }
   });
-
   if (cleaned > 0) savePrices();
 }
 
@@ -316,11 +266,10 @@ const log = (msg) => {
   if (priceStore.log.length > 500) priceStore.log.pop();
 };
 
-// ── Match cache — persists learned name→ID mappings forever ──────────────────
+// ── Match cache ───────────────────────────────────────────────────────────────
 const CACHE_FILE = "/data/nc_match_cache.json";
-let matchCache = { rd: {}, sysco: {} }; // { "scraped name": "item_id" }
+let matchCache = { rd: {}, sysco: {} };
 
-// Seed cache — known scraped-name → item-id mappings, never lost on restart
 const CACHE_SEED = {
   rd: {
     "Fresh Boneless Skinless Chicken Leg Meat": "77658",
@@ -351,8 +300,6 @@ const CACHE_SEED = {
     "Jumbo Red Onions - 25 lbs": "42658",
     "Russet Potato - 50 lb": "42725",
     "Carrots - 10 lb": "79152",
-    "Jumbo Chicken Party Wings 6-8 ct": "77200",
-    "Boneless Skinless Chicken Breasts": "77232",
     "Boneless, Skinless Chicken Breasts, Tenders Out, Dry": "77232",
     "White Cauliflower - 1 ct": "42606",
     "White Cauliflower": "42606",
@@ -407,7 +354,7 @@ const CACHE_SEED = {
     "Water Spring In Plastic Bottle": "2886075",
     "Shrimp White Peeled And Deveined 16/20": "5106388",
     "Coloring Food Egg Shade Yellow": "4112262",
-    "Oil Salad Canola Zero Trans Fat": "4119079", // redirect canola to soybean — not buying canola anymore
+    "Oil Salad Canola Zero Trans Fat": "4119079",
     "Corn Starch Food Grade": "4073441",
     "Powder Baking Double Acting": "5517701",
     "Broccoli Floret Poly Packaging Grade A": "6988158",
@@ -431,7 +378,6 @@ const CACHE_SEED = {
     "Paneer": "7102961",
     "Cilantro Cleaned, Washed & Fresh Herb": "2219095",
     "Cilantro Washed Fresh Herb": "2219095",
-    "Cilantro Fresh": "7078475",
     "Cilantro Bunch Iceless": "7078475",
     "Sauce Tomato California": "4978884",
     "Tomato Sauce California": "4978884",
@@ -441,29 +387,21 @@ const CACHE_SEED = {
   }
 };
 
-// ── Scraper health monitoring ────────────────────────────────────────────────
-// Tracks expected item counts per vendor. If a scrape returns significantly fewer,
-// Claude flags it as partial and keeps yesterday's prices.
 const scraperHealth = {
-  rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 }, // warn if <80% of expected
+  rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 },
   sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 },
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
   const health = scraperHealth[vendor];
   const threshold = Math.floor(health.expectedItems * health.minThreshold);
-
   if (matchedCount >= threshold) {
-    // Healthy scrape
     health.lastGoodCount = matchedCount;
-    if (matchedCount > health.expectedItems) health.expectedItems = matchedCount; // auto-adjust upward
+    if (matchedCount > health.expectedItems) health.expectedItems = matchedCount;
     log("✅ Scraper health [" + vendor + "]: " + matchedCount + "/" + health.expectedItems + " items — healthy");
     return { healthy: true, matchedCount };
   }
-
-  // Partial scrape detected — ask Claude what to do
   log("⚠️ Scraper health [" + vendor + "]: only " + matchedCount + "/" + health.expectedItems + " items scraped (threshold: " + threshold + ")");
-
   const prompt = `A web scraper returned fewer items than expected for a restaurant price tracker.
 
 Vendor: ${vendor === "rd" ? "Restaurant Depot" : "Sysco"}
@@ -479,7 +417,6 @@ This could mean:
 Should we: (a) keep yesterday's prices for missing items and mark them as stale, or (b) accept partial data?
 
 Return ONLY JSON: {"action":"keep_yesterday|accept_partial","reason":"brief explanation","severity":"low|medium|high"}`;
-
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -490,7 +427,6 @@ Return ONLY JSON: {"action":"keep_yesterday|accept_partial","reason":"brief expl
     const txt = data.content?.find(b => b.type === "text")?.text || "{}";
     const m = txt.match(/\{[\s\S]*\}/);
     const decision = m ? JSON.parse(m[0]) : { action: "keep_yesterday", reason: "parse error", severity: "medium" };
-
     log("🤖 Scraper health decision [" + vendor + "]: " + decision.action + " — " + decision.reason + " (severity: " + decision.severity + ")");
     return { healthy: false, action: decision.action, reason: decision.reason, severity: decision.severity, matchedCount };
   } catch(e) {
@@ -503,10 +439,9 @@ function loadCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
-      // Merge: learned cache first, then SEED always wins (seed is ground truth)
       matchCache = {
-        rd:    { ...(saved.rd    || {}), ...CACHE_SEED.rd    }, // seed overrides learned
-        sysco: { ...(saved.sysco || {}), ...CACHE_SEED.sysco }, // seed overrides learned
+        rd:    { ...(saved.rd    || {}), ...CACHE_SEED.rd    },
+        sysco: { ...(saved.sysco || {}), ...CACHE_SEED.sysco },
       };
     } else {
       matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
@@ -518,11 +453,9 @@ function loadCache() {
     console.log("Cache load error:", e.message);
     matchCache = { rd: { ...CACHE_SEED.rd }, sysco: { ...CACHE_SEED.sysco } };
   }
-
-  // Force-correct any known bad cache entries that may have been learned incorrectly
   const CACHE_CORRECTIONS = {
     rd: {
-      "Herb - Mint- 1 lb":  "42647",  // was wrongly mapped to 42504 (Cucumbers)
+      "Herb - Mint- 1 lb":  "42647",
       "Herb - Mint - 1 lb": "42647",
       "Herb - Mint-1 lb":   "42647",
     }
@@ -554,7 +487,7 @@ function learnMatch(source, scrapedName, itemId) {
 
 loadCache();
 
-// ── RD Items: exact Item IDs from order guide PDF ─────────────────────────────
+// ── RD Items ──────────────────────────────────────────────────────────────────
 const RD_ITEMS = [
   { id: "860135",  name: "Isabella - Petite Diced Tomatoes -#10 cans" },
   { id: "860043",  name: "Chef's Quality - Tomato Puree - 6 lb Can" },
@@ -582,10 +515,10 @@ const RD_ITEMS = [
   { id: "440039",  name: "Diet Coke Bottles 16.9 fl oz 24 Pack" },
   { id: "440040",  name: "Sprite Bottles 16.9 fl oz 4 Pack" },
   { id: "440038",  name: "Coca-Cola Bottles 16.9 fl oz 24 Pack" },
-  { id: "40138",   name: "Green Onions, Rootless & Iceless - 4 lbs" },    // single bunch
-  { id: "42706",   name: "Green Bell Pepper - 5 lb bag" },                 // OOS when added
-  { id: "2010066", name: "Chef's Quality - Tomato Ketchup Jug - #10" },    // case of 6 × 114oz
-  { id: "50103",   name: "Sunset 7313 - POS Thermal Printer Rolls - 10 pk" }, // case of 3 trays
+  { id: "40138",   name: "Green Onions, Rootless & Iceless - 4 lbs" },
+  { id: "42706",   name: "Green Bell Pepper - 5 lb bag" },
+  { id: "2010066", name: "Chef's Quality - Tomato Ketchup Jug - #10" },
+  { id: "50103",   name: "Sunset 7313 - POS Thermal Printer Rolls - 10 pk" },
   { id: "55523",   name: "Chef's Quality - Lemon Juice - gallon" },
   { id: "1440528", name: "Royal Mahout - Paneer Loaf - 5 lbs" },
   { id: "1440203", name: "James Farm - Fancy Shredded Cheddar Jack Cheese - 5 lbs" },
@@ -622,129 +555,120 @@ const RD_ITEMS = [
   { id: "21039",   name: "Evian - Natural Spring Water 24 Ct" },
 ];
 
-
-
-// ── Sysco Nick List: exact Sysco UPCs from Nick List PDF ─────────────────────
-// Prices from Sysco PDF: CS = case price
+// ── Sysco Nick List ────────────────────────────────────────────────────────────
 const SYSCO_ITEMS = [
-  { id: "1094721", name: "Onion Yellow Jumbo Bag",                        pack: "1/50 LB" },
-  { id: "4418117", name: "Chicken Legs Quarters Jumbo Controlled Vacuum",    pack: "1/40 LB"  }, // replaces 1803287 Small Halal — $29.59 confirmed
-  { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",        pack: "4 x 10 LB" },
-  { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",   pack: "1/25LB"  },
-  { id: "4002325", name: "Tomato Puree 1.06 Fancy California",            pack: "6/#10"   },
-  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life Stabilized", pack: "12/32 OZ" },
-  { id: "4676306", name: "Milk Whole Gallon",                             pack: "4/1 GAL" },
-  { id: "4119079", name: "Oil Soybean Vegetable Pure",                    pack: "1/35LB"  },
-  { id: "5087572", name: "Sugar Granulated Extra Fine Cane",              pack: "1/25LB"  },
-  { id: "4518403", name: "Shortening Fry Liquid Clear Zero Trans Fat",    pack: "1/35LB"  },
-  { id: "3355757", name: "Butter-it Alternative Liquid Zero Trans Fat",   pack: "3/1 GAL" },
-  { id: "4063095", name: "Juice Lemon Pasteurized Ultra Premium",         pack: "6/.5 GAL"},
-  { id: "1543164", name: "Potato Baking Russet 40 Count Fresh",          pack: "1/50LB"  },
-  { id: "5231238", name: "Chicken Breast Boneless Skinless",              pack: "2/10 LB" },
-  { id: "6914451", name: "Pan Coating Butter It",                          pack: "6/14 OZ"  },
-  { id: "2822379", name: "Cheese Cheddar Jack Fancy Shredded",                    pack: "4/5 LB"   },
-  { id: "4564894", name: "Salt Granulated Plain",                              pack: "1/50 LB"  },
-  { id: "2219095", name: "Cilantro Cleaned, Washed & Fresh Herb",          pack: "4/1 LB"   }, // confirmed SKU from order May 31 2026
-  { id: "6344790", name: "Chicken Wings 1st And 2nd Joints Jumbo",          pack: "4/10 LB"  },
-  { id: "1094663", name: "Onion Red Jumbo Bag",                             pack: "1/25LB"   },
-  { id: "1821537", name: "Garlic Peeled Fresh",                             pack: "4/5LB"    },
-  { id: "1184902", name: "Ginger Root Fresh",                               pack: "1/30 LB"  },
-  { id: "1243724", name: "Cauliflower Cello Wrapped Fresh",                 pack: "12/1EA"   },
-  { id: "0496671", name: "Tilapia Fillet Boneless Skinless Iqf",            pack: "2/5LB"    },
-  { id: "1053826", name: "Pea Green Packaged",                                        pack: "12/2.5LB" }, // replaces 6409940 — confirmed from Nick List
-  { id: "1425982", name: "Milk Coconut Unsweetened",                        pack: "24/13.5OZ"},
-  { id: "2638660", name: "Paste Chili Ground Sambal Oelek",                 pack: "3/136 OZ" },
-  { id: "4113049", name: "Vinegar White Distilled 50 Grain",                pack: "4/1 GAL"  },
-  { id: "2886075", name: "Water Spring In Plastic Bottle",                  pack: "24/500ML" },
-  { id: "5106388", name: "Shrimp White Peeled And Deveined 16/20", pack: "4/2.5 LB" },
-  { id: "4112262", name: "Coloring Food Egg Shade Yellow", pack: "4/1 GAL" },
-  { id: "4073441", name: "Corn Starch Food Grade", pack: "24/1 LB" },
-  { id: "5517701", name: "Powder Baking Double Acting", pack: "6/5 LB" },
-  { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A", pack: "12/2 LB" },
-  { id: "2523833", name: "Spinach Chopped Bag", pack: "12/3LB" },
-  { id: "7102961", name: "Demand Cheese Paneer", pack: "2/5 LB" },
-  { id: "8474538", name: "Spinach Baby Fresh", pack: "1 x 4 LB" },
-  { id: "3879962", name: "Carrots Loose Fresh", pack: "1/10 LB" },
-  { id: "2252013", name: "Lemon Choice Fresh", pack: "1/115 CT" },
-  { id: "7410640", name: "Cucumber Select Fresh", pack: "1/5 LB" },
-  { id: "7007376", name: "Pepper Serrano Util", pack: "1/40 LB" },
-  { id: "2037125", name: "Mint Fresh Herb", pack: "1/1 LB" },
-  { id: "3960200", name: "Vegetable Mix 4-way", pack: "1/30 LB" },
-  { id: "4014684", name: "Flour Wheat Whole Stone Ground", pack: "1/50LB" },
-  { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite", pack: "6/#10" },
-  { id: "4014973", name: "Bean Kidney Dark Red", pack: "6/#10" },
-  { id: "4978884", name: "Sauce Tomato California",                               pack: "6/#10"   }, // Tomato Sauce — $26.88 confirmed
-  { id: "7350788", name: "Onion Green Iceless",                              pack: "4/2 LB"    }, // buy EA ($6.85/2lb), not full case
-  { id: "1910231", name: "Pepper Green Bell Choice Fresh",                   pack: "1/22-25#"  }, // 22-25lb case
-  { id: "9903790", name: "Ketchup Jug Red In Plastic Bottle With Pump",     pack: "6/114 OZ"  }, // case of 6, $43.95
+  { id: "1094721", name: "Onion Yellow Jumbo Bag",                           pack: "1/50 LB"   },
+  { id: "4418117", name: "Chicken Legs Quarters Jumbo Controlled Vacuum",    pack: "1/40 LB"   },
+  { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",           pack: "4 x 10 LB" },
+  { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",      pack: "1/25LB"    },
+  { id: "4002325", name: "Tomato Puree 1.06 Fancy California",               pack: "6/#10"     },
+  { id: "6935464", name: "Cream Heavy 40% Extended Shelf Life Stabilized",  pack: "12/32 OZ"  },
+  { id: "4676306", name: "Milk Whole Gallon",                                pack: "4/1 GAL"   },
+  { id: "4119079", name: "Oil Soybean Vegetable Pure",                       pack: "1/35LB"    },
+  { id: "5087572", name: "Sugar Granulated Extra Fine Cane",                 pack: "1/25LB"    },
+  { id: "4518403", name: "Shortening Fry Liquid Clear Zero Trans Fat",       pack: "1/35LB"    },
+  { id: "3355757", name: "Butter-it Alternative Liquid Zero Trans Fat",      pack: "3/1 GAL"   },
+  { id: "4063095", name: "Juice Lemon Pasteurized Ultra Premium",            pack: "6/.5 GAL"  },
+  { id: "1543164", name: "Potato Baking Russet 40 Count Fresh",             pack: "1/50LB"    },
+  { id: "5231238", name: "Chicken Breast Boneless Skinless",                 pack: "4/10 LB"   },
+  { id: "6914451", name: "Pan Coating Butter It",                            pack: "6/14 OZ"   },
+  { id: "2822379", name: "Cheese Cheddar Jack Fancy Shredded",               pack: "4/5 LB"    },
+  { id: "4564894", name: "Salt Granulated Plain",                            pack: "1/50 LB"   },
+  { id: "2219095", name: "Cilantro Cleaned, Washed & Fresh Herb",           pack: "4/1 LB"    },
+  { id: "6344790", name: "Chicken Wings 1st And 2nd Joints Jumbo",          pack: "4/10 LB"   },
+  { id: "1094663", name: "Onion Red Jumbo Bag",                              pack: "1/25LB"    },
+  { id: "1821537", name: "Garlic Peeled Fresh",                              pack: "4/5LB"     },
+  { id: "1184902", name: "Ginger Root Fresh",                                pack: "1/30 LB"   },
+  { id: "1243724", name: "Cauliflower Cello Wrapped Fresh",                  pack: "12/1EA"    },
+  { id: "0496671", name: "Tilapia Fillet Boneless Skinless Iqf",            pack: "2/5LB"     },
+  { id: "1053826", name: "Pea Green Packaged",                               pack: "12/2.5LB"  },
+  { id: "1425982", name: "Milk Coconut Unsweetened",                         pack: "24/13.5OZ" },
+  { id: "2638660", name: "Paste Chili Ground Sambal Oelek",                  pack: "3/136 OZ"  },
+  { id: "4113049", name: "Vinegar White Distilled 50 Grain",                 pack: "4/1 GAL"   },
+  { id: "2886075", name: "Water Spring In Plastic Bottle",                   pack: "24/500ML"  },
+  { id: "5106388", name: "Shrimp White Peeled And Deveined 16/20",          pack: "4/2.5 LB"  },
+  { id: "4112262", name: "Coloring Food Egg Shade Yellow",                   pack: "4/1 GAL"   },
+  { id: "4073441", name: "Corn Starch Food Grade",                           pack: "24/1 LB"   },
+  { id: "5517701", name: "Powder Baking Double Acting",                      pack: "6/5 LB"    },
+  { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A",           pack: "12/2 LB"   },
+  { id: "2523833", name: "Spinach Chopped Bag",                              pack: "12/3LB"    },
+  { id: "7102961", name: "Demand Cheese Paneer",                             pack: "2/5 LB"    },
+  { id: "8474538", name: "Spinach Baby Fresh",                               pack: "1 x 4 LB"  },
+  { id: "3879962", name: "Carrots Loose Fresh",                              pack: "1/10 LB"   },
+  { id: "2252013", name: "Lemon Choice Fresh",                               pack: "1/115 CT"  },
+  { id: "7410640", name: "Cucumber Select Fresh",                            pack: "1/5 LB"    },
+  { id: "7007376", name: "Pepper Serrano Util",                              pack: "1/40 LB"   },
+  { id: "2037125", name: "Mint Fresh Herb",                                  pack: "1/1 LB"    },
+  { id: "3960200", name: "Vegetable Mix 4-way",                              pack: "1/30 LB"   },
+  { id: "4014684", name: "Flour Wheat Whole Stone Ground",                   pack: "1/50LB"    },
+  { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite",                   pack: "6/#10"     },
+  { id: "4014973", name: "Bean Kidney Dark Red",                             pack: "6/#10"     },
+  { id: "4978884", name: "Sauce Tomato California",                          pack: "6/#10"     },
+  { id: "7350788", name: "Onion Green Iceless",                              pack: "4/2 LB"    },
+  { id: "1910231", name: "Pepper Green Bell Choice Fresh",                   pack: "1/22-25#"  },
+  { id: "9903790", name: "Ketchup Jug Red In Plastic Bottle With Pump",     pack: "6/114 OZ"  },
 ];
 
-// ── Cross-vendor map: Sysco UPC → RD Item ID ─────────────────────────────────
-// Seeded with known mappings, then auto-expanded by AI after each scrape
-// Cross-vendor map: Sysco UPC → { rdId, rdMult }
-// Both vendors show FULL CASE prices — rdMult is always 1
-// Sysco $43.87 heavy cream = full 12/32oz case price
-// RD $43.95 heavy cream = full case price
-// Direct comparison is apples-to-apples
+// ── Cross-vendor map ───────────────────────────────────────────────────────────
 const SYSCO_TO_RD_SEED = {
-  "4418117": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Jumbo 1/40LB — $29.59 confirmed (replaces 1803287)
+  "4418117": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Jumbo 1/40LB
   "0868459": { rdId: "77658",   rdMult: 1 }, // Chicken Leg Meat
   "5231238": { rdId: "77232",   rdMult: 1 }, // Chicken Breast
   "6344790": { rdId: "77200",   rdMult: 1 }, // Chicken Wings
-  "8379251": { rdId: "2061212", rdMult: 1 }, // Flour
-  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → Tomato Puree (NOT Tomato Sauce)
+  "8379251": { rdId: "2061212", rdMult: 1 }, // Flour AP
+  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must NOT be 860044
   "4676306": { rdId: "370496",  rdMult: 1 }, // Whole Milk
   "4119079": { rdId: "1020075", rdMult: 1 }, // Soybean Oil
   "5087572": { rdId: "21051",   rdMult: 1 }, // Sugar
-  "4518403": { rdId: "1020077", rdMult: 1 }, // Fry Shortening
-  "3355757": { rdId: "1020152", rdMult: 1 }, // Butter Alternative
+  "4518403": { rdId: "1020077", rdMult: 1 }, // Fryer Oil
+  "3355757": { rdId: "1020152", rdMult: 1 }, // Liquid Butter
   "4063095": { rdId: "55523",   rdMult: 1 }, // Lemon Juice
   "1543164": { rdId: "42725",   rdMult: 1 }, // Russet Potato
   "6914451": { rdId: "12728",   rdMult: 1 }, // Pan Spray
   "4564894": { rdId: "1070496", rdMult: 1 }, // Salt
-  "2219095": { rdId: "42566",   rdMult: 1 }, // Cilantro Cleaned 4/1LB (confirmed active SKU from order)
+  "2219095": { rdId: "42566",   rdMult: 1 }, // Cilantro 4/1LB
   "2822379": { rdId: "1440203", rdMult: 1 }, // Cheddar Jack
   "1821537": { rdId: "44146",   rdMult: 1 }, // Garlic Peeled
   "1094663": { rdId: "42658",   rdMult: 1 }, // Red Onion
   "1184902": { rdId: "42513",   rdMult: 1 }, // Ginger
   "1243724": { rdId: "42606",   rdMult: 1 }, // Cauliflower
   "0496671": { rdId: "51457",   rdMult: 1 }, // Tilapia
-  "1053826": { rdId: "86525",   rdMult: 1 }, // Pea Green Packaged 12/2.5LB (replaces 6409940)
+  "1053826": { rdId: "86525",   rdMult: 1 }, // Frozen Peas 12/2.5LB
   "1425982": { rdId: "2620442", rdMult: 1 }, // Coconut Milk
-  "2638660": { rdId: "13417",   rdMult: 1 }, // Sambal Oelek
+  "2638660": { rdId: "13417",   rdMult: 1 }, // Sambal
   "4113049": { rdId: "45900",   rdMult: 1 }, // White Vinegar
   "2886075": { rdId: "21039",   rdMult: 1 }, // Evian Water
-  "5106388": { rdId: "40212", rdMult: 1 }, // Shrimp White Peeled And Deveined 16/20
-  "4112262": { rdId: "2550012", rdMult: 1 }, // Coloring Food Egg Shade Yellow
-  "4073441": { rdId: "2910159", rdMult: 1 }, // Corn Starch Food Grade
-  "5517701": { rdId: "29268", rdMult: 1 }, // Powder Baking Double Acting
-  "6988158": { rdId: "64120", rdMult: 1 }, // Broccoli Floret Poly Packaging Grade A
-  "2523833": { rdId: "64046", rdMult: 1 }, // Spinach Chopped Bag
-  "7102961": { rdId: "1440528", rdMult: 1 }, // Demand Cheese Paneer
-  "8474538": { rdId: "44211", rdMult: 1 }, // Spinach Baby Fresh
-  "3879962": { rdId: "79152", rdMult: 1 }, // Carrots Loose Fresh
-  "2252013": { rdId: "42570", rdMult: 1 }, // Lemon Choice Fresh
-  "7410640": { rdId: "42504", rdMult: 1 }, // Cucumber Select Fresh
-  "7007376": { rdId: "44137", rdMult: 1 }, // Pepper Serrano Util
-  "2037125": { rdId: "42647", rdMult: 1 }, // Mint Fresh Herb
-  "3960200": { rdId: "86527", rdMult: 1 }, // Vegetable Mix 4-way
-  "4014684": { rdId: "53556", rdMult: 1 }, // Flour Wheat Whole Stone Ground
-  "4062337": { rdId: "16200", rdMult: 1 }, // Bean Garbanzo Fancy No Sulfite
-  "4014973": { rdId: "69810", rdMult: 1 }, // Bean Kidney Dark Red
-  "5895750": { rdId: "860135", rdMult: 1 }, // Tomato Diced Salsa Style
-  "4978884": { rdId: "860044",  rdMult: 1 }, // Sauce Tomato California 6/#10 $26.88
-  "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 12x32oz — confirmed $48.00 CS
-  "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions Iceless (single EA)
-  "1910231": { rdId: "42706",   rdMult: 1 }, // Green Bell Pepper Choice Fresh
-  "9903790": { rdId: "2010066", rdMult: 1 }, // Ketchup Jug 6/114oz
+  "5106388": { rdId: "40212",   rdMult: 1 }, // Shrimp 16/20
+  "4112262": { rdId: "2550012", rdMult: 1 }, // Egg Yellow Color
+  "4073441": { rdId: "2910159", rdMult: 1 }, // Cornstarch
+  "5517701": { rdId: "29268",   rdMult: 1 }, // Baking Powder
+  "6988158": { rdId: "64120",   rdMult: 1 }, // Frozen Broccoli
+  "2523833": { rdId: "64046",   rdMult: 1 }, // Frozen Spinach
+  "7102961": { rdId: "1440528", rdMult: 1 }, // Paneer
+  "8474538": { rdId: "44211",   rdMult: 1 }, // Baby Spinach
+  "3879962": { rdId: "79152",   rdMult: 1 }, // Carrots
+  "2252013": { rdId: "42570",   rdMult: 1 }, // Lemons
+  "7410640": { rdId: "42504",   rdMult: 1 }, // Cucumbers
+  "7007376": { rdId: "44137",   rdMult: 1 }, // Serrano
+  "2037125": { rdId: "42647",   rdMult: 1 }, // Mint
+  "3960200": { rdId: "86527",   rdMult: 1 }, // Frozen 4-Way Mix
+  "4014684": { rdId: "53556",   rdMult: 1 }, // Roti Atta
+  "4062337": { rdId: "16200",   rdMult: 1 }, // Garbanzo Beans
+  "4014973": { rdId: "69810",   rdMult: 1 }, // Kidney Beans
+  "5895750": { rdId: "860135",  rdMult: 1 }, // Petite Diced Tomato
+  "4978884": { rdId: "860044",  rdMult: 1 }, // Tomato Sauce CA
+  "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 12×32oz
+  "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions EA split
+  "1910231": { rdId: "42706",   rdMult: 1 }, // Green Bell Pepper
+  "9903790": { rdId: "2010066", rdMult: 1 }, // Ketchup 6/114oz
+  "1094721": { rdId: "42545",   rdMult: 1 }, // Yellow Onion
 };
 
-// Locked mappings — these override both the seed AND any saved cross-vendor file or GitHub backup.
-// Use this for known-wrong auto-learned mappings that keep getting overridden.
+// Locked — override seed AND any saved/backup data. Use for known-wrong auto-learned mappings.
 const SYSCO_TO_RD_LOCK = {
-  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must be 860043 not 860044
-  "5895750": { rdId: "860135",  rdMult: 1 }, // Diced Tomatoes → must be 860135 not 860044
-  "8053456": { rdId: null,      rdMult: 1 }, // Chicken Thighs Sysco — not tracked in RD, skip cross-mapping
+  "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must be 860043, NEVER 860044
+  "5895750": { rdId: "860135",  rdMult: 1 }, // Diced Tomato → must be 860135, NEVER 860044
+  "8053456": { rdId: null,      rdMult: 1 }, // Chicken Thighs Sysco — not tracked in RD, block
 };
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -754,7 +678,6 @@ function loadCrossVendor() {
   try {
     if (fs.existsSync(CROSS_VENDOR_FILE)) {
       const saved = JSON.parse(fs.readFileSync(CROSS_VENDOR_FILE, "utf8"));
-      // LOCK entries always win — prevents wrong auto-learned mappings from persisting
       SYSCO_TO_RD = { ...SYSCO_TO_RD_SEED, ...saved, ...SYSCO_TO_RD_LOCK };
       console.log("✅ Cross-vendor map loaded: " + Object.keys(SYSCO_TO_RD).length + " mappings");
     }
@@ -768,9 +691,9 @@ function saveCrossVendor() {
 
 loadCrossVendor();
 
-// ── Price history store — persisted to disk + GitHub ─────────────────────────
+// ── Price history ─────────────────────────────────────────────────────────────
 const HISTORY_FILE = "/data/nc_history.json";
-let priceHistory = {}; // { itemId: [{date, rd, sc}] }
+let priceHistory = {};
 
 function loadHistory() {
   try {
@@ -788,20 +711,14 @@ function saveHistory() {
   try {
     const data = JSON.stringify(priceHistory);
     fs.writeFileSync(HISTORY_FILE, data);
-    // Also write to /tmp as secondary backup in case /data has issues
     try { fs.writeFileSync("/tmp/nc_history_backup.json", data); } catch {}
-  }
-  catch(e) { console.log("History save error:", e.message); }
+  } catch(e) { console.log("History save error:", e.message); }
 }
 
 function loadHistoryFallback() {
-  // Try /tmp backup if main history file is empty or missing
   try {
     if (fs.existsSync("/tmp/nc_history_backup.json")) {
       const backup = JSON.parse(fs.readFileSync("/tmp/nc_history_backup.json", "utf8"));
-      const backupDates = new Set();
-      Object.values(backup).forEach(entries => entries.forEach(e => backupDates.add(e.date)));
-      // Merge backup into current history
       let added = 0;
       Object.entries(backup).forEach(([id, entries]) => {
         if (!priceHistory[id]) { priceHistory[id] = entries; added += entries.length; return; }
@@ -812,22 +729,17 @@ function loadHistoryFallback() {
           added += toAdd.length;
         }
       });
-      if (added > 0) {
-        saveHistory();
-        console.log("✅ History fallback: merged " + added + " entries from /tmp backup");
-      }
+      if (added > 0) { saveHistory(); console.log("✅ History fallback: merged " + added + " entries from /tmp backup"); }
     }
   } catch(e) { console.log("History fallback error:", e.message); }
 }
 
 function recordHistory() {
-  // Use Las Vegas local date (UTC-7 or UTC-8 depending on DST)
   const now = new Date();
-  const lvOffset = -7 * 60; // PDT (UTC-7), change to -8 for PST
+  const lvOffset = -7 * 60; // PDT (UTC-7)
   const lvTime = new Date(now.getTime() + (now.getTimezoneOffset() + lvOffset) * 60000);
   const today = lvTime.toISOString().slice(0, 10);
   let changed = false;
-  // Go through every item we have prices for
   const allIds = new Set([...Object.keys(priceStore.rd), ...Object.keys(priceStore.sysco)]);
   allIds.forEach(id => {
     const rdP = priceStore.rd[id]?.price || null;
@@ -836,57 +748,34 @@ function recordHistory() {
     if (!priceHistory[id]) priceHistory[id] = [];
     const existing = priceHistory[id].findIndex(e => e.date === today);
     if (existing >= 0) {
-      // Update today — merge, never overwrite real price with null
       const old = priceHistory[id][existing];
-      priceHistory[id][existing] = {
-        date: today,
-        rd: rdP || old.rd || null,
-        sc: scP || old.sc || null,
-      };
+      priceHistory[id][existing] = { date: today, rd: rdP || old.rd || null, sc: scP || old.sc || null };
     } else {
-      // New entry — keep max 90 days
       priceHistory[id] = [...priceHistory[id].slice(-89), { date: today, rd: rdP, sc: scP }];
     }
     changed = true;
   });
-  if (changed) {
-    saveHistory();
-    log("📅 History recorded: " + allIds.size + " items for " + today);
-  }
+  if (changed) { saveHistory(); log("📅 History recorded: " + allIds.size + " items for " + today); }
 }
 
 loadHistory();
-loadHistoryFallback(); // merge any /tmp backup entries missed by main file
-cleanBadPrices(); // remove any previously stored bad prices
+loadHistoryFallback();
+cleanBadPrices();
 
-// AI-powered cross-vendor linker — runs after both scrapers finish
+// ── AI cross-vendor linker ────────────────────────────────────────────────────
 async function buildCrossVendorMap(syscoMatched, rdMatched) {
-  // Only process Sysco items not already in our map
   const unmapped = syscoMatched.filter(s => !SYSCO_TO_RD[s.id]);
   if (unmapped.length === 0) { log("Cross-vendor: all Sysco items already mapped"); return; }
-
   log("Cross-vendor: finding RD equivalents for " + unmapped.length + " unmapped Sysco items...");
-
-  // Build context: what Sysco items need linking, and what RD items are available
-  const syscoCtx = unmapped.map(s => {
-    const item = SYSCO_ITEMS.find(i => i.id === s.id);
-    return s.id + ": " + (item ? item.name + " " + item.pack : s.id);
-  }).join("\n");
-
-  const rdCtx = RD_ITEMS.map(i => i.id + ": " + i.name).join("\n");
-
-  // Add current prices to context for smarter matching
   const syscoPriceCtx = unmapped.map(s => {
     const item = SYSCO_ITEMS.find(i => i.id === s.id);
     const p = priceStore.sysco[s.id]?.price;
     return s.id + ": " + (item ? item.name + " " + item.pack : s.id) + (p ? " @ $" + p : "");
   }).join("\n");
-
   const rdPriceCtx = RD_ITEMS.map(i => {
     const p = priceStore.rd[i.id]?.price;
     return i.id + ": " + i.name + (p ? " @ $" + p : "");
   }).join("\n");
-
   const prompt = `You are an expert wholesale grocery buyer linking equivalent products between Sysco and Restaurant Depot for Naan & Curry restaurant in Las Vegas.
 
 SYSCO ITEMS TO MATCH (with pack size and current price):
@@ -895,22 +784,9 @@ ${syscoPriceCtx}
 RESTAURANT DEPOT ITEMS (with current price):
 ${rdPriceCtx}
 
-For each Sysco item, find the Restaurant Depot item that is the SAME product. Consider:
-1. Product type (most important - chicken thighs = chicken thighs)
-2. Similar pack size / total weight
-3. Price per unit should be in a similar range if available
-4. Brand name doesn't matter
-
-Valid match examples:
-- Sysco "Onion Yellow Jumbo Bag 1/25LB @ $11.31" = RD "Jumbo Spanish Onions - 50 lbs @ $18.95" (both bulk yellow onions, different pack size is OK)
-- Sysco "Cream Heavy 40% 12/32OZ @ $43.87" = RD "James Farm - Heavy Cream 40% - 64 oz @ $43.95" (same product, similar price confirms match)
-- Sysco "Pan Coating Butter It 6/14 OZ" = RD "Chef's Quality - All Purpose Pan Spray - 17 oz" (same product category, different brand/size)
-
+For each Sysco item, find the Restaurant Depot item that is the SAME product.
 Skip if genuinely different products or you are not confident.
-
-Return ONLY JSON array:
-[{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"one line explanation","confidence":"high|medium"}]`;
-
+Return ONLY JSON array: [{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"one line explanation","confidence":"high|medium"}]`;
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -921,7 +797,6 @@ Return ONLY JSON array:
     const txt = data.content?.find(b => b.type === "text")?.text || "[]";
     const m = txt.match(/\[[\s\S]*\]/);
     if (!m) { log("Cross-vendor: no JSON found in AI response"); return; }
-
     const links = JSON.parse(m[0]);
     let newLinks = 0;
     links.forEach(({ sysco_id, rd_id, reason }) => {
@@ -931,12 +806,8 @@ Return ONLY JSON array:
         log("🔗 New cross-vendor link: Sysco " + sysco_id + " → RD " + rd_id + " (" + reason + ")");
       }
     });
-    if (newLinks > 0) {
-      saveCrossVendor();
-      log("Cross-vendor: " + newLinks + " new links saved (" + Object.keys(SYSCO_TO_RD).length + " total)");
-    } else {
-      log("Cross-vendor: no new links found");
-    }
+    if (newLinks > 0) { saveCrossVendor(); log("Cross-vendor: " + newLinks + " new links saved (" + Object.keys(SYSCO_TO_RD).length + " total)"); }
+    else { log("Cross-vendor: no new links found"); }
   } catch(e) { log("Cross-vendor AI error: " + e.message); }
 }
 
@@ -954,7 +825,6 @@ app.post("/api/claude", async (req, res) => {
 });
 
 // ── AI price matching ─────────────────────────────────────────────────────────
-// Word-overlap scorer
 function wordScore(a, b) {
   const stopWords = new Set(["the","and","for","with","from","lbs","lb","oz","gal","ct","pk","pack","case","fresh","frozen","boneless","skinless"]);
   const aw = a.toLowerCase().split(/[\s\-,\/]+/).filter(w => w.length > 2 && !stopWords.has(w));
@@ -969,11 +839,7 @@ async function matchWithAI(scrapedItems, itemList, source) {
   if (!scrapedItems.length) return [];
   const cacheKey = source === "Restaurant Depot" ? "rd" : "sysco";
   const cache = matchCache[cacheKey] || {};
-  const results = [];
-  const usedIds = new Set();
-  const needsMatching = []; // items not in cache
-
-  // ── Step 1: Check cache first (instant, no scoring needed) ──
+  const results = [], usedIds = new Set(), needsMatching = [];
   for (const scraped of scrapedItems) {
     const cachedId = cache[scraped.name];
     if (cachedId && itemList.find(i => i.id === cachedId)) {
@@ -982,13 +848,9 @@ async function matchWithAI(scrapedItems, itemList, source) {
         usedIds.add(cachedId);
         log("📋 Cache hit: \"" + scraped.name + "\" → " + cachedId);
       }
-    } else {
-      needsMatching.push(scraped);
-    }
+    } else { needsMatching.push(scraped); }
   }
   log(source + ": " + (scrapedItems.length - needsMatching.length) + "/" + scrapedItems.length + " from cache, " + needsMatching.length + " need matching");
-
-  // ── Step 2: Word-overlap for uncached items ──
   const stillUnmatched = [];
   for (const scraped of needsMatching) {
     let bestId = null, bestScore = 0;
@@ -1000,20 +862,18 @@ async function matchWithAI(scrapedItems, itemList, source) {
     if (bestId && bestScore >= 6) {
       results.push({ id: bestId, price: scraped.price, unitPrice: scraped.unitPrice });
       usedIds.add(bestId);
-      learnMatch(cacheKey, scraped.name, bestId); // save to cache
+      learnMatch(cacheKey, scraped.name, bestId);
       log("✅ Word match: \"" + scraped.name + "\" → " + bestId + " (score=" + bestScore + ")");
     } else {
       stillUnmatched.push(scraped);
       log("❓ No word match: \"" + scraped.name + "\" (best score=" + bestScore + ")");
     }
   }
-
-  // ── Step 3: AI for anything still unmatched ──
   const unmatchedListItems = itemList.filter(i => !usedIds.has(i.id));
   if (stillUnmatched.length > 0 && unmatchedListItems.length > 0) {
     log(source + ": sending " + stillUnmatched.length + " items to AI...");
     try {
-      const prompt = "You are a grocery product matcher for a restaurant. Match each scraped product name to the correct item ID from our list. Use the closest match based on product type and description.\n\nSCRAPED PRODUCTS:\n" +
+      const prompt = "You are a grocery product matcher for a restaurant. Match each scraped product name to the correct item ID from our list.\n\nSCRAPED PRODUCTS:\n" +
         stillUnmatched.map(i => "\"" + i.name + "\"  $" + i.price).join("\n") +
         "\n\nOUR ITEM LIST:\n" + unmatchedListItems.map(i => i.id + ": " + i.name).join("\n") +
         "\n\nReturn ONLY a JSON array. One entry per confident match:\n[{\"scraped\":\"exact scraped name\",\"id\":\"ITEM_ID\",\"price\":0.00}]\nSkip any you are not confident about.";
@@ -1031,14 +891,13 @@ async function matchWithAI(scrapedItems, itemList, source) {
             const origItem = scrapedItems.find(i => i.name === scraped);
             results.push({ id, price, unitPrice: origItem?.unitPrice });
             usedIds.add(id);
-            if (scraped) learnMatch(cacheKey, scraped, id); // save AI match to cache
+            if (scraped) learnMatch(cacheKey, scraped, id);
             log("🤖 AI match: \"" + (scraped || "?") + "\" → " + id + " $" + price);
           }
         });
       }
     } catch(e) { log("AI error: " + e.message); }
   }
-
   log(source + ": total matched " + results.length + "/" + scrapedItems.length);
   return results;
 }
@@ -1050,16 +909,11 @@ async function launchBrowser() {
   const execPath = await chromium.executablePath();
   return puppeteer.launch({
     args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process"],
-    executablePath: execPath,
-    headless: chromium.headless,
-    timeout: 30000,
+    executablePath: execPath, headless: chromium.headless, timeout: 30000,
   });
 }
 
 // ── RD Scraper ────────────────────────────────────────────────────────────────
-// Key insight from logs: RD renders prices as "$3806" (no decimal) on the line AFTER
-// "Current price: $38.06". The CORRECT price is always in "Current price: $XX.XX" format.
-// These are the actual order guide prices — use them directly.
 async function scrapeRD() {
   log("🟢 RD: starting...");
   let browser;
@@ -1068,14 +922,11 @@ async function scrapeRD() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
-
-    // Login via SSO
     await page.goto(
       "https://member.restaurantdepot.com/rest/sso/auth/restaurantdepot/init?return_to=https%3A%2F%2Fwww.restaurantdepot.com%2F",
       { waitUntil: "domcontentloaded", timeout: 45000 }
     ).catch(e => log("RD SSO: " + e.message));
     await new Promise(r => setTimeout(r, 5000));
-
     await page.waitForSelector('#email, input[type="email"]', { timeout: 20000 });
     await page.click('#email, input[type="email"]');
     await page.keyboard.type(process.env.RD_EMAIL, { delay: 50 });
@@ -1085,37 +936,23 @@ async function scrapeRD() {
     await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
     log("RD: logged in, URL=" + page.url());
-
-    // Set In-Store mode (not Pickup/Delivery) to get in-store pricing
-    // Navigate to homepage first to trigger store selector
     await page.goto("https://member.restaurantdepot.com/", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
-
-    // Click "In-Store" option if not already selected
     const inStoreSet = await page.evaluate(() => {
-      // Look for In-Store button/link
       const els = Array.from(document.querySelectorAll("button, a, div, span"));
       const inStore = els.find(el => el.textContent.trim() === "In-Store" || el.textContent.trim() === "In-Store Las Vegas");
-      if (inStore) {
-        inStore.click();
-        return "clicked: " + inStore.textContent.trim();
-      }
-      // Check if already in In-Store mode
+      if (inStore) { inStore.click(); return "clicked: " + inStore.textContent.trim(); }
       const current = document.body.innerText;
       return current.includes("In-Store") ? "already set" : "not found";
     });
     log("RD: In-Store mode = " + inStoreSet);
     await new Promise(r => setTimeout(r, 2000));
-
-    // Go to order guide
     await page.goto(
       "https://member.restaurantdepot.com/store/business/order-guide/19933806363004568",
       { waitUntil: "domcontentloaded", timeout: 60000 }
     ).catch(e => log("RD order guide: " + e.message));
     await new Promise(r => setTimeout(r, 8000));
     log("RD: order guide loaded, URL=" + page.url());
-
-    // Scroll top-to-bottom to load all items
     await page.evaluate(() => window.scrollTo(0, 0));
     await new Promise(r => setTimeout(r, 1000));
     for (let i = 0; i < 50; i++) {
@@ -1123,46 +960,28 @@ async function scrapeRD() {
       await new Promise(r => setTimeout(r, 300));
     }
     await new Promise(r => setTimeout(r, 3000));
-
-    // Extract all lines
     const lines = await page.evaluate(() =>
       document.body.innerText.split("\n").map(l => l.trim()).filter(l => l.length > 0)
     );
     log("RD: " + lines.length + " lines total");
 
-    // RD price parsing strategy:
-    // "Current price: $36.24"              → flat case price, use as-is
-    // "Current price: $24.40" + "$2440-$8676" → range format, higher = case price
-    // "Current price: $76.80 each (est.)"  → by-weight estimate, use as-is (it IS the case price)
-    // "Current price: $76.80 each (estimated)" → same
-
     const priceLines = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-
-      // Match both regular prices AND "each (est.)" / "each (estimated)" weight-based prices
       const m = line.match(/Current price:\s*\$([\d,]+\.[\d]{2})/i);
       if (!m) continue;
-
       const unitPrice = parseFloat(m[1].replace(",", ""));
       if (unitPrice < 0.5 || unitPrice > 5000) continue;
-
-      // Detect if this is a by-weight estimate
       const isByWeight = /each\s*\(est/i.test(line) || /final cost by weight/i.test(line);
-
-      // Check next 1-2 lines for a range "$XXXX-$YYYY" (cents format, flat items only)
-      let casePrice = unitPrice;
-      let raw = line;
-
+      let casePrice = unitPrice, raw = line;
       if (!isByWeight) {
         for (let k = i + 1; k <= Math.min(i + 2, lines.length - 1); k++) {
           const rangeLine = lines[k];
           const rangeM = rangeLine.match(/^\$([\d]+)-([\d]+)$/) ||
                          rangeLine.match(/^\$([\d]+)-\$([\d]+)$/) ||
-                         rangeLine.match(/^\$([\d,]+\.\d{2})\s*-\s*\$([\d,]+\.\d{2})$/); // decimal format
+                         rangeLine.match(/^\$([\d,]+\.\d{2})\s*-\s*\$([\d,]+\.\d{2})$/);
           if (rangeM) {
             const raw1 = rangeM[1].replace(",",""), raw2 = rangeM[2].replace(",","");
-            // Detect format: if values contain decimal point they're already dollars, else cents
             const lo = raw1.includes(".") ? parseFloat(raw1) : parseInt(raw1) / 100;
             const hi = raw2.includes(".") ? parseFloat(raw2) : parseInt(raw2) / 100;
             casePrice = Math.max(lo, hi);
@@ -1171,57 +990,35 @@ async function scrapeRD() {
           }
         }
       } else {
-        // By-weight items — fixed case weights per item type at Restaurant Depot:
-        // Chicken (wings, breast, leg meat, leg quarters): always 40 lb
-        // Lamb leg: ~40-42 lb (use "About X lb" from page, fallback 40)
-        // Goat bone-in box: always 15 lb
         const nearby = lines.slice(Math.max(0, i - 5), Math.min(lines.length, i + 10)).join(" ");
         const perLbM = nearby.match(/\$([\d]+\.[\d]{2})\s*\/\s*lb/i);
-
         if (perLbM) {
           const perLb = parseFloat(perLbM[1]);
-
-          // Try to read "About X.X lb each" from page for variable-weight items
           const aboutLbM = nearby.match(/About\s+([\d.]+)\s+lb/i);
           const pageWeight = aboutLbM ? parseFloat(aboutLbM[1]) : null;
-
-          // Determine case weight by item context
           const ctxLower = nearby.toLowerCase();
           let caseWeight;
-          if (ctxLower.includes("goat")) {
-            caseWeight = 15;
-          } else if (ctxLower.includes("lamb")) {
-            caseWeight = pageWeight || 42; // use actual page weight or fallback 42
-          } else if (ctxLower.includes("chicken") || ctxLower.includes("wings") ||
-                     ctxLower.includes("breast") || ctxLower.includes("thigh") ||
-                     ctxLower.includes("leg meat") || ctxLower.includes("leg quarter") ||
-                     ctxLower.includes("leg")) {
-            caseWeight = 40;
-          } else {
-            caseWeight = pageWeight || 40; // fallback
-          }
-
+          if (ctxLower.includes("goat")) { caseWeight = 15; }
+          else if (ctxLower.includes("lamb")) { caseWeight = pageWeight || 42; }
+          else if (ctxLower.includes("chicken") || ctxLower.includes("wings") ||
+                   ctxLower.includes("breast") || ctxLower.includes("thigh") ||
+                   ctxLower.includes("leg meat") || ctxLower.includes("leg quarter") ||
+                   ctxLower.includes("leg")) { caseWeight = 40; }
+          else { caseWeight = pageWeight || 40; }
           casePrice = Math.round(perLb * caseWeight * 100) / 100;
           raw = line + " ($" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice + ")";
           log("RD: by-weight — $" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice);
         } else {
-          // No per-lb rate found — try "Price estimate: $XX.XX"
           const estM = nearby.match(/Price estimate:\s*\$([\d,]+\.[\d]{2})/i);
-          if (estM) {
-            casePrice = parseFloat(estM[1].replace(",", ""));
-            raw = line + " (est=" + casePrice + ")";
-          } else {
-            raw = line + " (by weight)";
-          }
+          if (estM) { casePrice = parseFloat(estM[1].replace(",", "")); raw = line + " (est=" + casePrice + ")"; }
+          else { raw = line + " (by weight)"; }
         }
       }
-
       if (casePrice < 0.5 || casePrice > 5000) continue;
       const ctx = lines.slice(Math.max(0, i - 10), Math.min(lines.length, i + 15));
       priceLines.push({ price: casePrice, unitPrice, raw, byWeight: isByWeight, ctx: ctx.join(" | ") });
     }
     log("RD: found " + priceLines.length + " price lines");
-    log("RD: contexts: " + JSON.stringify(priceLines.slice(0, 5)));
 
     const noise = new Set([
       "Skip Navigation","Buy It Again","Order Guides","Products","Equipment","Receipts",
@@ -1241,35 +1038,25 @@ async function scrapeRD() {
       if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|fl)\s*$/i.test(c)) return false;
       if (/^(Current price|Buy \d|Pickup|Out of stock|Show similar|See eligible|Buy It Again|Add \d+|Edit items|Order approvals|Business|Log out|Delivery|About \d|Bin -|\d+\.\d+ mi)/.test(c)) return false;
       if (/arrow keys|search field|Once you|navigate to|Enter key/i.test(c)) return false;
-      if (/^\d+ ct$|^1 ct$|^[A-Z0-9]+ - \d+$/.test(c)) return false; // "1 ct", "Bin - 4043"
+      if (/^\d+ ct$|^1 ct$|^[A-Z0-9]+ - \d+$/.test(c)) return false;
       if (noise.has(c)) return false;
       if (!/[a-zA-Z]{3,}/.test(c)) return false;
       if (c.split(" ").length < 2) return false;
       return true;
     }
 
-    const items = [];
-    const seen = new Set();
-
+    const items = [], seen = new Set();
     for (let pi = 0; pi < priceLines.length; pi++) {
       const pl = priceLines[pi];
       const ctxLines = pl.ctx.split(" | ").map(l => l.trim()).filter(l => l);
-
-      // Find the "Current price: $XX" line in context (use unitPrice to find it)
-      const cpStr = "Current price: $" + pl.unitPrice.toFixed(2);
       const priceIdx = ctxLines.findIndex(l => l.startsWith("Current price:") && l.includes("$" + pl.unitPrice.toFixed(2)));
-
       let bestName = null;
-
       if (priceIdx >= 0) {
-        // Search FORWARD first (most items: name comes after price)
         for (let j = priceIdx + 1; j < Math.min(ctxLines.length, priceIdx + 10); j++) {
           const c = ctxLines[j];
-          // Skip the range line "$XXXX-$YYYY" and unit lines
           if (/^\$[\d]+-/.test(c) || /^\$[\d]+$/.test(c)) continue;
           if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
         }
-        // Search BACKWARD if forward found nothing
         if (!bestName) {
           for (let j = priceIdx - 1; j >= Math.max(0, priceIdx - 10); j--) {
             const c = ctxLines[j];
@@ -1278,23 +1065,17 @@ async function scrapeRD() {
           }
         }
       } else {
-        // priceIdx not found (range case price) — search whole ctx
         for (let j = 0; j < ctxLines.length; j++) {
           const c = ctxLines[j];
           if (/^\$/.test(c) || /Current price/.test(c)) continue;
           if (isProductName(c) && !seen.has(c)) { bestName = c; break; }
         }
       }
-
       if (bestName && pl.price > 0) {
-        // Before accepting this name+price combo, check if the name belongs
-        // to a known single-unit item and the price exceeds its max
-        // If so, don't assign — let a later price line with correct value claim the name
         const tentativeId = Object.entries(matchCache.rd || {}).find(([k]) => k === bestName)?.[1];
         const priceMax = tentativeId ? RD_PRICE_MAX[tentativeId] : null;
         if (priceMax && pl.price > priceMax) {
-          log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item) — will try to match name to correct price");
-          // Don't add to seen — allow the correct lower price line to claim this name
+          log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item)");
         } else {
           items.push({ name: bestName, price: pl.price, unitPrice: pl.unitPrice, raw: pl.raw });
           seen.add(bestName);
@@ -1304,9 +1085,6 @@ async function scrapeRD() {
       }
     }
 
-    // ── Targeted scan for single-unit items that normal extraction misses ────────
-    // For items in RD_SINGLE_UNIT, search the full page for their name
-    // then find the nearest "Current price: $X.XX" within 8 lines
     const singleUnitNames = {
       "42647":  ["Herb - Mint", "Mint - 1 lb", "Herb - Mint-"],
       "55519":  ["Orchid Flowers", "Micro Orchid"],
@@ -1316,30 +1094,21 @@ async function scrapeRD() {
       "1810019":["Bone in Goat", "Goat Cube"],
       "79042":  ["Boneless Lamb Leg", "Halal Boneless Lamb"],
     };
-
     for (const [itemId, nameVariants] of Object.entries(singleUnitNames)) {
-      if (seen.has(itemId + "_found")) continue; // already found via normal extraction
-      // Check if already found by name
       const alreadyFound = items.find(i => {
         const cache = matchCache.rd || {};
         return Object.entries(cache).find(([k, v]) => v === itemId && i.name === k);
       });
       if (alreadyFound) continue;
-
-      // Scan full lines for this item's name
       for (let li = 0; li < lines.length; li++) {
-        const lineText = lines[li];
-        const ltLower = lineText.toLowerCase();
+        const lineText = lines[li], ltLower = lineText.toLowerCase();
         const matched = nameVariants.some(v => {
           const vLower = v.toLowerCase();
-          // Strict: must include the variant but NOT be the wrong item
-          if (itemId === "77658" && ltLower.includes("quarter")) return false; // don't match quarters
-          if (itemId === "77670" && ltLower.includes("leg meat")) return false; // don't match leg meat
+          if (itemId === "77658" && ltLower.includes("quarter")) return false;
+          if (itemId === "77670" && ltLower.includes("leg meat")) return false;
           return ltLower.includes(vLower);
         });
         if (!matched) continue;
-
-        // Found the name — look for price within ±10 lines
         let foundPrice = null;
         for (let offset = -10; offset <= 10; offset++) {
           const idx = li + offset;
@@ -1347,15 +1116,10 @@ async function scrapeRD() {
           const pm = lines[idx].match(/Current price:\s*\$([\d.]+)/i);
           if (pm) {
             const p = parseFloat(pm[1]);
-            const max = RD_PRICE_MAX[itemId];
-            const min = RD_PRICE_MIN[itemId];
-            if (p > 0 && (!max || p <= max) && (!min || p >= min)) {
-              foundPrice = p;
-              break;
-            }
+            const max = RD_PRICE_MAX[itemId], min = RD_PRICE_MIN[itemId];
+            if (p > 0 && (!max || p <= max) && (!min || p >= min)) { foundPrice = p; break; }
           }
         }
-
         if (foundPrice) {
           const itemName = lineText.trim();
           if (isProductName(itemName) && !seen.has(itemName)) {
@@ -1363,7 +1127,6 @@ async function scrapeRD() {
             seen.add(itemName);
             log("RD: 🎯 Targeted scan found " + itemId + " '" + itemName + "' = $" + foundPrice);
           } else {
-            // Use the name from cache seed instead
             const cacheName = Object.entries(matchCache.rd || {}).find(([k, v]) => v === itemId)?.[0];
             if (cacheName && !seen.has(cacheName)) {
               items.push({ name: cacheName, price: foundPrice, raw: "targeted scan: $" + foundPrice });
@@ -1376,34 +1139,18 @@ async function scrapeRD() {
       }
     }
 
-    // Detect OOS items — catch all RD out-of-stock phrasings:
-    // "Out of stock", "Likely out of stock", "Temporarily out of stock", etc.
-    const OOS_PATTERNS = [
-      /^out of stock$/i,
-      /^likely out of stock$/i,
-      /^temporarily out of stock$/i,
-      /^currently out of stock$/i,
-      /^item unavailable$/i,
-      /^unavailable$/i,
-    ];
-
-    function isOosLine(line) {
-      return OOS_PATTERNS.some(p => p.test(line.trim()));
-    }
-
+    const OOS_PATTERNS = [/^out of stock$/i,/^likely out of stock$/i,/^temporarily out of stock$/i,/^currently out of stock$/i,/^item unavailable$/i,/^unavailable$/i];
+    function isOosLine(line) { return OOS_PATTERNS.some(p => p.test(line.trim())); }
     const oosNames = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!isOosLine(line)) continue;
-      // Search backward up to 8 lines for the nearest product name
-      // Stop early if we hit another "Current price" (that belongs to a different item)
       let foundName = null;
       for (let j = i - 1; j >= Math.max(0, i - 8); j--) {
         const prev = lines[j].trim();
         if (/Current price/i.test(prev)) break;
         if (isProductName(prev)) { foundName = prev; break; }
       }
-      // Also search forward up to 4 lines (sometimes name comes after OOS label)
       if (!foundName) {
         for (let j = i + 1; j <= Math.min(lines.length - 1, i + 4); j++) {
           const next = lines[j].trim();
@@ -1411,15 +1158,10 @@ async function scrapeRD() {
           if (isProductName(next)) { foundName = next; break; }
         }
       }
-      if (foundName && !seen.has(foundName)) {
-        oosNames.push(foundName);
-        seen.add(foundName);
-        log("RD: OOS confirmed [" + line.trim() + "]: " + foundName);
-      }
+      if (foundName && !seen.has(foundName)) { oosNames.push(foundName); seen.add(foundName); log("RD: OOS confirmed [" + line.trim() + "]: " + foundName); }
     }
     log("RD: out-of-stock names found (" + oosNames.length + "): " + oosNames.join(", "));
-
-    log("RD: " + items.length + " items extracted: " + JSON.stringify(items.slice(0, 10)));
+    log("RD: " + items.length + " items extracted");
     return { success: true, items, oosNames };
   } catch(e) {
     log("RD FATAL: " + e.message);
@@ -1429,7 +1171,7 @@ async function scrapeRD() {
   }
 }
 
-// ── Sysco Scraper — search each item within Nick List ────────────────────────
+// ── Sysco Scraper ─────────────────────────────────────────────────────────────
 async function scrapeSysco() {
   log("🔵 Sysco: starting Nick List search scrape...");
   let browser;
@@ -1438,8 +1180,6 @@ async function scrapeSysco() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
-
-    // Login step 1: email
     await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
@@ -1454,8 +1194,6 @@ async function scrapeSysco() {
     if (!nextOk) await page.keyboard.press("Enter");
     await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
-
-    // Login step 2: password (Okta)
     await page.waitForSelector('#okta-signin-password, input[type="password"]', { timeout: 20000 });
     await page.click('#okta-signin-password, input[type="password"]');
     await page.keyboard.type(process.env.SYSCO_PASSWORD, { delay: 50 });
@@ -1467,11 +1205,8 @@ async function scrapeSysco() {
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
 
-    // Go to lists page and click Nick List
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 4000));
-
-    // Click Nick List LI
     let nickClicked = null;
     for (let attempt = 0; attempt < 15; attempt++) {
       nickClicked = await page.evaluate(() => {
@@ -1479,10 +1214,7 @@ async function scrapeSysco() {
         for (const el of all) {
           if (el.children.length > 5) continue;
           const t = el.textContent.trim();
-          if (t.toLowerCase().includes("nick list") && t.length < 30) {
-            el.click();
-            return el.tagName + ": " + t;
-          }
+          if (t.toLowerCase().includes("nick list") && t.length < 30) { el.click(); return el.tagName + ": " + t; }
         }
         return null;
       });
@@ -1490,8 +1222,6 @@ async function scrapeSysco() {
       await new Promise(r => setTimeout(r, 1000));
     }
     if (!nickClicked) throw new Error("Nick List not found");
-
-    // Wait for Nick List to load with items
     await new Promise(r => setTimeout(r, 4000));
     let rows = 0;
     for (let w = 0; w < 15; w++) {
@@ -1499,11 +1229,8 @@ async function scrapeSysco() {
       if (rows > 0) { log("Sysco: Nick List loaded, " + rows + " rows visible"); break; }
       await new Promise(r => setTimeout(r, 1000));
     }
-
-    // Find the "Search List" input inside Nick List
     const searchInput = await page.$('input[placeholder*="Search List"], input[placeholder*="search list"], [data-id="myProductSearch"], input[aria-label*="Search List"]');
     if (!searchInput) {
-      // Log all inputs to find the right one
       const inputs = await page.evaluate(() =>
         Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name }))
       );
@@ -1511,52 +1238,25 @@ async function scrapeSysco() {
       throw new Error("Search List input not found");
     }
     log("Sysco: Search List input found");
-
-    // Step 1: Clear search to show ALL items, scrape every UPC visible on the list
-    // This auto-discovers any new items you added to Nick List in Sysco
     await searchInput.click({ clickCount: 3 });
     await page.keyboard.press("Backspace");
     await new Promise(r => setTimeout(r, 2000));
-
-    // Scroll through entire list to load all rows
-    // Sysco uses a virtualized list — scroll the actual container, not window
     await page.evaluate(async () => {
-      // Try known container selectors for Sysco's list
-      const container = document.querySelector("[class*='product-list']")
-        || document.querySelector("[class*='list-items']")
-        || document.querySelector("[class*='products-list']")
-        || document.querySelector("[class*='order-guide']")
-        || document.querySelector("main")
-        || document.body;
-      // Scroll in chunks to trigger lazy loading
-      const totalScroll = container.scrollHeight || 15000;
+      const container = document.querySelector("[class*='product-list']") || document.querySelector("[class*='list-items']") || document.querySelector("[class*='products-list']") || document.querySelector("[class*='order-guide']") || document.querySelector("main") || document.body;
       for (let s = 0; s < 40; s++) {
         container.scrollTop = s * 400;
         window.scrollBy(0, 400);
         await new Promise(r => setTimeout(r, 150));
       }
-      // Scroll back to top so search works cleanly
       container.scrollTop = 0;
       window.scrollTo(0, 0);
     });
     await new Promise(r => setTimeout(r, 2000));
 
-    // Read ALL rows currently visible — captures every item on the Nick List
     const allDiscovered = await page.evaluate(() => {
-      // Try multiple selector patterns in case Sysco updated CSS class names
-      const SELECTORS = [
-        "[class*='product-item-row']",
-        "[class*='list-row']",
-        "[class*='product-row']",
-        "[class*='item-row']",
-        "li[class*='product']",
-        "[data-testid*='product']",
-      ];
+      const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
       let rows = [];
-      for (const sel of SELECTORS) {
-        const found = document.querySelectorAll(sel);
-        if (found.length > 0) { rows = Array.from(found); break; }
-      }
+      for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
       const found = [];
       rows.forEach(row => {
         const text = row.innerText || "";
@@ -1566,14 +1266,11 @@ async function scrapeSysco() {
         const m = csM || anyM;
         const nameEl = row.querySelector("[class*='item-details-col'], [class*='product-name'], [class*='item-name']");
         const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
-        if (upcM && m && name) {
-          found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0] });
-        }
+        if (upcM && m && name) found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0] });
       });
       return found;
     });
 
-    // Auto-update SYSCO_ITEMS with any newly discovered SKUs
     const knownIds = new Set(SYSCO_ITEMS.map(i => i.id));
     let newItemsFound = 0;
     allDiscovered.forEach(disc => {
@@ -1586,42 +1283,22 @@ async function scrapeSysco() {
     });
     if (newItemsFound > 0) log("Sysco: " + newItemsFound + " new SKUs added to list");
 
-    // Step 2: Now search each item (known + newly discovered) for accurate UPC-confirmed prices
     const allItems = new Map();
-
-    // First populate from bulk discovery (items already visible)
-    allDiscovered.forEach(disc => {
-      allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw });
-    });
+    allDiscovered.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
     log("Sysco: bulk discovery got " + allItems.size + " items");
 
-    // Step 3: For known SKUs not caught by bulk, search individually to confirm
     for (const item of SYSCO_ITEMS) {
-      if (allItems.has(item.id)) continue; // already found
+      if (allItems.has(item.id)) continue;
       try {
         const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
         await new Promise(r => setTimeout(r, 1200));
-
         const results = await page.evaluate((upc) => {
-          // Try multiple selector patterns — Sysco changes class names periodically
-          const SELECTORS = [
-            "[class*='product-item-row']",
-            "[class*='list-row']",
-            "[class*='product-row']",
-            "[class*='search-result']",
-            "[class*='item-row']",
-            "li[class*='product']",
-            "[data-testid*='product']",
-          ];
+          const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
           let rows = [];
-          for (const sel of SELECTORS) {
-            const found = document.querySelectorAll(sel);
-            if (found.length > 0) { rows = Array.from(found); break; }
-          }
-
+          for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
           const results = [];
           rows.forEach(row => {
             const text = row.innerText || "";
@@ -1631,8 +1308,6 @@ async function scrapeSysco() {
             const m = csM || anyM;
             if (m) results.push({ name: text.split("\n")[0].trim(), price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc });
           });
-
-          // Fallback: search full page text for UPC near a CS price
           if (results.length === 0) {
             const bodyText = document.body.innerText || "";
             if (bodyText.includes(upc)) {
@@ -1646,31 +1321,26 @@ async function scrapeSysco() {
           }
           return results;
         }, item.id);
-
-        const exact = results.find(r => r.hasUpc);
-        const best = exact || results[0];
+        const exact = results.find(r => r.hasUpc), best = exact || results[0];
         if (best) {
           log("Sysco: " + item.name + " → $" + best.price + " (search fallback)");
           allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
         } else {
-          // Log page structure to diagnose CSS changes
           const diagInfo = await page.evaluate(() => {
             const allClasses = new Set();
             document.querySelectorAll("[class]").forEach(el => el.className.toString().split(/\s+/).forEach(c => { if (c.includes("row") || c.includes("product") || c.includes("item") || c.includes("price") || c.includes("list")) allClasses.add(c); }));
             return { classHints: [...allClasses].slice(0, 10), hasCS: (document.body.innerText || "").includes("CS") };
           });
-          log("Sysco: " + item.name + " not found in search" + (diagInfo.hasCS ? " (CS prices visible on page — CSS class changed?)" : " (no CS prices on page — empty results or different layout)") + " classes:" + diagInfo.classHints.join(","));
+          log("Sysco: " + item.name + " not found in search" + (diagInfo.hasCS ? " (CSS class changed?)" : " (no CS prices — empty or different layout)") + " classes:" + diagInfo.classHints.join(","));
         }
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.press("Backspace");
         await new Promise(r => setTimeout(r, 500));
-      } catch(e) {
-        log("Sysco: error on " + item.name + ": " + e.message);
-      }
+      } catch(e) { log("Sysco: error on " + item.name + ": " + e.message); }
     }
 
     const items = Array.from(allItems.values());
-    log("Sysco: " + items.length + " items total (including " + newItemsFound + " new): " + JSON.stringify(items.slice(0, 5)));
+    log("Sysco: " + items.length + " items total");
     return { success: true, items };
   } catch(e) {
     log("Sysco FATAL: " + e.message);
@@ -1680,14 +1350,10 @@ async function scrapeSysco() {
   }
 }
 
-// ── Run scrape ────────────────────────────────────────────────────────────────
 function withTimeout(p, ms, name) {
-  return Promise.race([p, new Promise((_, rej) =>
-    setTimeout(() => rej(new Error(name + " timed out")), ms))]);
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(name + " timed out")), ms))]);
 }
 
-// ── Feature 2: Cross-vendor price validation ─────────────────────────────────
-// After both scrapers finish, Claude compares prices for the same item across vendors
 async function crossValidatePrices() {
   const paired = [];
   Object.entries(SYSCO_TO_RD).forEach(([syscoId, mapping]) => {
@@ -1698,38 +1364,19 @@ async function crossValidatePrices() {
     const rdItem = RD_ITEMS.find(i => i.id === rdId);
     const scItem = SYSCO_ITEMS.find(i => i.id === syscoId);
     const ratio = rdEntry.price / scEntry.price;
-    // Flag if one vendor's price is more than 3× the other — almost certainly a scrape error
     if (ratio > 3 || ratio < 0.33) {
-      paired.push({
-        rdId, syscoId,
-        rdName: rdItem?.name || rdId,
-        scName: scItem?.name || syscoId,
-        rdPrice: rdEntry.price,
-        scPrice: scEntry.price,
-        ratio: ratio.toFixed(2),
-      });
+      paired.push({ rdId, syscoId, rdName: rdItem?.name || rdId, scName: scItem?.name || syscoId, rdPrice: rdEntry.price, scPrice: scEntry.price, ratio: ratio.toFixed(2) });
     }
   });
-
   if (paired.length === 0) { log("Cross-validation: all vendor pairs look reasonable ✅"); return; }
-
   log("Cross-validation: " + paired.length + " suspicious price pairs — asking Claude...");
+  const prompt = `You are validating wholesale grocery prices for a restaurant. Flag any prices that are clearly wrong.
 
-  const prompt = `You are validating wholesale grocery prices for a restaurant. The same product was scraped from two vendors. Flag any prices that are clearly wrong.
-
-SUSPICIOUS PRICE PAIRS (one vendor's price is 3× or more the other's):
+SUSPICIOUS PRICE PAIRS (one vendor is 3× or more the other):
 ${paired.map(p => `${p.rdName}: RD=$${p.rdPrice} vs Sysco=$${p.scPrice} (ratio=${p.ratio}x)`).join("\n")}
-
-For each pair, which price is the error? Consider:
-- Typical wholesale prices for each product type
-- A 3× difference almost always means one price has a decimal error or is per-unit vs per-case
-- Chicken 40lb case: typically $40-$120
-- Produce per case: typically $5-$80
-- Dairy per case: typically $15-$60
 
 Return ONLY JSON array:
 [{"rdId":"RD_ID","errorVendor":"rd|sysco|none","reason":"brief explanation"}]`;
-
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1740,22 +1387,16 @@ Return ONLY JSON array:
     const txt = data.content?.find(b => b.type === "text")?.text || "[]";
     const m = txt.match(/\[[\s\S]*\]/);
     if (!m) return;
-
     JSON.parse(m[0]).forEach(({ rdId, errorVendor, reason }) => {
       if (errorVendor === "rd" && priceStore.rd[rdId]) {
         priceStore.rd[rdId].confidence = "low";
         priceStore.rd[rdId].crossValidationFlag = reason;
-        priceStore.rd[rdId].auditLog = [...(priceStore.rd[rdId].auditLog || []), 
-          { date: new Date().toISOString(), event: "cross_validation_flagged", reason, errorVendor }];
         log("🚨 Cross-validation: RD price for " + rdId + " flagged (" + reason + ")");
       } else if (errorVendor === "sysco" && priceStore.sysco[rdId]) {
         priceStore.sysco[rdId].confidence = "low";
         priceStore.sysco[rdId].crossValidationFlag = reason;
-        priceStore.sysco[rdId].auditLog = [...(priceStore.sysco[rdId].auditLog || []),
-          { date: new Date().toISOString(), event: "cross_validation_flagged", reason, errorVendor }];
         log("🚨 Cross-validation: Sysco price for " + rdId + " flagged (" + reason + ")");
       } else if (errorVendor === "none") {
-        // Both confirmed reasonable — upgrade confidence
         if (priceStore.rd[rdId]) priceStore.rd[rdId].confidence = "high";
         if (priceStore.sysco[rdId]) priceStore.sysco[rdId].confidence = "high";
         log("✅ Cross-validation confirmed: " + rdId + " (" + reason + ")");
@@ -1766,53 +1407,31 @@ Return ONLY JSON array:
   } catch(e) { log("Cross-validation error: " + e.message); }
 }
 
-// ── Feature 1: AI Price Validation ───────────────────────────────────────────
 async function validatePricesWithAI(vendor) {
   const store = vendor === "rd" ? priceStore.rd : priceStore.sysco;
-  const items = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
-  const history = priceHistory;
-
-  // Build context: items where price changed significantly vs yesterday
   const suspicious = [];
-  const today = new Date().toISOString().slice(0, 10);
-
   Object.entries(store).forEach(([id, entry]) => {
-    const itemHistory = history[id] || [];
+    const itemHistory = priceHistory[id] || [];
     if (itemHistory.length < 2) return;
     const prev = itemHistory[itemHistory.length - 2];
     const prevPrice = vendor === "rd" ? prev.rd : prev.sc;
     if (!prevPrice || !entry.price) return;
     const changePct = Math.abs((entry.price - prevPrice) / prevPrice) * 100;
-    // Flag if price changed more than 20% overnight
     if (changePct > 20) {
       const itemList = vendor === "rd" ? RD_ITEMS : SYSCO_ITEMS;
       const item = itemList.find(i => i.id === id);
-      suspicious.push({
-        id,
-        name: item?.name || id,
-        prev: prevPrice,
-        current: entry.price,
-        changePct: Math.round(changePct),
-      });
+      suspicious.push({ id, name: item?.name || id, prev: prevPrice, current: entry.price, changePct: Math.round(changePct) });
     }
   });
-
   if (suspicious.length === 0) { log("Price validation: no suspicious changes detected"); return; }
-
   log("Price validation: " + suspicious.length + " suspicious price changes — asking AI...");
-
-  const prompt = `You are validating wholesale grocery prices for a restaurant. Review these price changes and identify which ones are likely scraping errors vs genuine price changes.
+  const prompt = `You are validating wholesale grocery prices for a restaurant. Review these price changes and identify likely scraping errors.
 
 PRICE CHANGES (>20% overnight):
 ${suspicious.map(s => `${s.name}: $${s.prev} → $${s.current} (${s.changePct}% change)`).join("\n")}
 
-For each item, decide:
-- "valid": price change is plausible for this product (seasonal, market fluctuation)
-- "error": price change is almost certainly a scraping error (e.g. 10x jump, doesn't match product type)
-
 Return ONLY JSON array:
 [{"id":"ITEM_ID","verdict":"valid|error","reason":"brief explanation"}]`;
-
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1823,27 +1442,17 @@ Return ONLY JSON array:
     const txt = data.content?.find(b => b.type === "text")?.text || "[]";
     const m = txt.match(/\[[\s\S]*\]/);
     if (!m) return;
-
     JSON.parse(m[0]).forEach(({ id, verdict, reason }) => {
       if (verdict === "error") {
         const prev = suspicious.find(s => s.id === id)?.prev;
         if (prev) {
-          // Revert to previous price
           if (vendor === "rd") priceStore.rd[id] = { ...priceStore.rd[id], price: prev, flagged: true };
           else priceStore.sysco[id] = { ...priceStore.sysco[id], price: prev, flagged: true };
-          log("🤖 Price validation: REVERTED " + id + " from $" + store[id]?.price + " → $" + prev + " (" + reason + ")");
+          log("🤖 Price validation: REVERTED " + id + " → $" + prev + " (" + reason + ")");
         }
       } else {
-        // Confirmed valid — upgrade confidence to high
-        if (vendor === "rd" && priceStore.rd[id]) {
-          priceStore.rd[id].confidence = "high";
-          priceStore.rd[id].validatedBy = "claude_price_validation";
-          priceStore.rd[id].auditLog = [...(priceStore.rd[id].auditLog || []),
-            { date: new Date().toISOString(), event: "ai_validated", confidence: "high", reason }];
-        } else if (priceStore.sysco[id]) {
-          priceStore.sysco[id].confidence = "high";
-          priceStore.sysco[id].validatedBy = "claude_price_validation";
-        }
+        if (vendor === "rd" && priceStore.rd[id]) priceStore.rd[id].confidence = "high";
+        else if (priceStore.sysco[id]) priceStore.sysco[id].confidence = "high";
         log("🤖 Price validation: CONFIRMED " + id + " price change (" + reason + ")");
       }
     });
@@ -1851,20 +1460,14 @@ Return ONLY JSON array:
   } catch(e) { log("Price validation AI error: " + e.message); }
 }
 
-// ── Feature 3: Auto-add new RD items ─────────────────────────────────────────
 async function autoDiscoverRDItems(scrapedItems) {
-  // Find scraped items that didn't match anything in RD_ITEMS
   const knownIds = new Set(RD_ITEMS.map(i => i.id));
   const unmatched = scrapedItems.filter(s => {
-    // Check if this scraped name is in our cache pointing to a known item
     const cacheHit = matchCache.rd[s.name];
     return !cacheHit || !knownIds.has(cacheHit);
   });
-
   if (unmatched.length === 0) { log("Auto-discover: no new RD items found"); return; }
-
   log("Auto-discover: " + unmatched.length + " potentially new RD items — asking AI...");
-
   const existingNames = RD_ITEMS.map(i => i.name).join(", ");
   const prompt = `You are reviewing scraped products from a Restaurant Depot order guide for Naan & Curry restaurant in Las Vegas.
 
@@ -1874,15 +1477,9 @@ ${existingNames}
 NEWLY SCRAPED ITEMS (not yet in our list):
 ${unmatched.map(s => s.name + " @ $" + s.price).join("\n")}
 
-Which of these new items should be added to the restaurant's tracking list? Consider:
-- Is it a food/beverage product the restaurant likely uses?
-- Is it NOT a duplicate of an existing item (different name, same product)?
-- Skip non-food items, equipment, disposables
-
-Return ONLY JSON array of items to add:
-[{"name":"exact scraped name","price":0.00,"category":"Produce|Dairy|Meat|Frozen|Dry|Oils|Other","reason":"why this should be tracked"}]
-Return empty array [] if nothing should be added.`;
-
+Which of these new items should be added? Skip non-food items.
+Return ONLY JSON array: [{"name":"exact scraped name","price":0.00,"category":"Produce|Dairy|Meat|Frozen|Dry|Oils|Other","reason":"why tracked"}]
+Return [] if nothing should be added.`;
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1893,12 +1490,8 @@ Return empty array [] if nothing should be added.`;
     const txt = data.content?.find(b => b.type === "text")?.text || "[]";
     const m = txt.match(/\[[\s\S]*\]/);
     if (!m) return;
-
     const toAdd = JSON.parse(m[0]);
     if (toAdd.length === 0) { log("Auto-discover: AI found no new items to add"); return; }
-
-    // Store discovered items for review — don't auto-add to RD_ITEMS without review
-    // Instead store them in priceStore for the app to display
     if (!priceStore.discovered) priceStore.discovered = [];
     toAdd.forEach(item => {
       const exists = priceStore.discovered.find(d => d.name === item.name);
@@ -1918,67 +1511,34 @@ async function runScrape(source = "all") {
       const result = await withTimeout(scrapeRD(), 180000, "RD");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, RD_ITEMS, "Restaurant Depot");
-        // Auto-discover potentially new items not in our list
         autoDiscoverRDItems(result.items).catch(e => log("Auto-discover error: " + e.message));
-        // Health check — did we get enough items?
         const rdHealth = await checkScraperHealth("rd", result.items.length, matched.length);
         if (!rdHealth.healthy && rdHealth.action === "keep_yesterday") {
           log("🛡️ Health guard: keeping yesterday's RD prices (partial scrape)");
-          // Mark existing prices as stale but don't overwrite with partial data
-          Object.keys(priceStore.rd).forEach(id => {
-            if (priceStore.rd[id]) {
-              priceStore.rd[id].stale = true;
-              priceStore.rd[id].staleReason = rdHealth.reason;
-            }
-          });
-          savePrices();
-          return; // skip saving this scrape's results
+          Object.keys(priceStore.rd).forEach(id => { if (priceStore.rd[id]) { priceStore.rd[id].stale = true; priceStore.rd[id].staleReason = rdHealth.reason; } });
+          savePrices(); return;
         }
         matched.forEach(({ id, price: rawPrice, unitPrice }) => {
           if (!id || rawPrice <= 0) return;
           let price = rawPrice;
-          // For single-unit items (Mint, Flowers, Cucumbers): the order guide shows both
-          // single and case price in a range — use unitPrice (single) not casePrice
           if (RD_SINGLE_UNIT.has(id) && !RD_PRICE_MAX[id] && rawPrice > 25) {
             if (unitPrice && unitPrice > 0 && unitPrice <= 25) {
               price = unitPrice;
               log("RD: Single-unit " + id + ": using unit price $" + unitPrice + " (case price $" + rawPrice + " skipped)");
-            } else {
-              log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + rawPrice);
-              return;
-            }
+            } else { log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + rawPrice); return; }
           }
-          // Sanity check against known max prices — catches adjacent-item bleed
           const maxPrice = RD_PRICE_MAX[id];
-          if (maxPrice && price > maxPrice) {
-            log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (max expected $" + maxPrice + ")");
-            return;
-          }
-          // Sanity check against min prices — catches per-lb price stored without ×weight
+          if (maxPrice && price > maxPrice) { log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (max $" + maxPrice + ")"); return; }
           const minPrice = RD_PRICE_MIN[id];
-          if (minPrice && price < minPrice) {
-            log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (min expected $" + minPrice + ") — likely per-lb not case price");
-            return;
-          }
-          const now = new Date().toISOString();
-          const prevEntry = priceStore.rd[id];
+          if (minPrice && price < minPrice) { log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (min $" + minPrice + ")"); return; }
+          const now = new Date().toISOString(), prevEntry = priceStore.rd[id];
           priceStore.rd[id] = {
-            price,
-            date: now,
-            unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
-            confidence: "medium",        // upgraded to "high" after AI validation
-            source: "scraped_rd",
-            rawScraped: null,
-            scrapedAt: now,
-            prevPrice: prevEntry?.price || null,
-            validatedBy: null,
-            auditLog: [
-              ...(prevEntry?.auditLog || []).slice(-9), // keep last 10 entries
-              { date: now, price, source: "scraped_rd", confidence: "medium" }
-            ],
+            price, date: now, unit: RD_SINGLE_UNIT.has(id) ? "each" : "case",
+            confidence: "medium", source: "scraped_rd", rawScraped: null, scrapedAt: now,
+            prevPrice: prevEntry?.price || null, validatedBy: null,
+            auditLog: [...(prevEntry?.auditLog || []).slice(-9), { date: now, price, source: "scraped_rd", confidence: "medium" }],
           };
         });
-        // Match OOS scraped names to RD item IDs using simple word-overlap scoring
         const oosIds = [];
         if (result.oosNames && result.oosNames.length > 0) {
           log("RD: matching OOS names: " + JSON.stringify(result.oosNames));
@@ -1988,26 +1548,19 @@ async function runScrape(source = "all") {
             RD_ITEMS.forEach(item => {
               const iLower = item.name.toLowerCase();
               let score = 0;
-              // Word overlap scoring
               iLower.split(" ").forEach(w => { if (w.length > 3 && oosLower.includes(w)) score += w.length; });
               oosLower.split(" ").forEach(w => { if (w.length > 3 && iLower.includes(w)) score += w.length; });
               if (score > bestScore) { bestScore = score; bestId = item.id; }
             });
-            if (bestId && bestScore >= 4) {
-              oosIds.push(bestId);
-              log("RD: OOS matched '" + oosName + "' → " + bestId + " (score=" + bestScore + ")");
-            } else {
-              log("RD: OOS no match for '" + oosName + "' (best score=" + bestScore + ")");
-            }
+            if (bestId && bestScore >= 4) { oosIds.push(bestId); log("RD: OOS matched '" + oosName + "' → " + bestId + " (score=" + bestScore + ")"); }
+            else { log("RD: OOS no match for '" + oosName + "' (best score=" + bestScore + ")"); }
           });
         }
         if (!priceStore.oos) priceStore.oos = { rd: [], sysco: [] };
         priceStore.oos.rd = oosIds;
-        if (oosIds.length) log("RD: ✅ out-of-stock IDs stored: " + oosIds.join(", "));
-        else log("RD: no out-of-stock items matched");
+        log("RD: ✅ out-of-stock IDs: " + (oosIds.length ? oosIds.join(", ") : "none"));
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
         savePrices();
-        // AI price validation — runs async, flags suspicious price changes
         validatePricesWithAI("rd").catch(e => log("Price validation error: " + e.message));
       } else { log("❌ RD: " + (result.error || "no items")); }
     } catch(e) { log("❌ RD: " + e.message); }
@@ -2018,19 +1571,15 @@ async function runScrape(source = "all") {
       const result = await withTimeout(scrapeSysco(), 300000, "Sysco");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
-        // Health check
         const scHealth = await checkScraperHealth("sysco", result.items.length, matched.length);
         if (!scHealth.healthy && scHealth.action === "keep_yesterday") {
-          log("🛡️ Health guard: partial Sysco scrape (" + matched.length + "/" + scHealth.expectedItems + ") — merging confirmed prices, keeping yesterday for the rest");
-          // Apply today's confirmed prices on top of yesterday's — don't fully discard partial scrape
+          log("🛡️ Health guard: partial Sysco scrape (" + matched.length + "/" + scHealth.expectedItems + ") — merging confirmed prices");
           matched.forEach(({ id, price }) => {
             if (!id || price <= 0) return;
             let adjP = price;
             if (id === "7102961" && price < 20) adjP = Math.round(price*10*100)/100;
-            const syscoMin = SYSCO_PRICE_MIN[id];
-            if (syscoMin && adjP < syscoMin) return;
-            const syscoMax = SYSCO_PRICE_MAX[id];
-            if (syscoMax && adjP > syscoMax) return;
+            const syscoMin = SYSCO_PRICE_MIN[id]; if (syscoMin && adjP < syscoMin) return;
+            const syscoMax = SYSCO_PRICE_MAX[id]; if (syscoMax && adjP > syscoMax) return;
             priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
             const mapping = SYSCO_TO_RD[id];
             if (mapping) {
@@ -2039,17 +1588,10 @@ async function runScrape(source = "all") {
               priceStore.sysco[rdId] = { price: adjP * (mapping.rdMult || 1), date: new Date().toISOString(), syscoUpc: id, partialScrape: true };
             }
           });
-          // Mark remaining (non-updated) prices as stale
           const updatedIds = new Set(matched.map(m => m.id));
-          Object.keys(priceStore.sysco).forEach(id => {
-            if (!updatedIds.has(id) && priceStore.sysco[id]) {
-              priceStore.sysco[id].stale = true;
-              priceStore.sysco[id].staleReason = scHealth.reason;
-            }
-          });
+          Object.keys(priceStore.sysco).forEach(id => { if (!updatedIds.has(id) && priceStore.sysco[id]) { priceStore.sysco[id].stale = true; priceStore.sysco[id].staleReason = scHealth.reason; } });
           savePrices();
           log("🛡️ Health guard: applied " + matched.length + " confirmed prices, marked rest as stale");
-          log("🤖 Scraper health decision [sysco]: " + scHealth.action + " — " + scHealth.reason + " (severity: " + scHealth.severity + ")");
           return;
         }
         let savedCount = 0;
@@ -2057,65 +1599,39 @@ async function runScrape(source = "all") {
           if (!id || price <= 0) return;
           let adjP = price;
           if (id === "7102961" && price < 20) { adjP = Math.round(price*10*100)/100; log("Sysco: Paneer $"+price+"/lb x 10lb = $"+adjP); }
-          // Reject prices below known minimums — catches per-pack prices stored as case prices
           const syscoMin = SYSCO_PRICE_MIN[id];
-          if (syscoMin && adjP < syscoMin) {
-            log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (min expected $" + syscoMin + ") — likely per-pack not case price");
-            return;
-          }
+          if (syscoMin && adjP < syscoMin) { log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (min $" + syscoMin + ")"); return; }
           const syscoMax = SYSCO_PRICE_MAX[id];
-          if (syscoMax && adjP > syscoMax) {
-            log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (max expected $" + syscoMax + ") — likely wrong product from search");
-            return;
-          }
+          if (syscoMax && adjP > syscoMax) { log("Sysco: ⚠️ Skipping bad price for " + id + ": $" + adjP + " (max $" + syscoMax + ")"); return; }
           priceStore.sysco[id] = { price: adjP, date: new Date().toISOString() };
-          // ALSO save under RD equivalent ID for cross-vendor comparison
           const mapping = SYSCO_TO_RD[id];
           if (mapping) {
             const rdId = mapping.rdId || mapping;
-            if (!rdId || typeof rdId !== "string") return; // rdId: null = intentionally blocked (e.g. Chicken Thighs)
-            const rdMult = mapping.rdMult || 1;
-            const nowSc = new Date().toISOString();
-            const prevSc = priceStore.sysco[rdId];
+            if (!rdId || typeof rdId !== "string") return;
+            const rdMult = mapping.rdMult || 1, nowSc = new Date().toISOString(), prevSc = priceStore.sysco[rdId];
             priceStore.sysco[rdId] = {
-              price: adjP,  // use adjusted price (e.g. Paneer per-lb × 10 = case price)
-              date: nowSc,
-              syscoUpc: id,
-              rdMult,
-              confidence: "medium",
-              source: "scraped_sysco",
-              scrapedAt: nowSc,
-              prevPrice: prevSc?.price || null,
-              validatedBy: null,
-              auditLog: [
-                ...(prevSc?.auditLog || []).slice(-9),
-                { date: nowSc, price: adjP, source: "scraped_sysco", confidence: "medium" }
-              ],
+              price: adjP, date: nowSc, syscoUpc: id, rdMult, confidence: "medium", source: "scraped_sysco", scrapedAt: nowSc,
+              prevPrice: prevSc?.price || null, validatedBy: null,
+              auditLog: [...(prevSc?.auditLog || []).slice(-9), { date: nowSc, price: adjP, source: "scraped_sysco", confidence: "medium" }],
             };
           }
           savedCount++;
         });
-        // Build / expand cross-vendor map for any unmapped Sysco items
         await buildCrossVendorMap(matched, []);
-
-        // Re-apply cross-vendor links now that map may have grown
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
           const mapping = SYSCO_TO_RD[id];
           if (mapping) {
             const rdId = mapping.rdId || mapping;
-            if (!rdId || typeof rdId !== "string") return; // blocked item
+            if (!rdId || typeof rdId !== "string") return;
             if (!priceStore.sysco[rdId]) {
-              // Use adjusted price (handles per-lb items like Paneer)
               let reAdjP = price;
               if (id === "7102961" && price < 20) reAdjP = Math.round(price*10*100)/100;
               priceStore.sysco[rdId] = { price: reAdjP, date: new Date().toISOString(), syscoUpc: id, rdMult: mapping.rdMult || 1 };
             }
           }
         });
-
-        log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw). Mapped: " +
-          matched.filter(m => { const mp = SYSCO_TO_RD[m.id]; return mp && (mp.rdId || mp) && typeof (mp.rdId || mp) === "string"; }).map(m => { const mp = SYSCO_TO_RD[m.id]; return m.id + "→" + (mp.rdId || mp) + (mp.rdMult > 1 ? "(×"+mp.rdMult+")" : ""); }).join(", "));
+        log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw)");
         savePrices();
         validatePricesWithAI("sysco").catch(e => log("Sysco price validation error: " + e.message));
       } else { log("❌ Sysco: " + (result.error || "no items")); }
@@ -2123,26 +1639,14 @@ async function runScrape(source = "all") {
   }
   priceStore.lastUpdated = new Date().toISOString();
   savePrices();
-  recordHistory(); // record today's prices to history
-
-  // Run cross-vendor validation only on full scrapes (both vendors)
-  if (source === "all") {
-    crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
-  }
-
-  // Backup everything to GitHub after each full scrape
+  recordHistory();
+  if (source === "all") crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
   backupToGitHub().catch(e => log("Backup error: " + e.message));
 }
 
-// ── API routes ────────────────────────────────────────────────────────────────
-// New items discovered by AI during scraping — review before adding
-app.get("/api/discovered", (req, res) => res.json(priceStore.discovered || []));
-
-// ── Item Knowledge Base ──────────────────────────────────────────────────────
-// Stores full product details scraped from vendor product pages
-// Built by Claude reading actual product pages — not manually entered
+// ── Item Knowledge Base ───────────────────────────────────────────────────────
 const ITEM_KB_FILE = "/data/nc_item_knowledge.json";
-let itemKnowledge = {}; // { rdId: { rd: {...}, sysco: {...}, synthesized: {...}, lastUpdated } }
+let itemKnowledge = {};
 
 function loadItemKnowledge() {
   try {
@@ -2160,105 +1664,85 @@ function saveItemKnowledge() {
 }
 
 function patchItemKnowledge() {
-  // SOURCE OF TRUTH — cross-referenced with confirmed Nick List PDF + RD order guide + order CSVs
-  // Format: [rdTotal, rdCaseContents, unit, syscoTotal, syscoCaseContents]
+  // SOURCE OF TRUTH — verified against Nick List PDF + RD order guide + order CSVs
+  // [rdTotal, rdCaseContents, unit, syscoTotal, syscoCaseContents]
   const P = {
-    // ── Chicken (all 40lb cases confirmed) ──────────────────────────────────────
-    "77200":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Wings 4/10LB ✓
-    "77232":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Breast 4/10LB ✓ (was 20 — FIXED)
-    "77658":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Leg Meat 4/10LB ✓
-    "77670":  [40, "1 x 40 lb case",           "lb", 40, "1 x 40 lb case"],           // Chicken LQ — Sysco 4418117 1/40LB ✓
-    "77682":  [40, "1 x 40 lb case",           "lb", 40, "4 x 10 lb bags (40 lb)"],  // Chicken Thighs (blocked)
-    // ── Produce ─────────────────────────────────────────────────────────────────
-    "42545":  [50, "1 x 50 lb bag",            "lb", 50, "1 x 50 lb bag"],            // Yellow Onion 1/50LB ✓
-    "42658":  [25, "1 x 25 lb bag",            "lb", 25, "1 x 25 lb bag"],            // Red Onion 1/25LB ✓
-    "42725":  [50, "1 x 50 lb bag",            "lb", 50, "1 x 50 lb bag"],            // Russet Potato 1/50LB ✓
-    "44146":  [30, "6 x 5 lb bags (30 lb)",    "lb", 20, "4 x 5 lb bags (20 lb)"],   // Peeled Garlic — DIFF SIZES ✓
-    "42513":  [30, "1 x 30 lb bulk case",      "lb", 30, "1 x 30 lb bag"],            // Ginger 1/30LB ✓
-    "42606":  [12, "12-head case",             "each", 12, "12 x 1 head cello wrapped"], // Cauliflower 12/1EA ✓
-    "42570":  [115,"1 x 115 count case",       "each",115, "1 x 115 count"],          // Lemons 1/115CT ✓
-    "79152":  [10, "1 x 10 lb bag",            "lb", 10, "1 x 10 lb bag"],            // Carrots 1/10LB ✓
-    "44137":  [40, "1 x 40 lb box",            "lb", 40, "1 x 40 lb case"],           // Serrano 1/40LB ✓
-    "40138":  [16, "4 x 4 lb bunches (16 lb)", "lb",  2, "1 x 2 lb split (EA)"],      // Green Onions — Sysco split $6.89 EA
-    "42706":  [ 5, "1 x 5 lb bag",            "lb", 23.5,"1 x 22-25 lb case"],        // Green Bell Pepper ✓
-    "44211":  [10, "4 x 2.5 lb bags (10 lb)", "lb",  4, "1 x 4 lb bag"],              // Fresh Spinach — DIFF SIZES ✓
-    "42566":  [null,"RD case",                 "lb",  4, "4 x 1 lb bunches"],          // Cilantro 4/1LB (2219095) ✓
-    "42647":  [ 1, "1 x 1 lb package",         "lb",  1, "1 x 1 lb package"],          // Mint 1/1LB ✓
-    "42504":  [ 6, "1 x 6ct pack",            "each", 5, "1 x 5 lb pack"],            // Cucumbers — FIXED sysco 8→5 (1/5LB)
-    // ── Dairy ───────────────────────────────────────────────────────────────────
-    "1530438":[384,"6 x 64 oz jugs (384 oz)",  "oz",384,"12 x 32 oz bottles (384 oz)"],// Heavy Cream 12/32OZ ✓
-    "370496": [512,"4 x 1 gallon jugs (512 oz)","oz",512,"4 x 1 gallon jugs (512 oz)"],// Whole Milk 4/1GAL ✓
-    "1440203":[ 20,"4 x 5 lb bags (20 lb)",    "lb", 20,"4 x 5 lb bags (20 lb)"],     // Cheddar Jack 4/5LB ✓
-    "1440528":[ 20,"4 x 5 lb loaves (20 lb)",  "lb", 10,"2 x 5 lb blocks (10 lb)"],   // Paneer — DIFF SIZES ✓
-    "14785":  [ 32,"1 x 32 lb container",       "lb",null,null],                       // Yogurt (RD only)
-    // ── Oils & Liquids ───────────────────────────────────────────────────────────
-    "1020077":[ 35,"1 x 35 lb jug",            "lb", 35,"1 x 35 lb jug"],             // Fryer Oil 1/35LB ✓
-    "1020075":[ 35,"1 x 35 lb container",       "lb", 35,"1 x 35 lb container"],       // Soybean Oil 1/35LB ✓
-    "1020152":[384,"3 x 1 gallon jugs (384 oz)","oz",384,"3 x 1 gallon jugs (384 oz)"],// Liquid Butter 3/1GAL ✓
-    "55523":  [512,"4 x 1 gallon jugs (512 oz)","oz",384,"6 x 0.5 gallon jugs (384 oz)"],// Lemon Juice — DIFF SIZES ✓
-    "45900":  [512,"4 x 1 gallon jugs (512 oz)","oz",512,"4 x 1 gallon jugs (512 oz)"],// White Vinegar 4/1GAL ✓
-    "12728":  [102,"6 x 17 oz cans (102 oz)",  "oz", 84,"6 x 14 oz cans (84 oz)"],    // Pan Spray — DIFF SIZES ✓
-    "2550012":[  4,"4 x 1 gallon jugs",       "gallon",4,"4 x 1 gallon jugs"],         // Egg Yellow Color 4/1GAL ✓
-    "2620442":[4800,"12 x 400 ml cans",         "ml",9720,"24 x 13.5 oz cans"],        // Coconut Milk — DIFF SIZES ✓
-    "13417":  [408,"3 x 136 oz containers",    "oz",408,"3 x 136 oz containers"],      // Sambal 3/136OZ ✓
-    "21039":  [12000,"24 x 500 ml bottles",    "ml",12000,"24 x 500 ml bottles"],      // Water 24/500ML ✓
-    // ── Dry / Pantry ─────────────────────────────────────────────────────────────
-    "21051":  [ 25,"1 x 25 lb bag",            "lb", 25,"1 x 25 lb bag"],             // Sugar 1/25LB ✓
-    "1070496":[ 50,"1 x 50 lb bag",            "lb", 50,"1 x 50 lb bag"],             // Salt 1/50LB ✓
-    "2061212":[ 25,"1 x 25 lb bag",            "lb", 25,"1 x 25 lb bag"],             // All Purpose Flour 1/25LB ✓
-    "53556":  [ 40,"2 x 20 lb bags (40 lb)",   "lb", 50,"1 x 50 lb bag"],             // Roti Atta — DIFF SIZES ✓
-    "2910159":[  3,"1 x 3 lb box",             "lb", 24,"24 x 1 lb boxes"],            // Cornstarch — DIFF SIZES ✓
-    "29268":  [ 30,"6 x 5 lb cans",            "lb", 30,"6 x 5 lb cans (30 lb)"],     // Baking Powder 6/5LB ✓
-    "16200":  [ 54,"6 x #10 cans",             "lb", 54,"6 x #10 cans"],              // Garbanzo Beans ✓
-    "69810":  [ 60,"6 x #10 cans",             "lb", 60,"6 x #10 cans"],              // Kidney Beans ✓
-    "860135": [102,"6 x #10 cans",             "oz",102,"6 x #10 cans"],              // Petite Diced Tomato ✓
-    "860043": [  6,"6 x #10 cans",            "each",  6,"6 x #10 cans"],             // Tomato Puree ✓
-    "860044": [  6,"6 x #10 cans",            "each",  6,"6 x #10 cans"],             // Tomato Sauce 4978884 ✓
-    "2010066":[684,"6 x 114 oz jugs",          "oz",684,"6 x 114 oz jugs"],            // Ketchup 6/114OZ ✓
-    "490266": [ 40,"1 x 40 lb bag",            "lb",null,null],                        // Basmati Rice (RD only)
-    // ── Frozen / Seafood ─────────────────────────────────────────────────────────
-    "86525":  [ 2.5,"1 x 2.5 lb bag",          "lb", 30,"12 x 2.5 lb bags (30 lb)"],  // Peas — DIFF SIZES ✓
-    "64120":  [  2,"1 x 2 lb bag",             "lb", 24,"12 x 2 lb bags (24 lb)"],    // Broccoli — DIFF SIZES ✓
-    "64046":  [  3,"1 x 3 lb bag",             "lb", 36,"12 x 3 lb bags (36 lb)"],    // Frozen Spinach — FIXED rdT 36→3 ✓
-    "86527":  [ 2.5,"1 x 2.5 lb bag",          "lb", 30,"1 x 30 lb bag"],             // 4-Way Mix — FIXED rdT 25→2.5 ✓
-    "51457":  [ 10,"1 x 10 lb box",            "lb", 10,"2 x 5 lb boxes (10 lb)"],    // Tilapia 2/5LB ✓
-    "40212":  [ 10,"1 x 10 lb box",            "lb", 10,"4 x 2.5 lb bags (10 lb)"],   // Shrimp 4/2.5LB ✓
-    // ── RD-only items ────────────────────────────────────────────────────────────
-    "1810019":[ 15,"1 x 15 lb box",            "lb",null,null],                        // Goat Cubes
-    "79042":  [ 42,"variable weight ~42 lb",   "lb",null,null],                        // Lamb Leg Boneless
-    "440038": [ 24,"24 x 16.9 oz bottles",     "oz",null,null],                        // Coca-Cola
-    "50103":  [ 30,"3 trays x 10 rolls",       "roll",null,null],                      // Printer Paper
+    "77200":  [40,  "1 x 40 lb case",           "lb",  40,   "4 x 10 lb bags (40 lb)"],
+    "77232":  [40,  "1 x 40 lb case",           "lb",  40,   "4 x 10 lb bags (40 lb)"],
+    "77658":  [40,  "1 x 40 lb case",           "lb",  40,   "4 x 10 lb bags (40 lb)"],
+    "77670":  [40,  "1 x 40 lb case",           "lb",  40,   "1 x 40 lb case"],
+    "77682":  [40,  "1 x 40 lb case",           "lb",  40,   "4 x 10 lb bags (40 lb)"],
+    "42545":  [50,  "1 x 50 lb bag",            "lb",  50,   "1 x 50 lb bag"],
+    "42658":  [25,  "1 x 25 lb bag",            "lb",  25,   "1 x 25 lb bag"],
+    "42725":  [50,  "1 x 50 lb bag",            "lb",  50,   "1 x 50 lb bag"],
+    "44146":  [30,  "6 x 5 lb bags (30 lb)",    "lb",  20,   "4 x 5 lb bags (20 lb)"],
+    "42513":  [30,  "1 x 30 lb bulk case",      "lb",  30,   "1 x 30 lb bag"],
+    "42606":  [12,  "12-head case",             "head",12,   "12 x 1 head cello wrapped"],
+    "42570":  [115, "1 x 115 count case",       "each",115,  "1 x 115 count"],
+    "79152":  [10,  "1 x 10 lb bag",            "lb",  10,   "1 x 10 lb bag"],
+    "44137":  [40,  "1 x 40 lb box",            "lb",  40,   "1 x 40 lb case"],
+    "40138":  [16,  "4 x 4 lb bunches (16 lb)", "lb",  2,    "1 x 2 lb split (EA)"],
+    "42706":  [5,   "1 x 5 lb bag",             "lb",  23.5, "1 x 22-25 lb case"],
+    "44211":  [10,  "4 x 2.5 lb bags (10 lb)",  "lb",  4,    "1 x 4 lb bag"],
+    "42566":  [null,"RD case",                  "lb",  4,    "4 x 1 lb bunches"],
+    "42647":  [1,   "1 x 1 lb package",         "lb",  1,    "1 x 1 lb package"],
+    "42504":  [6,   "1 x 6ct pack",             "each",8,    "1 x 5 lb pack (~8ct est)"],
+    "1530438":[384, "6 x 64 oz jugs (384 oz)",  "oz",  384,  "12 x 32 oz bottles (384 oz)"],
+    "370496": [512, "4 x 1 gallon (512 oz)",    "oz",  512,  "4 x 1 gallon (512 oz)"],
+    "1440203":[20,  "4 x 5 lb bags (20 lb)",    "lb",  20,   "4 x 5 lb bags (20 lb)"],
+    "1440528":[20,  "4 x 5 lb loaves (20 lb)",  "lb",  10,   "2 x 5 lb blocks (10 lb)"],
+    "14785":  [32,  "1 x 32 lb container",      "lb",  null, null],
+    "1020077":[35,  "1 x 35 lb jug",            "lb",  35,   "1 x 35 lb jug"],
+    "1020075":[35,  "1 x 35 lb container",      "lb",  35,   "1 x 35 lb container"],
+    "1020152":[384, "3 x 1 gallon (384 oz)",    "oz",  384,  "3 x 1 gallon (384 oz)"],
+    "55523":  [512, "4 x 1 gallon (512 oz)",    "oz",  384,  "6 x 0.5 gallon (384 oz)"],
+    "12728":  [102, "6 x 17 oz cans (102 oz)",  "oz",  84,   "6 x 14 oz cans (84 oz)"],
+    "2550012":[4,   "4 x 1 gallon jugs",        "gallon",4,  "4 x 1 gallon jugs"],
+    "2620442":[4800,"12 x 400 ml cans",         "ml",  9720, "24 x 13.5 oz cans"],
+    "13417":  [408, "3 x 136 oz containers",    "oz",  408,  "3 x 136 oz containers"],
+    "21039":  [12000,"24 x 500 ml bottles",     "ml",  12000,"24 x 500 ml bottles"],
+    "21051":  [25,  "1 x 25 lb bag",            "lb",  25,   "1 x 25 lb bag"],
+    "1070496":[50,  "1 x 50 lb bag",            "lb",  50,   "1 x 50 lb bag"],
+    "2061212":[25,  "1 x 25 lb bag",            "lb",  25,   "1 x 25 lb bag"],
+    "53556":  [40,  "2 x 20 lb bags (40 lb)",   "lb",  50,   "1 x 50 lb bag"],
+    "2910159":[3,   "1 x 3 lb box",             "lb",  24,   "24 x 1 lb boxes"],
+    "29268":  [30,  "6 x 5 lb cans (30 lb)",    "lb",  30,   "6 x 5 lb cans (30 lb)"],
+    "16200":  [54,  "6 x #10 cans",             "lb",  54,   "6 x #10 cans"],
+    "69810":  [60,  "6 x #10 cans",             "lb",  60,   "6 x #10 cans"],
+    "860135": [6,   "6 x #10 cans",             "can", 6,    "6 x #10 cans"],
+    "860043": [6,   "6 x #10 cans",             "can", 6,    "6 x #10 cans"],
+    "860044": [6,   "6 x #10 cans",             "can", 6,    "6 x #10 cans"],
+    "2010066":[684, "6 x 114 oz jugs (684 oz)", "oz",  684,  "6 x 114 oz jugs (684 oz)"],
+    "490266": [40,  "1 x 40 lb bag",            "lb",  null, null],
+    "86525":  [2.5, "1 x 2.5 lb bag",           "lb",  30,   "12 x 2.5 lb bags (30 lb)"],
+    "64120":  [2,   "1 x 2 lb bag",             "lb",  24,   "12 x 2 lb bags (24 lb)"],
+    "64046":  [3,   "1 x 3 lb bag",             "lb",  36,   "12 x 3 lb bags (36 lb)"],
+    "86527":  [2.5, "1 x 2.5 lb bag",           "lb",  30,   "1 x 30 lb bag"],
+    "51457":  [10,  "1 x 10 lb box",            "lb",  10,   "2 x 5 lb boxes (10 lb)"],
+    "40212":  [10,  "1 x 10 lb box",            "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
+    "1810019":[15,  "1 x 15 lb box",            "lb",  null, null],
+    "79042":  [42,  "~42 lb variable weight",   "lb",  null, null],
+    "45900":  [512, "4 x 1 gallon (512 oz)",    "oz",  512,  "4 x 1 gallon (512 oz)"],
+    "2550014":[4,   "4 x 1 gallon jugs",        "gallon",null,null],
   };
+
   let n = 0;
   Object.entries(P).forEach(([id, [rdT,rdC,u,scT,scC]]) => {
-    if (!itemKnowledge[id]) {
-      itemKnowledge[id] = { rd:{}, sysco:scT!=null?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
-    }
-    // Force-overwrite — patch values always win over file/AI-builder data
+    if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:scT!=null?{}:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
     if (!itemKnowledge[id].rd) itemKnowledge[id].rd = {};
-    if (rdT != null) {
-      itemKnowledge[id].rd.totalUnits    = rdT;
-      itemKnowledge[id].rd.caseContents  = rdC;
-      itemKnowledge[id].rd.unitOfMeasure = u;
-    }
+    if (rdT != null) { itemKnowledge[id].rd.totalUnits = rdT; itemKnowledge[id].rd.caseContents = rdC; itemKnowledge[id].rd.unitOfMeasure = u; }
     if (scT != null) {
       if (!itemKnowledge[id].sysco) itemKnowledge[id].sysco = {};
-      itemKnowledge[id].sysco.totalUnits    = scT;
-      itemKnowledge[id].sysco.caseContents  = scC;
-      itemKnowledge[id].sysco.unitOfMeasure = u;
+      itemKnowledge[id].sysco.totalUnits = scT; itemKnowledge[id].sysco.caseContents = scC; itemKnowledge[id].sysco.unitOfMeasure = u;
     }
     if (!itemKnowledge[id].comparison) itemKnowledge[id].comparison = {};
-    itemKnowledge[id].comparison.rdTotalUnits    = rdT;
+    itemKnowledge[id].comparison.rdTotalUnits = rdT;
     itemKnowledge[id].comparison.syscoTotalUnits = scT;
-    itemKnowledge[id].comparison.unitOfMeasure   = u;
+    itemKnowledge[id].comparison.unitOfMeasure = u;
     n++;
   });
 
-  // Hardcoded bin locations — confirmed from RD site, never overwritten by AI
-  const BINS = {
-    "77670": "6026",  // Chicken Leg Quarters — confirmed from RD product page
-    "77658": "6026",  // Chicken Leg Meat — same bin area
-  };
+  const BINS = { "77670": "6026", "77658": "6026" };
   Object.entries(BINS).forEach(([id, bin]) => {
     if (!itemKnowledge[id]) itemKnowledge[id] = { rd:{}, sysco:null, comparison:{}, rdItemId:id, lastUpdated:new Date().toISOString() };
     if (!itemKnowledge[id].rd) itemKnowledge[id].rd = {};
@@ -2269,113 +1753,6 @@ function patchItemKnowledge() {
 }
 
 loadItemKnowledge();
-
-// Scrape RD product page for a single item
-async function scrapeRDProductPage(browser, itemId) {
-  const url = "https://member.restaurantdepot.com/store/business/product-detail/" + itemId;
-  let page;
-  try {
-    page = await browser.newPage();
-    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 2000));
-    const text = await page.evaluate(() => document.body.innerText);
-    return { url, text: text.slice(0, 3000), success: true };
-  } catch(e) {
-    return { url, error: e.message, success: false };
-  } finally {
-    if (page) await page.close();
-  }
-}
-
-// Scrape Sysco product page for a single item
-async function scrapesSyscoProductPage(browser, syscoUpc) {
-  const url = "https://shop.sysco.com/app/catalog/search?query=" + syscoUpc;
-  let page;
-  try {
-    page = await browser.newPage();
-    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36");
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
-    await new Promise(r => setTimeout(r, 3000));
-    const text = await page.evaluate(() => document.body.innerText);
-    return { url, text: text.slice(0, 3000), success: true };
-  } catch(e) {
-    return { url, error: e.message, success: false };
-  } finally {
-    if (page) await page.close();
-  }
-}
-
-// Use Claude to extract and synthesize product knowledge from page text
-async function synthesizeItemKnowledge(itemId, rdItemName, rdPageText, syscoItemName, syscoPageText) {
-  const prompt = `You are building a product knowledge base for a restaurant purchasing system.
-
-Extract detailed product information from these vendor page texts.
-
-ITEM: ${rdItemName}
-RD Item ID: ${itemId}
-
-RESTAURANT DEPOT PAGE TEXT:
-${rdPageText || "Not available"}
-
-SYSCO PAGE TEXT:
-${syscoPageText || "Not available"}
-
-Extract ALL of the following information. Be precise — this will be used for purchasing decisions.
-
-Return ONLY JSON:
-{
-  "rd": {
-    "itemId": "${itemId}",
-    "name": "exact product name from RD",
-    "brand": "brand name",
-    "packSize": "e.g. 1 case / 6 cans / 40 lbs",
-    "caseContents": "what exactly comes in one case (e.g. 6 cans × 17 oz each)",
-    "totalWeight": "total weight or volume in case (e.g. 102 oz total / 40 lb)",
-    "unitOfMeasure": "lb|oz|ml|each|gallon",
-    "totalUnits": 0,
-    "pricePerUnit": 0.00,
-    "upc": "UPC if visible",
-    "binLocation": "bin number if visible",
-    "category": "product category"
-  },
-  "sysco": {
-    "upc": "Sysco UPC",
-    "name": "exact product name from Sysco",
-    "brand": "brand name",
-    "packSize": "e.g. 4/10 LB",
-    "caseContents": "what exactly comes in one case",
-    "totalWeight": "total weight or volume",
-    "unitOfMeasure": "lb|oz|ml|each|gallon",
-    "totalUnits": 0
-  },
-  "comparison": {
-    "sameProduct": true,
-    "rdTotalUnits": 0,
-    "syscoTotalUnits": 0,
-    "unitOfMeasure": "lb|oz|ml|each",
-    "rdPricePerUnit": null,
-    "syscoPricePerUnit": null,
-    "cheaperVendor": "rd|sysco|same|unknown",
-    "notes": "any important differences in quality, brand, or specification"
-  }
-}`;
-
-  try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
-    });
-    const data = await r.json();
-    const txt = data.content?.find(b => b.type === "text")?.text || "{}";
-    const m = txt.match(/\{[\s\S]*\}/);
-    return m ? JSON.parse(m[0]) : null;
-  } catch(e) {
-    log("Item KB synthesis error for " + itemId + ": " + e.message);
-    return null;
-  }
-}
 
 async function buildItemKnowledgeBase(forceRefresh = false) {
   const needsUpdate = [];
@@ -2393,8 +1770,6 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       const syscoUpc = syscoEntry?.[0];
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       const rdE = priceStore.rd[rdItem.id];
-      const rdCtx2 = rdE?.scrapedCtx || "";
-      const rdRaw = rdE?.rawScraped || "";
       const rdPrice = rdE?.price || null;
       let rdPage = "";
       try {
@@ -2402,8 +1777,7 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
         if (rr.ok) rdPage = (await rr.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 1500);
       } catch(e) {}
       const sysLine = syscoItem ? "Sysco: " + syscoItem.name + " | UPC: " + syscoUpc + " | Pack: " + syscoItem.pack : "No Sysco equivalent";
-      const ctxLine = rdCtx2 ? "RD page context: " + rdCtx2 : "";
-      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD: " + rdItem.id + ")" + (rdPrice ? "\nPrice: $" + rdPrice : "") + (rdRaw ? "\nFormat: " + rdRaw : "") + (ctxLine ? "\n" + ctxLine : "") + (rdPage ? "\nPage: " + rdPage : "") + "\n" + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\"" + rdItem.name + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\"" + syscoItem.name + "\",\"pack\":\"" + syscoItem.pack + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
+      const prompt = "Build wholesale grocery product knowledge for Naan & Curry Las Vegas.\nITEM: " + rdItem.name + " (RD: " + rdItem.id + ")" + (rdPrice ? "\nPrice: $" + rdPrice : "") + (rdPage ? "\nPage: " + rdPage.slice(0,500) : "") + "\n" + sysLine + "\nReturn ONLY JSON: {\"rd\":{\"name\":\"" + rdItem.name + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\",\"binLocation\":\"\"},\"sysco\":" + (syscoItem ? "{\"name\":\"" + syscoItem.name + "\",\"pack\":\"" + syscoItem.pack + "\",\"caseContents\":\"exact\",\"totalUnits\":0,\"unitOfMeasure\":\"lb\"}" : "null") + ",\"comparison\":{\"rdTotalUnits\":0,\"syscoTotalUnits\":0,\"unitOfMeasure\":\"lb\",\"sameProduct\":true,\"notes\":\"\"}}";
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
@@ -2421,15 +1795,14 @@ async function buildItemKnowledgeBase(forceRefresh = false) {
       await new Promise(res => setTimeout(res, 600));
     } catch(e) { log("Item KB error " + rdItem.name + ": " + e.message); }
   }
-  saveItemKnowledge(); patchItemKnowledge();
+  saveItemKnowledge();
+  patchItemKnowledge(); // always re-apply verified facts after AI build
   log("Item KB complete: " + processed + "/" + needsUpdate.length);
   backupItemKnowledgeToGitHub().catch(e => log("KB backup error: " + e.message));
 }
 
-// Backup item knowledge to GitHub
 async function backupItemKnowledgeToGitHub() {
-  const token = process.env.GITHUB_TOKEN;
-  const repo  = process.env.GITHUB_REPO;
+  const token = process.env.GITHUB_TOKEN, repo = process.env.GITHUB_REPO;
   if (!token || !repo) return;
   try {
     const encoded = Buffer.from(JSON.stringify(itemKnowledge, null, 2)).toString("base64");
@@ -2438,125 +1811,142 @@ async function backupItemKnowledgeToGitHub() {
   } catch(e) { log("Item KB GitHub error: " + e.message); }
 }
 
-// ── Pack size reference data ──────────────────────────────────────────────────
+// ── PACK_SIZES — single source of truth for unit price comparisons ─────────────
+// Every entry hand-verified against Nick List PDF + RD order guide + order CSVs.
+// The /api/unit-compare endpoint uses this EXCLUSIVELY — no AI division, no KB fallback
+// for any tracked item. Math is done server-side: price / total = per-unit.
+//
+// Keys are always the RD Item ID (even when looking up Sysco price stored under RD ID).
+// rdTotal / syscoTotal are the TOTAL UNITS IN ONE CASE in the given unit.
+// "unit" is what rdTotal and syscoTotal are measured in.
+//
+// DIFF SIZES = vendors sell different total quantities → per-unit math required before comparing.
+// Same total = case price is directly comparable, but per-unit still shown for reference.
 const PACK_SIZES = {
-  // rdId: { rd: "pack description", sysco: "pack description", rdTotal: total_units, syscoTotal: total_units, unit: "lb|oz|ml|each" }
-  "42545":  { rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",          rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
-  "1530438":{ rd: "6 × 64 oz jugs",          sysco: "12 × 32 oz bottles",      rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
-  "370496": { rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon",           rdTotal: 512,   syscoTotal: 512,   unit: "oz"   },
-  "1020152":{ rd: "3 × 1 gallon jugs",        sysco: "3 × 1 gallon",           rdTotal: 384,   syscoTotal: 384,   unit: "oz"   },
-  "55523":  { rd: "4 × 1 gallon jugs",        sysco: "6 × 0.5 gallon jugs",    rdTotal: 512,   syscoTotal: 384,   unit: "oz"   },
-  "86525":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",       rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  "2620442":{ rd: "12 × 400ml cans",         sysco: "24 × 13.5 oz cans",      rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"   },
-  "45900":  { rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon",           rdTotal: 512,   syscoTotal: 512,   unit: "oz"   },
-  "64120":  { rd: "1 × 2 lb bag",            sysco: "12 × 2 lb bags",         rdTotal: 2,     syscoTotal: 24,    unit: "lb"   },
-  "64046":  { rd: "1 × 3 lb bag",            sysco: "12 × 3 lb bags",         rdTotal: 3,     syscoTotal: 36,    unit: "lb"   },
-  "44211":  { rd: "4 × 2.5 lb bags (10 lb)", sysco: "1 × 4 lb bag",           rdTotal: 10,    syscoTotal: 4,     unit: "lb"   },
-  "40138":  { rd: "4 × 4 lb bunches (16 lb)", sysco: "1 × 2 lb split (EA)",    rdTotal: 16,    syscoTotal: 2,     unit: "lb"   }, // Sysco split $6.89 EA MARKET; RD case $29.77/16lb
-  "42504":  { rd: "1 × 6ct pack",            sysco: "1 × 5 lb pack",           rdTotal: 6,     syscoTotal: 8,     unit: "each" },
-  "42706":  { rd: "1 × 5 lb bag",            sysco: "1 × 22-25 lb case",       rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"   },
-  "2010066":{ rd: "6 × 114 oz jugs",         sysco: "6 × 114 oz jugs",         rdTotal: 684,   syscoTotal: 684,   unit: "oz"   },
-  "860043": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  },
-  "860044": { rd: "6 × #10 cans",            sysco: "6 × #10 cans",            rdTotal: 6,     syscoTotal: 6,     unit: "can"  }, // Tomato Sauce — Sysco 4978884 $26.88 confirmed
-  "42606":  { rd: "12-head case",            sysco: "12 × 1 head",             rdTotal: 12,    syscoTotal: 12,    unit: "head" }, // Cauliflower — Sysco 12/1EA confirmed
-  "42566":  { rd: "1 case",                  sysco: "4 × 1 lb bunches",        rdTotal: null,  syscoTotal: 4,     unit: "lb"   }, // Cilantro — Sysco 2219095 4/1LB confirmed $21.65
-  "42570":  { rd: "1 case",                  sysco: "1 × 115ct case",           rdTotal: null,  syscoTotal: 115,   unit: "each" }, // Lemons — Sysco 1/115CT confirmed
-  "40212":  { rd: "1 × 10 lb box",          sysco: "4 × 2.5 lb boxes (10 lb)", rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Shrimp 4/2.5LB confirmed from order
-  "86527":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags",        rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   },
-  // Same size — included so UI can still show pack info
-  "77200":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77658":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "77670":  { rd: "1 × 40 lb case",          sysco: "1 × 40 lb case",          rdTotal: 40,    syscoTotal: 40,    unit: "lb"   }, // 4418117 confirmed 1/40LB
-  "77232":  { rd: "1 × 40 lb case",          sysco: "4 × 10 lb (40 lb)",       rdTotal: 40,    syscoTotal: 40,    unit: "lb"   },
-  "42658":  { rd: "1 × 25 lb bag",           sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   },
-  "42725":  { rd: "1 × 50 lb case",          sysco: "1 × 50 lb bag",           rdTotal: 50,    syscoTotal: 50,    unit: "lb"   },
-  "42513":  { rd: "1 × 30 lb case",          sysco: "1 × 30 lb bag",           rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Ginger 1/30LB confirmed
-  "21039":  { rd: "24 × 500ml bottles",      sysco: "24 × 500ml bottles",      rdTotal: 12000, syscoTotal: 12000, unit: "ml"   },
-  "51457":  { rd: "1 × 10 lb box",           sysco: "2 × 5 lb boxes (10 lb)",  rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Tilapia 2/5LB confirmed
-  "1020075":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Soybean Oil 1/35LB confirmed
-  "1020077":{ rd: "1 × 35 lb jug",           sysco: "1 × 35 lb jug",           rdTotal: 35,    syscoTotal: 35,    unit: "lb"   }, // Fryer Oil 1/35LB confirmed
-  "1070496":{ rd: "1 × 50 lb bag",           sysco: "1 × 50 lb bag",           rdTotal: 50,    syscoTotal: 50,    unit: "lb"   }, // Salt 1/50LB confirmed
-  "53556":  { rd: "2 × 20 lb bags (40 lb)",  sysco: "1 × 50 lb bag",           rdTotal: 40,    syscoTotal: 50,    unit: "lb"   }, // Roti Atta — RD 40lb, Sysco 50lb DIFF SIZES
-  "3960200":{ rd: "1 × 2.5 lb bag",          sysco: "1 × 30 lb bag",           rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   }, // Frozen 4-Way Mix confirmed 1/30LB
-  "2620442":{ rd: "12 × 400ml cans",         sysco: "24 × 13.5 oz cans",       rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"   }, // Coconut Milk — Sysco 24/13.5OZ confirmed
-  "86525":  { rd: "1 × 2.5 lb bag",          sysco: "12 × 2.5 lb bags (30 lb)",rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"   }, // Peas — new SKU 1053826 12/2.5LB confirmed
-  "29268":  { rd: "6 × 5 lb cans (30 lb)",   sysco: "6 × 5 lb cans (30 lb)",   rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Baking Powder 6/5LB confirmed
-  "12728":  { rd: "6 × 17 oz cans (102 oz)", sysco: "6 × 14 oz cans (84 oz)",  rdTotal: 102,   syscoTotal: 84,    unit: "oz"   }, // Pan Spray — Sysco 6/14OZ confirmed
-  "1440203":{ rd: "4 × 5 lb bags (20 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 20,    syscoTotal: 20,    unit: "lb"   }, // Cheddar Jack 4/5LB confirmed
-  "44146":  { rd: "6 × 5 lb bags (30 lb)",   sysco: "4 × 5 lb bags (20 lb)",   rdTotal: 30,    syscoTotal: 20,    unit: "lb"   }, // Garlic — 4/5LB Sysco confirmed
-  // ── Items added to eliminate AI-KB fallback for calculations ─────────────────
-  "79152":  { rd: "1 × 10 lb bag",            sysco: "1 × 10 lb bag",           rdTotal: 10,    syscoTotal: 10,    unit: "lb"   }, // Carrots 1/10LB ✓
-  "44137":  { rd: "1 × 40 lb box",            sysco: "1 × 40 lb case",          rdTotal: 40,    syscoTotal: 40,    unit: "lb"   }, // Serrano 1/40LB ✓
-  "42647":  { rd: "1 × 1 lb package",         sysco: "1 × 1 lb package",        rdTotal: 1,     syscoTotal: 1,     unit: "lb"   }, // Mint 1/1LB ✓
-  "42513":  { rd: "1 × 30 lb case",           sysco: "1 × 30 lb bag",           rdTotal: 30,    syscoTotal: 30,    unit: "lb"   }, // Ginger 1/30LB ✓
-  "21051":  { rd: "1 × 25 lb bag",            sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   }, // Sugar 1/25LB ✓
-  "2061212":{ rd: "1 × 25 lb bag",            sysco: "1 × 25 lb bag",           rdTotal: 25,    syscoTotal: 25,    unit: "lb"   }, // All Purpose Flour 1/25LB ✓
-  "13417":  { rd: "3 × 136 oz containers",    sysco: "3 × 136 oz containers",   rdTotal: 408,   syscoTotal: 408,   unit: "oz"   }, // Sambal 3/136OZ ✓
-  "2910159":{ rd: "1 × 3 lb box",             sysco: "24 × 1 lb boxes",         rdTotal: 3,     syscoTotal: 24,    unit: "lb"   }, // Cornstarch DIFF SIZES ✓
-  "16200":  { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 54,    syscoTotal: 54,    unit: "lb"   }, // Garbanzo Beans 6/#10 ✓
-  "69810":  { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 60,    syscoTotal: 60,    unit: "lb"   }, // Kidney Beans 6/#10 ✓
-  "860135": { rd: "6 × #10 cans",             sysco: "6 × #10 cans",            rdTotal: 102,   syscoTotal: 102,   unit: "oz"   }, // Petite Diced Tomato ✓
-  "14785":  { rd: "1 × 32 lb container",      sysco: null,                      rdTotal: 32,    syscoTotal: null,  unit: "lb"   }, // Plain Yogurt (RD only)
-  "490266": { rd: "1 × 40 lb bag",            sysco: null,                      rdTotal: 40,    syscoTotal: null,  unit: "lb"   }, // Basmati Rice (RD only)
-  "1440528":{ rd: "4 × 5 lb loaves (20 lb)",  sysco: "2 × 5 lb blocks (10 lb)", rdTotal: 20,    syscoTotal: 10,    unit: "lb"   }, // Paneer DIFF SIZES ✓
-  "2550012":{ rd: "4 × 1 gallon jugs",        sysco: "4 × 1 gallon jugs",       rdTotal: 4,     syscoTotal: 4,     unit: "gallon"},// Egg Yellow Color 4/1GAL ✓
+  // ── PRODUCE ──────────────────────────────────────────────────────────────────
+  "42545":  { rd: "1 × 50 lb bag",             sysco: "1 × 50 lb bag",              rdTotal: 50,    syscoTotal: 50,    unit: "lb"    }, // Yellow Onion (1094721)
+  "42658":  { rd: "1 × 25 lb bag",             sysco: "1 × 25 lb bag",              rdTotal: 25,    syscoTotal: 25,    unit: "lb"    }, // Red Onion (1094663)
+  "42725":  { rd: "1 × 50 lb bag",             sysco: "1 × 50 lb bag",              rdTotal: 50,    syscoTotal: 50,    unit: "lb"    }, // Russet Potato (1543164)
+  "44146":  { rd: "6 × 5 lb bags (30 lb)",     sysco: "4 × 5 lb bags (20 lb)",      rdTotal: 30,    syscoTotal: 20,    unit: "lb"    }, // Peeled Garlic (1821537) — DIFF SIZES
+  "42513":  { rd: "1 × 30 lb bulk case",       sysco: "1 × 30 lb bag",              rdTotal: 30,    syscoTotal: 30,    unit: "lb"    }, // Ginger (1184902)
+  "42606":  { rd: "12-head case",              sysco: "12 × 1 head",                rdTotal: 12,    syscoTotal: 12,    unit: "head"  }, // Cauliflower (1243724) ✓
+  "42570":  { rd: "1 × 115 ct case",           sysco: "1 × 115 ct case",            rdTotal: 115,   syscoTotal: 115,   unit: "each"  }, // Lemons (2252013) — FIXED: was rdTotal:null
+  "79152":  { rd: "1 × 10 lb bag",             sysco: "1 × 10 lb bag",              rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Carrots (3879962)
+  "44137":  { rd: "1 × 40 lb box",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Serrano Peppers (7007376)
+  "40138":  { rd: "4 × 4 lb bunches (16 lb)",  sysco: "1 × 2 lb split (EA)",        rdTotal: 16,    syscoTotal: 2,     unit: "lb"    }, // Green Onions (7350788) — Sysco buy EA $6.89
+  "42706":  { rd: "1 × 5 lb bag",              sysco: "1 × 22-25 lb case",          rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"    }, // Green Bell Pepper (1910231) — DIFF SIZES
+  "44211":  { rd: "4 × 2.5 lb bags (10 lb)",   sysco: "1 × 4 lb bag",               rdTotal: 10,    syscoTotal: 4,     unit: "lb"    }, // Baby Spinach (8474538) — DIFF SIZES
+  "42566":  { rd: "1 case",                    sysco: "4 × 1 lb bunches (4 lb)",    rdTotal: null,  syscoTotal: 4,     unit: "lb"    }, // Cilantro (2219095) — RD case size not on order guide
+  "42647":  { rd: "1 × 1 lb package",          sysco: "1 × 1 lb package",           rdTotal: 1,     syscoTotal: 1,     unit: "lb"    }, // Mint (2037125)
+  "42504":  { rd: "1 × 6 ct pack",             sysco: "1 × 5 lb pack (~8 ct est)",  rdTotal: 6,     syscoTotal: 8,     unit: "each"  }, // Cucumbers (7410640) — DIFF UNITS; est 8ct per 5lb
+  // ── DAIRY ─────────────────────────────────────────────────────────────────────
+  "1530438":{ rd: "6 × 64 oz jugs (384 oz)",   sysco: "12 × 32 oz bottles (384 oz)",rdTotal: 384,   syscoTotal: 384,   unit: "oz"    }, // Heavy Cream (6935464) — same oz total ✓
+  "370496": { rd: "4 × 1 gallon (512 oz)",      sysco: "4 × 1 gallon (512 oz)",      rdTotal: 512,   syscoTotal: 512,   unit: "oz"    }, // Whole Milk (4676306)
+  "1440203":{ rd: "4 × 5 lb bags (20 lb)",      sysco: "4 × 5 lb bags (20 lb)",      rdTotal: 20,    syscoTotal: 20,    unit: "lb"    }, // Cheddar Jack (2822379)
+  "1440528":{ rd: "4 × 5 lb loaves (20 lb)",    sysco: "2 × 5 lb blocks (10 lb)",    rdTotal: 20,    syscoTotal: 10,    unit: "lb"    }, // Paneer (7102961) — DIFF SIZES
+  "14785":  { rd: "1 × 32 lb container",        sysco: null,                          rdTotal: 32,    syscoTotal: null,  unit: "lb"    }, // Plain Yogurt — RD only
+  // ── CHICKEN ───────────────────────────────────────────────────────────────────
+  "77232":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Breast (5231238)
+  "77670":  { rd: "1 × 40 lb case",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Quarters (4418117 1/40LB) ✓
+  "77658":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Meat (0868459)
+  "77200":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Wings (6344790)
+  // ── SEAFOOD / MEAT ────────────────────────────────────────────────────────────
+  "40212":  { rd: "1 × 10 lb box",              sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
+  "51457":  { rd: "1 × 10 lb box",              sysco: "2 × 5 lb boxes (10 lb)",     rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Tilapia (0496671)
+  "79042":  { rd: "~42 lb variable weight",      sysco: null,                          rdTotal: 42,    syscoTotal: null,  unit: "lb"    }, // Lamb Leg Boneless — RD only
+  "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
+  // ── FROZEN ────────────────────────────────────────────────────────────────────
+  "86525":  { rd: "1 × 2.5 lb bag",             sysco: "12 × 2.5 lb bags (30 lb)",   rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"    }, // Frozen Peas (1053826) — DIFF SIZES; price guards added
+  "64120":  { rd: "1 × 2 lb bag",               sysco: "12 × 2 lb bags (24 lb)",     rdTotal: 2,     syscoTotal: 24,    unit: "lb"    }, // Frozen Broccoli (6988158) — DIFF SIZES
+  "64046":  { rd: "1 × 3 lb bag",               sysco: "12 × 3 lb bags (36 lb)",     rdTotal: 3,     syscoTotal: 36,    unit: "lb"    }, // Frozen Spinach (2523833) — DIFF SIZES
+  "86527":  { rd: "1 × 2.5 lb bag",             sysco: "1 × 30 lb bag",              rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"    }, // Frozen 4-Way Mix (3960200) — DIFF SIZES
+  // ── OILS & FATS ───────────────────────────────────────────────────────────────
+  "1020075":{ rd: "1 × 35 lb jug",              sysco: "1 × 35 lb jug",              rdTotal: 35,    syscoTotal: 35,    unit: "lb"    }, // Soybean Oil (4119079)
+  "1020077":{ rd: "1 × 35 lb jug",              sysco: "1 × 35 lb jug",              rdTotal: 35,    syscoTotal: 35,    unit: "lb"    }, // Fryer Oil / Clear Fry (4518403)
+  "1020152":{ rd: "3 × 1 gallon (384 oz)",       sysco: "3 × 1 gallon (384 oz)",      rdTotal: 384,   syscoTotal: 384,   unit: "oz"    }, // Liquid Butter (3355757)
+  "12728":  { rd: "6 × 17 oz cans (102 oz)",     sysco: "6 × 14 oz cans (84 oz)",     rdTotal: 102,   syscoTotal: 84,    unit: "oz"    }, // Pan Spray (6914451) — DIFF SIZES
+  // ── SAUCES / CONDIMENTS ───────────────────────────────────────────────────────
+  "55523":  { rd: "4 × 1 gallon (512 oz)",       sysco: "6 × 0.5 gallon (384 oz)",    rdTotal: 512,   syscoTotal: 384,   unit: "oz"    }, // Lemon Juice (4063095) — DIFF SIZES
+  "13417":  { rd: "3 × 136 oz containers",       sysco: "3 × 136 oz containers",      rdTotal: 408,   syscoTotal: 408,   unit: "oz"    }, // Sambal Oelek (2638660)
+  "45900":  { rd: "4 × 1 gallon (512 oz)",       sysco: "4 × 1 gallon (512 oz)",      rdTotal: 512,   syscoTotal: 512,   unit: "oz"    }, // White Vinegar (4113049)
+  "860043": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Tomato Puree (4002325) — price per can
+  "860044": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Tomato Sauce (4978884) — price per can
+  "860135": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Petite Diced Tomato (5895750) — price per can
+  "2010066":{ rd: "6 × 114 oz jugs (684 oz)",    sysco: "6 × 114 oz jugs (684 oz)",   rdTotal: 684,   syscoTotal: 684,   unit: "oz"    }, // Ketchup (9903790)
+  // ── DRY / PANTRY ──────────────────────────────────────────────────────────────
+  "2061212":{ rd: "1 × 25 lb bag",               sysco: "1 × 25 lb bag",              rdTotal: 25,    syscoTotal: 25,    unit: "lb"    }, // All Purpose Flour (8379251)
+  "53556":  { rd: "2 × 20 lb bags (40 lb)",      sysco: "1 × 50 lb bag",              rdTotal: 40,    syscoTotal: 50,    unit: "lb"    }, // Roti Atta (4014684) — DIFF SIZES
+  "21051":  { rd: "1 × 25 lb bag",               sysco: "1 × 25 lb bag",              rdTotal: 25,    syscoTotal: 25,    unit: "lb"    }, // Sugar (5087572)
+  "1070496":{ rd: "1 × 50 lb bag",               sysco: "1 × 50 lb bag",              rdTotal: 50,    syscoTotal: 50,    unit: "lb"    }, // Salt (4564894)
+  "29268":  { rd: "6 × 5 lb cans (30 lb)",       sysco: "6 × 5 lb cans (30 lb)",      rdTotal: 30,    syscoTotal: 30,    unit: "lb"    }, // Baking Powder (5517701)
+  "2910159":{ rd: "1 × 3 lb box",                sysco: "24 × 1 lb boxes (24 lb)",    rdTotal: 3,     syscoTotal: 24,    unit: "lb"    }, // Cornstarch (4073441) — DIFF SIZES
+  "16200":  { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 54,    syscoTotal: 54,    unit: "lb"    }, // Garbanzo Beans (4062337) — ~9 lb/can
+  "69810":  { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 60,    syscoTotal: 60,    unit: "lb"    }, // Kidney Beans (4014973) — ~10 lb/can
+  "490266": { rd: "1 × 40 lb bag",               sysco: null,                          rdTotal: 40,    syscoTotal: null,  unit: "lb"    }, // Basmati Rice — RD only
+  "2550012":{ rd: "4 × 1 gallon jugs",           sysco: "4 × 1 gallon jugs",          rdTotal: 4,     syscoTotal: 4,     unit: "gallon"}, // Egg Yellow Color (4112262)
+  "2550014":{ rd: "4 × 1 gallon jugs",           sysco: null,                          rdTotal: 4,     syscoTotal: null,  unit: "gallon"}, // Red Food Color — RD only
+  // ── BEVERAGES / WATER ─────────────────────────────────────────────────────────
+  "21039":  { rd: "24 × 500 ml bottles",         sysco: "24 × 500 ml bottles",        rdTotal: 12000, syscoTotal: 12000, unit: "ml"    }, // Evian Water (2886075)
+  "2620442":{ rd: "12 × 400 ml cans (4800 ml)",  sysco: "24 × 13.5 oz cans (9720 ml)",rdTotal: 4800,  syscoTotal: 9720,  unit: "ml"    }, // Coconut Milk (1425982) — DIFF SIZES
 };
+// Note: No duplicate keys. No Sysco UPCs used as keys. 3960200 removed (was Sysco UPC, maps to RD 86527 which is already here).
 
-// Get full item knowledge base
+// ── API routes ────────────────────────────────────────────────────────────────
+app.get("/api/discovered", (req, res) => res.json(priceStore.discovered || []));
 app.get("/api/item-knowledge", (req, res) => res.json(itemKnowledge));
-
-// Get knowledge for a specific item
 app.get("/api/item-knowledge/:id", (req, res) => {
   const kb = itemKnowledge[req.params.id];
   if (!kb) return res.status(404).json({ error: "No knowledge for this item yet" });
   res.json(kb);
 });
-
-// Trigger knowledge base build (can specify single item or all)
 app.get("/api/build-knowledge", async (req, res) => {
   const force = req.query.force === "true";
-  const itemId = req.query.item; // optional: build for single item
-  res.json({ message: "Building item knowledge base" + (itemId ? " for item " + itemId : "") + "..." });
+  res.json({ message: "Building item knowledge base" + (req.query.item ? " for item " + req.query.item : "") + "..." });
   buildItemKnowledgeBase(force).catch(e => log("KB build error: " + e.message));
 });
 
-// Unit price comparison — uses Claude + knowledge base for accuracy
+// ── Unit price comparison — pure server-side math, no AI division ─────────────
+// PACK_SIZES is the ONLY source of truth. The itemKnowledge KB is a fallback for
+// items not yet in PACK_SIZES (should be zero for all tracked items now).
+// Claude is only asked to write ONE recommendation sentence — all math is done here.
 app.post("/api/unit-compare", async (req, res) => {
   const { itemId, itemName, rdPrice, scPrice } = req.body;
   if (!itemId || !rdPrice || !scPrice) return res.status(400).json({ error: "Missing fields" });
 
-  // PACK_SIZES is manually verified and authoritative — always takes priority over AI-built KB
+  // PACK_SIZES is manually verified — always takes priority over AI-built KB
   const packInfo = PACK_SIZES[itemId];
   const kb = itemKnowledge[itemId];
 
-  const rdPack  = packInfo?.rd    || kb?.rd?.caseContents    || kb?.rd?.packSize    || "1 case";
-  const scPack  = packInfo?.sysco || kb?.sysco?.caseContents || kb?.sysco?.packSize || "1 case";
-  const rdTotal = packInfo?.rdTotal    || kb?.comparison?.rdTotalUnits    || null;
-  const scTotal = packInfo?.syscoTotal || kb?.comparison?.syscoTotalUnits || null;
-  const unit    = packInfo?.unit || kb?.comparison?.unitOfMeasure || "unit";
+  const rdPack  = packInfo?.rd    ?? kb?.rd?.caseContents    ?? kb?.rd?.packSize    ?? "1 case";
+  const scPack  = packInfo?.sysco ?? kb?.sysco?.caseContents ?? kb?.sysco?.packSize ?? "1 case";
+  const rdTotal = packInfo ? packInfo.rdTotal    : (kb?.comparison?.rdTotalUnits    ?? null);
+  const scTotal = packInfo ? packInfo.syscoTotal : (kb?.comparison?.syscoTotalUnits ?? null);
+  const unit    = packInfo?.unit ?? kb?.comparison?.unitOfMeasure ?? "unit";
 
-  // Compute per-unit prices server-side — never ask Claude to do division (it gets pack sizes wrong)
-  const rdPerUnit = rdTotal ? Math.round((parseFloat(rdPrice) / rdTotal) * 10000) / 10000 : null;
-  const scPerUnit = scTotal ? Math.round((parseFloat(scPrice) / scTotal) * 10000) / 10000 : null;
+  // Server-side division — never delegate math to Claude
+  const rdP = parseFloat(rdPrice), scP = parseFloat(scPrice);
+  const rdPerUnit = (rdTotal && rdTotal > 0) ? Math.round(rdP / rdTotal * 10000) / 10000 : null;
+  const scPerUnit = (scTotal && scTotal > 0) ? Math.round(scP / scTotal * 10000) / 10000 : null;
 
   let cheaper = "same", savingsPct = 0, savingsPerUnit = 0;
-  if (rdPerUnit && scPerUnit) {
+  if (rdPerUnit !== null && scPerUnit !== null) {
     if (rdPerUnit < scPerUnit) {
       cheaper = "rd";
       savingsPerUnit = Math.round((scPerUnit - rdPerUnit) * 10000) / 10000;
-      savingsPct = Math.round((scPerUnit - rdPerUnit) / scPerUnit * 10000) / 100;
+      savingsPct     = Math.round((scPerUnit - rdPerUnit) / scPerUnit * 10000) / 100;
     } else if (scPerUnit < rdPerUnit) {
       cheaper = "sysco";
       savingsPerUnit = Math.round((rdPerUnit - scPerUnit) * 10000) / 10000;
-      savingsPct = Math.round((rdPerUnit - scPerUnit) / rdPerUnit * 10000) / 100;
+      savingsPct     = Math.round((rdPerUnit - scPerUnit) / rdPerUnit * 10000) / 100;
     }
   }
 
-  // Claude writes one recommendation sentence — math is already done above
+  // Claude writes ONE sentence — math already computed above and given to it
   const prompt = `Naan & Curry Las Vegas wholesale purchasing.
-${itemName}: RD $${rdPrice} for ${rdPack}${rdTotal ? ` (${rdTotal} ${unit})` : ""} = $${rdPerUnit ?? "?"} per ${unit}. Sysco $${scPrice} for ${scPack}${scTotal ? ` (${scTotal} ${unit})` : ""} = $${scPerUnit ?? "?"} per ${unit}.
-${cheaper === "rd" ? "RD is cheaper by " + savingsPct + "%." : cheaper === "sysco" ? "Sysco is cheaper by " + savingsPct + "%." : "Same price per unit."}
-Write ONE specific recommendation sentence. Return ONLY JSON: {"recommendation":"..."}`;
+${itemName}: RD $${rdP} for ${rdPack}${rdTotal ? ` (${rdTotal} ${unit})` : ""} = ${rdPerUnit !== null ? `$${rdPerUnit}/${unit}` : "unknown per-unit"}.
+Sysco $${scP} for ${scPack}${scTotal ? ` (${scTotal} ${unit})` : ""} = ${scPerUnit !== null ? `$${scPerUnit}/${unit}` : "unknown per-unit"}.
+${cheaper === "rd" ? `RD is cheaper by ${savingsPct}% ($${savingsPerUnit}/${unit}).` : cheaper === "sysco" ? `Sysco is cheaper by ${savingsPct}% ($${savingsPerUnit}/${unit}).` : "Same price per unit."}
+Write ONE specific purchasing recommendation sentence. Return ONLY JSON: {"recommendation":"..."}`;
 
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2583,100 +1973,68 @@ Write ONE specific recommendation sentence. Return ONLY JSON: {"recommendation":
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get("/api/history", (req, res) => res.json({
-  data: priceHistory,
-  lastRecorded: priceStore.lastUpdated || null,
-}));
-
-app.get("/api/prices", (req, res) => res.json({
-  rd: priceStore.rd,
-  sysco: priceStore.sysco,
-  lastUpdated: priceStore.lastUpdated,
-  oos: priceStore.oos || { rd: [], sysco: [] },
-}));
-app.get("/api/status", (req, res) => res.json({
-  status: "running",
-  lastUpdated: priceStore.lastUpdated,
-  rdItems: Object.keys(priceStore.rd).length,
-  syscoItems: Object.keys(priceStore.sysco).length,
-  log: priceStore.log.slice(0, 200),
-}));
+app.get("/api/history", (req, res) => res.json({ data: priceHistory, lastRecorded: priceStore.lastUpdated || null }));
+app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceStore.sysco, lastUpdated: priceStore.lastUpdated, oos: priceStore.oos || { rd: [], sysco: [] } }));
+app.get("/api/status", (req, res) => res.json({ status: "running", lastUpdated: priceStore.lastUpdated, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length, log: priceStore.log.slice(0, 200) }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Trigger: " + e.message));
 });
-
-// Debug endpoint: scrape RD and dump every price line + assigned name
 app.get("/api/debug-rd", async (req, res) => {
   res.json({ message: "Debugging RD scrape — check /api/status in 3 minutes" });
   try {
     const result = await scrapeRD();
-    // Log every single price+name pair
-    result.items.forEach(item => {
-      log("DEBUG: $" + item.price + " → " + item.name + " | raw=" + item.raw);
-    });
+    result.items.forEach(item => { log("DEBUG: $" + item.price + " → " + item.name + " | raw=" + item.raw); });
     log("DEBUG: " + result.items.length + " total items scraped");
   } catch(e) { log("DEBUG error: " + e.message); }
 });
-
-// Force an immediate clean backup to GitHub (no scrape needed)
 app.get("/api/force-backup", async (req, res) => {
   try {
-    cleanBadPrices(); // ensure no bad prices go in
+    cleanBadPrices();
     await backupToGitHub();
     res.json({ success: true, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
-
-// Clear a specific item price and push clean backup to GitHub
-// e.g. /api/clear?id=42647&vendor=rd
 app.get("/api/clear", async (req, res) => {
   const { id, vendor } = req.query;
   if (!id) return res.status(400).json({ error: "id required" });
-  const v = vendor || "rd";
-  const cleared = [];
-
-  // Clear from rd
+  const v = vendor || "rd", cleared = [];
   if ((v === "rd" || v === "all") && priceStore.rd[id]) {
-    const old = priceStore.rd[id].price;
-    delete priceStore.rd[id];
-    cleared.push({ vendor: "rd", was: old });
-    log("🧹 Cleared RD price for " + id + " (was $" + old + ")");
+    const old = priceStore.rd[id].price; delete priceStore.rd[id];
+    cleared.push({ vendor: "rd", was: old }); log("🧹 Cleared RD price for " + id + " (was $" + old + ")");
   }
-  // Clear from sysco
   if ((v === "sysco" || v === "all") && priceStore.sysco[id]) {
-    const old = priceStore.sysco[id].price;
-    delete priceStore.sysco[id];
-    cleared.push({ vendor: "sysco", was: old });
-    log("🧹 Cleared Sysco price for " + id + " (was $" + old + ")");
+    const old = priceStore.sysco[id].price; delete priceStore.sysco[id];
+    cleared.push({ vendor: "sysco", was: old }); log("🧹 Cleared Sysco price for " + id + " (was $" + old + ")");
   }
-  // Also clear from history for this item
   if (priceHistory[id]) {
-    priceHistory[id] = priceHistory[id].map(e => ({
-      ...e,
-      rd: (v === "rd" || v === "all") ? null : e.rd,
-      sc: (v === "sysco" || v === "all") ? null : e.sc,
-    }));
+    priceHistory[id] = priceHistory[id].map(e => ({ ...e, rd: (v === "rd" || v === "all") ? null : e.rd, sc: (v === "sysco" || v === "all") ? null : e.sc }));
     saveHistory();
   }
-
   if (cleared.length > 0) {
     savePrices();
-    // Push clean backup to GitHub immediately so restart doesn't restore bad price
     backupToGitHub().catch(e => log("Backup after clear: " + e.message));
     res.json({ cleared: true, id, details: cleared });
-  } else {
-    res.json({ cleared: false, message: "No price found for " + id + " at " + v });
-  }
+  } else { res.json({ cleared: false, message: "No price found for " + id + " at " + v }); }
 });
 app.post("/api/scrape", (req, res) => {
   const src = req.body?.source || "all";
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Scrape: " + e.message));
 });
+app.get("/api/browser-test", async (req, res) => {
+  try {
+    const browser = await launchBrowser();
+    const page = await browser.newPage();
+    await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 15000 });
+    const title = await page.title();
+    await browser.close();
+    res.json({ success: true, title });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
 
-// Grocery breakdown — GOD MODE
+// ── Grocery breakdown — GOD MODE ──────────────────────────────────────────────
 app.post("/api/grocery", async (req, res) => {
   const { list } = req.body;
   if (!list) return res.status(400).json({ error: "No list" });
@@ -2684,7 +2042,6 @@ app.post("/api/grocery", async (req, res) => {
     const rdOosSet = new Set(priceStore.oos?.rd || []);
     const scOosSet = new Set(priceStore.oos?.sysco || []);
 
-    // Clean display names for the grocery catalog — matches what the app shows users
     const DISPLAY_NAMES = {
       "42545":  "Yellow Onions",        "42658":  "Red Onions",
       "42725":  "Russet Potato",        "44146":  "Peeled Garlic",
@@ -2704,37 +2061,22 @@ app.post("/api/grocery", async (req, res) => {
       "86525":  "Frozen Peas",          "64120":  "Frozen Broccoli",
       "86527":  "Frozen 4-Way Mix",     "25267":  "Eggplant Pulp",
       "45900":  "White Vinegar",        "1020152":"Liquid Butter",
-      "12728":  "Pan Spray",
-      "1020075":"Soybean Oil",          "1020077":"Fryer Oil",
-      "55523":  "Lemon Juice",          "53556":  "Roti Atta",
-      "13417":  "Sambal Chili",         "2620442":"Coconut Milk",
-      "2061212":"All Purpose Flour",    "29268":  "Baking Powder",
-      "2910159":"Cornstarch",           "490266": "Rice – Royal",
-      "2550014":"Red Food Color",       "2550012":"Egg Yellow Color",
-      "16200":  "Garbanzo Beans",       "69810":  "Red Kidney Beans",
-      "1070496":"Salt",                 "21051":  "Sugar",
-      "2010066":"Ketchup",              "860043": "Tomato Puree",
-      "860044": "Tomato Sauce",         "860135": "Petite Diced Tomato",
-      "21039":  "Water",                "440038": "Coca-Cola",
-      "440039": "Diet Coke",            "440040": "Sprite",
-      "50103":  "Printer Paper Roll",   "77682":  "Chicken Thighs",
-      "43431":  "Green Bell Peppers (9ct)", "42658":"Red Onions",
+      "12728":  "Pan Spray",            "1020075":"Soybean Oil",
+      "1020077":"Fryer Oil",            "55523":  "Lemon Juice",
+      "53556":  "Roti Atta",            "13417":  "Sambal Chili",
+      "2620442":"Coconut Milk",         "2061212":"All Purpose Flour",
+      "29268":  "Baking Powder",        "2910159":"Cornstarch",
+      "490266": "Rice – Royal",         "2550014":"Red Food Color",
+      "2550012":"Egg Yellow Color",     "16200":  "Garbanzo Beans",
+      "69810":  "Red Kidney Beans",     "1070496":"Salt",
+      "21051":  "Sugar",                "2010066":"Ketchup",
+      "860043": "Tomato Puree",         "860044": "Tomato Sauce",
+      "860135": "Petite Diced Tomato",  "21039":  "Water",
+      "440038": "Coca-Cola",            "440039": "Diet Coke",
+      "440040": "Sprite",               "50103":  "Printer Paper Roll",
+      "77682":  "Chicken Thighs",       "43431":  "Green Bell Peppers (9ct)",
     };
 
-    // Price trend: compare current vs recent avg
-    function priceTrend(id, currentPrice, vendor) {
-      const hist = priceHistory[id];
-      if (!hist || hist.length < 3) return "";
-      const field = vendor === "rd" ? "rd" : "sc";
-      const recent = hist.slice(-10).filter(e => e[field] != null).map(e => e[field]);
-      if (recent.length < 2) return "";
-      const avg = recent.slice(0, -1).reduce((a, b) => a + b, 0) / (recent.length - 1);
-      const diff = currentPrice - avg;
-      if (Math.abs(diff) < 0.10) return "";
-      return diff > 0 ? ` ▲+$${diff.toFixed(2)} vs recent` : ` ▼$${Math.abs(diff).toFixed(2)} vs recent`;
-    }
-
-    // Per-unit cost string
     function perUnit(price, id, vendor) {
       const ps = PACK_SIZES[id];
       if (!ps) return "";
@@ -2743,22 +2085,10 @@ app.post("/api/grocery", async (req, res) => {
       return ` ($${(price / total).toFixed(2)}/${ps.unit})`;
     }
 
-    // Days since update
-    function freshness(entry) {
-      const d = entry?.scrapedAt || entry?.date;
-      if (!d) return "";
-      const hours = (Date.now() - new Date(d)) / 3.6e6;
-      if (hours < 26) return " [today]";
-      if (hours < 50) return " [yesterday]";
-      return ` [${Math.floor(hours/24)}d ago]`;
-    }
-
-    // Build catalog — includes OOS items and Sysco-only items
     const catalog = [];
     RD_ITEMS.forEach(rdItem => {
       const rdE = priceStore.rd[rdItem.id];
       const isRdOos = rdOosSet.has(rdItem.id);
-
       const syscoEntry = Object.entries(SYSCO_TO_RD).find(([upc, map]) => {
         const rid = map.rdId || map;
         return rid === rdItem.id && typeof rid === "string";
@@ -2767,22 +2097,15 @@ app.post("/api/grocery", async (req, res) => {
       const syscoItem = syscoUpc ? SYSCO_ITEMS.find(i => i.id === syscoUpc) : null;
       const syscoE = syscoUpc ? (priceStore.sysco[rdItem.id] || priceStore.sysco[syscoUpc]) : null;
       const isScOos = syscoUpc ? scOosSet.has(syscoUpc) : false;
-
-      if (!rdE?.price && !syscoE?.price) return; // no data at either vendor
+      if (!rdE?.price && !syscoE?.price) return;
 
       const ps = PACK_SIZES[rdItem.id];
       const kb = itemKnowledge[rdItem.id];
-      const rdPack = kb?.rd?.caseContents || ps?.rd || "1 case";
-      const scPack = kb?.sysco?.caseContents || syscoItem?.pack || ps?.sysco || "";
-      const rdBin = kb?.rd?.binLocation || (rdE?.scrapedCtx?.match(/Bin - (\d+)/)?.[1] ? "Bin " + rdE.scrapedCtx.match(/Bin - (\d+)/)[1] : "");
-
+      const rdBin = kb?.rd?.binLocation || "";
       const shortName = DISPLAY_NAMES[rdItem.id] || rdItem.name
         .replace(/Chef's Quality - |James Farm - |Royal Mahout - |Thomas Farms - |Clabber Girl - |Clabber Girl |Golden Temple - |Royal Chef's Secret - |Frozen James Farm - |Frozen |Jumbo |Fresh |Boneless Skinless |Boneless, Skinless /gi, "")
-        .replace(/ - \d+.*$/, "")
-        .replace(/\bGS\/AN\b|\bIQF\b|\bSEAFOOD\b|\bWHL GAL\b/gi, "")
-        .replace(/\s+/g, " ").trim();
+        .replace(/ - \d+.*$/, "").replace(/\bGS\/AN\b|\bIQF\b|\bSEAFOOD\b|\bWHL GAL\b/gi, "").replace(/\s+/g, " ").trim();
 
-      // Compute verdict FIRST — then build catalog line leading with it
       let verdict = "?", verdictTag = "";
       if (rdE?.price && !isRdOos && syscoE?.price && !isScOos) {
         const rdPu = ps?.rdTotal ? rdE.price / ps.rdTotal : rdE.price;
@@ -2796,7 +2119,6 @@ app.post("/api/grocery", async (req, res) => {
         } else if (!diffSizes) {
           verdict = "SYSCO"; verdictTag = `Sysco cheaper by $${caseDiff.toFixed(2)}`;
         } else {
-          // Different case sizes — compare per unit
           verdict = rdPu <= scPu ? "RD" : "SYSCO";
           verdictTag = `per-unit: RD $${rdPu.toFixed(3)}/${ps.unit} vs Sysco $${scPu.toFixed(3)}/${ps.unit} ⚖DIFF CASE SIZE`;
         }
@@ -2806,16 +2128,13 @@ app.post("/api/grocery", async (req, res) => {
         verdict = "RD"; verdictTag = "Sysco not tracked";
       }
 
-      // Line format: [VENDOR] ItemName | verdict reason | RD:$X | Sysco:$Y
       let rdPart = isRdOos ? "RD:⛔OOS" : rdE?.price ? `RD:$${rdE.price}${perUnit(rdE.price, rdItem.id, "rd")}` : "RD:N/A";
       if (rdBin && rdE?.price && !isRdOos) rdPart += `(${rdBin})`;
       let scPart = isScOos ? "Sysco:⛔OOS" : syscoE?.price ? `Sysco:$${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")}` : "Sysco:N/A";
-      const line = `[${verdict}] ${shortName} | ${verdictTag} | ${rdPart} | ${scPart}`;
-      catalog.push(line);
+      catalog.push(`[${verdict}] ${shortName} | ${verdictTag} | ${rdPart} | ${scPart}`);
     });
 
     if (catalog.length === 0) return res.status(500).json({ error: "No price data — run scrape first" });
-
     const lastUpdated = priceStore.lastUpdated
       ? new Date(priceStore.lastUpdated).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
       : "unknown";
@@ -2839,7 +2158,7 @@ ${list}
 ITEM NAME ALIASES (chef shorthand → catalog name):
 LQ / leg quarters / bone-in = Chicken Leg Quarters
 breast = Chicken Breast (Boneless Skinless)
-wings = Chicken Wings  
+wings = Chicken Wings
 leg meat / BLSM = Chicken Leg Meat
 WM = Whole Milk | HWC / cream = Heavy Cream 40%
 garlic = Peeled Garlic | onion = Yellow Onion
@@ -2853,7 +2172,7 @@ tomato puree = Tomato Puree (NOT Tomato Sauce — different items)
 tomato sauce = Tomato Sauce
 petite diced / diced tomato = Petite Diced Tomato
 roti / atta = Roti Atta (Golden Temple)
-fryer oil / frying oil = Fryer Oil | salad oil / canola / canola oil / cooking oil / vegetable oil = Soybean Oil (we only use soybean, not canola)
+fryer oil / frying oil = Fryer Oil | salad oil / canola / canola oil / cooking oil / vegetable oil = Soybean Oil (we only use soybean)
 liquid butter / butter alt = Liquid Butter
 baking powder = Baking Powder (NOT baking soda — completely different product)
 cornstarch = Cornstarch
@@ -2892,12 +2211,7 @@ Total: $[total]
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: prompt }]
-      }),
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: prompt }] }),
     });
     const data = await r.json();
     if (data.error) throw new Error("API error: " + (data.error.message || JSON.stringify(data.error)));
@@ -2907,30 +2221,16 @@ Total: $[total]
   } catch(e) { log("Grocery error: " + e.message); res.status(500).json({ error: e.message }); }
 });
 
-
-app.get("/api/browser-test", async (req, res) => {
-  try {
-    const browser = await launchBrowser();
-    const page = await browser.newPage();
-    await page.goto("https://example.com", { waitUntil: "domcontentloaded", timeout: 15000 });
-    const title = await page.title();
-    await browser.close();
-    res.json({ success: true, title });
-  } catch(e) { res.json({ success: false, error: e.message }); }
-});
-
+// ── Cron + startup ────────────────────────────────────────────────────────────
 // Daily 6am Las Vegas = 1pm UTC
-cron.schedule("0 13 * * *", () => { log("⏰ Daily"); runScrape("all").catch(console.error); });
+cron.schedule("0 13 * * *", () => { log("⏰ Daily scrape"); runScrape("all").catch(console.error); });
 
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../build/index.html")));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   log("🚀 Server port " + PORT);
-  // Restore from GitHub backup first if local data is empty, then scrape
   restoreFromGitHub()
     .catch(e => log("Restore error: " + e.message))
-    .finally(() => {
-      setTimeout(() => runScrape("all").catch(console.error), 5000);
-    });
+    .finally(() => { setTimeout(() => runScrape("all").catch(console.error), 5000); });
 });
