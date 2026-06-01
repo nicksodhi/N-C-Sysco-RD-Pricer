@@ -2742,50 +2742,35 @@ app.post("/api/grocery", async (req, res) => {
         .replace(/\bGS\/AN\b|\bIQF\b|\bSEAFOOD\b|\bWHL GAL\b/gi, "")
         .replace(/\s+/g, " ").trim();
 
-      let line = shortName;
-
-      if (rdE?.price && !isRdOos) {
-        line += `\n  RD: $${rdE.price}${perUnit(rdE.price, rdItem.id, "rd")} | ${rdPack}`;
-        if (rdBin) line += ` | ${rdBin}`;
-        line += priceTrend(rdItem.id, rdE.price, "rd") + freshness(rdE);
-      } else if (isRdOos) {
-        line += `\n  RD: ⛔ OUT OF STOCK${rdE?.price ? ` (last $${rdE.price})` : ""} — MUST use Sysco`;
-      } else {
-        line += `\n  RD: not available`;
-      }
-
-      if (syscoE?.price && !isScOos) {
-        line += `\n  Sysco: $${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")} | ${scPack}`;
-        line += priceTrend(rdItem.id, syscoE.price, "sc") + freshness(syscoE);
-      } else if (isScOos) {
-        line += `\n  Sysco: ⛔ OUT OF STOCK`;
-      } else {
-        line += `\n  Sysco: not tracked`;
-      }
-
-      // Verdict
+      // Compute verdict FIRST — then build catalog line leading with it
+      let verdict = "?", verdictTag = "";
       if (rdE?.price && !isRdOos && syscoE?.price && !isScOos) {
         const rdPu = ps?.rdTotal ? rdE.price / ps.rdTotal : rdE.price;
         const scPu = ps?.syscoTotal ? syscoE.price / ps.syscoTotal : syscoE.price;
         const caseDiff = Math.abs(rdE.price - syscoE.price);
-        // Business rule: prefer Sysco when price difference is under $2 (consolidate orders)
-        let winner;
+        const diffSizes = ps?.rdTotal && ps?.syscoTotal && ps.rdTotal !== ps.syscoTotal;
         if (caseDiff < 2) {
-          winner = "Sysco"; // under $2 difference → always Sysco
+          verdict = "SYSCO"; verdictTag = `same price ±$${caseDiff.toFixed(2)} → SYSCO preference rule`;
+        } else if (!diffSizes && rdPu <= scPu) {
+          verdict = "RD"; verdictTag = `RD cheaper by $${caseDiff.toFixed(2)}`;
+        } else if (!diffSizes) {
+          verdict = "SYSCO"; verdictTag = `Sysco cheaper by $${caseDiff.toFixed(2)}`;
         } else {
-          winner = rdPu <= scPu ? "RD" : "Sysco";
-        }
-        const saving = Math.abs(rdPu - scPu);
-        line += `\n  ✅ BUY: ${winner}${caseDiff < 2 ? ` (within $2 — prefer Sysco)` : saving > 0.01 ? ` (saves $${saving.toFixed(2)}/${ps?.unit || "unit"})` : ""}`;
-        if (ps?.rdTotal !== ps?.syscoTotal && ps?.rdTotal && ps?.syscoTotal) {
-          line += `\n  ⚖ DIFFERENT CASE SIZES — per-unit cost is the real comparison`;
+          // Different case sizes — compare per unit
+          verdict = rdPu <= scPu ? "RD" : "SYSCO";
+          verdictTag = `per-unit: RD $${rdPu.toFixed(3)}/${ps.unit} vs Sysco $${scPu.toFixed(3)}/${ps.unit} ⚖DIFF CASE SIZE`;
         }
       } else if ((isRdOos || !rdE?.price) && syscoE?.price && !isScOos) {
-        line += `\n  ✅ BUY: Sysco (RD unavailable)`;
+        verdict = "SYSCO"; verdictTag = "RD unavailable";
       } else if (rdE?.price && !isRdOos && !syscoE?.price) {
-        line += `\n  ✅ BUY: RD only`;
+        verdict = "RD"; verdictTag = "Sysco not tracked";
       }
 
+      // Line format: [VENDOR] ItemName | verdict reason | RD:$X | Sysco:$Y
+      let rdPart = isRdOos ? "RD:⛔OOS" : rdE?.price ? `RD:$${rdE.price}${perUnit(rdE.price, rdItem.id, "rd")}` : "RD:N/A";
+      if (rdBin && rdE?.price && !isRdOos) rdPart += `(${rdBin})`;
+      let scPart = isScOos ? "Sysco:⛔OOS" : syscoE?.price ? `Sysco:$${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")}` : "Sysco:N/A";
+      const line = `[${verdict}] ${shortName} | ${verdictTag} | ${rdPart} | ${scPart}`;
       catalog.push(line);
     });
 
@@ -2837,15 +2822,15 @@ shrimp = Shrimp 16-20 | tilapia = Fish (Tilapia)
 
 RULES — follow without exception:
 1. Every item in the chef's order must appear in output. Zero exceptions.
-2. SYSCO PREFERENCE: If the price difference between RD and Sysco is less than $2 per case, assign to SYSCO. The owner prefers to consolidate smaller savings into Sysco orders.
-3. Only assign to RD when RD is cheaper by $2 or more per case.
-4. ⛔ OUT OF STOCK = physically unavailable. NEVER put OOS items under RD. Assign to Sysco or ORDER MANUALLY.
-5. Single-vendor items → assign to that vendor. No debate.
-6. Quantities: x2 means 2 cases → show: Item x2 — $total
-7. Items not in catalog → ORDER MANUALLY, nothing else.
-8. Short item names only. No brands, no extra notes, no parenthetical explanations.
+2. THE CATALOG VERDICT IS THE FINAL ANSWER. Each catalog line starts with [RD] or [SYSCO]. Assign every item to that vendor. Do not override it.
+3. [SYSCO] = buy from Sysco. [RD] = buy from RD. [?] = no price data, ORDER MANUALLY.
+4. The $2 rule is already computed in the catalog. "same price ±$X → SYSCO preference rule" means SYSCO wins.
+5. ⛔OOS = out of stock. Never assign an OOS item to that vendor.
+6. Quantities: x2 means 2 cases → Item x2 — $total
+7. Items not in catalog → ORDER MANUALLY.
+8. Short names only. No brands, no notes, no parenthetical explanations.
 9. Math must be exact.
-10. DO NOT show reasoning, working, or intermediate steps. Output ONLY the final list.
+10. Output ONLY the final list. No reasoning, no working.
 
 OUTPUT — exactly this format, nothing else, no extra text:
 
