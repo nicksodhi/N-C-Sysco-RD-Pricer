@@ -26,7 +26,7 @@ const RD_PRICE_MAX = {
   "77200":  200,  // Chicken Wings 40lb (~$60-150)
   "79042":  500,  // Lamb Leg (~$150-400)
   "1810019": 200, // Goat Bone-in 15lb (~$50-150)
-  "86525":  12,   // Frozen Peas single 2.5lb bag — ~$4-8; $38.20 was wrong adjacent-item bleed
+  // NOTE: 86525 Frozen Peas removed — $38.20 IS the correct Case-of-12 price (12×2.5lb=30lb)
 };
 
 // Minimum acceptable RD case price — rejects per-lb prices stored without ×weight multiplication
@@ -1714,7 +1714,7 @@ function patchItemKnowledge() {
     "860044": [6,   "6 x #10 cans",             "can", 6,    "6 x #10 cans"],
     "2010066":[684, "6 x 114 oz jugs (684 oz)", "oz",  684,  "6 x 114 oz jugs (684 oz)"],
     "490266": [40,  "1 x 40 lb bag",            "lb",  null, null],
-    "86525":  [2.5, "1 x 2.5 lb bag",           "lb",  30,   "12 x 2.5 lb bags (30 lb)"],
+    "86525":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "12 x 2.5 lb bags (30 lb)"],  // RD is Case-of-12 confirmed
     "64120":  [2,   "1 x 2 lb bag",             "lb",  24,   "12 x 2 lb bags (24 lb)"],
     "64046":  [3,   "1 x 3 lb bag",             "lb",  36,   "12 x 3 lb bags (36 lb)"],
     "86527":  [2.5, "1 x 2.5 lb bag",           "lb",  30,   "1 x 30 lb bag"],
@@ -1856,7 +1856,7 @@ const PACK_SIZES = {
   "79042":  { rd: "~42 lb variable weight",      sysco: null,                          rdTotal: 42,    syscoTotal: null,  unit: "lb"    }, // Lamb Leg Boneless — RD only
   "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
   // ── FROZEN ────────────────────────────────────────────────────────────────────
-  "86525":  { rd: "1 × 2.5 lb bag",             sysco: "12 × 2.5 lb bags (30 lb)",   rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"    }, // Frozen Peas (1053826) — DIFF SIZES; price guards added
+  "86525":  { rd: "12 × 2.5 lb bags (30 lb)",   sysco: "12 × 2.5 lb bags (30 lb)",   rdTotal: 30,    syscoTotal: 30,    unit: "lb"    }, // Frozen Peas (1053826) — SAME SIZE; RD $38.20 CS, Sysco $35.92 CS
   "64120":  { rd: "1 × 2 lb bag",               sysco: "12 × 2 lb bags (24 lb)",     rdTotal: 2,     syscoTotal: 24,    unit: "lb"    }, // Frozen Broccoli (6988158) — DIFF SIZES
   "64046":  { rd: "1 × 3 lb bag",               sysco: "12 × 3 lb bags (36 lb)",     rdTotal: 3,     syscoTotal: 36,    unit: "lb"    }, // Frozen Spinach (2523833) — DIFF SIZES
   "86527":  { rd: "1 × 2.5 lb bag",             sysco: "1 × 30 lb bag",              rdTotal: 2.5,   syscoTotal: 30,    unit: "lb"    }, // Frozen 4-Way Mix (3960200) — DIFF SIZES
