@@ -14,6 +14,8 @@ const DIFFERENT_CASE_SIZES = new Set([
   "44211",   // Fresh Spinach: RD 10lb vs Sysco 4lb
   "40138",   // Green Onions: RD 16lb (4 bunches) vs Sysco 2lb pack
   "42706",   // Green Bell Pepper: RD 5lb bag vs Sysco 22-25lb case
+  "53556",   // Roti Atta: RD 2x20lb=40lb vs Sysco 1x50lb (confirmed Nick List)
+  "3960200", // Frozen 4-Way Mix: RD 2.5lb vs Sysco 30lb single bag (1/30LB confirmed)
 ]);
 
 const ITEMS = [
