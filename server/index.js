@@ -145,6 +145,10 @@ async function backupToGitHub() {
     const hEncoded = Buffer.from(JSON.stringify(priceHistory)).toString("base64");
     await githubCommit(token, repo, "backup/history.json", hEncoded, "History backup " + date);
     log("✅ GitHub backup: history.json committed");
+    // Back up match cache separately so it can be restored independently of prices
+    const cEncoded = Buffer.from(JSON.stringify(matchCache, null, 2)).toString("base64");
+    await githubCommit(token, repo, "backup/match_cache.json", cEncoded, "Cache backup " + date);
+    log("✅ GitHub backup: match_cache.json committed");
   } catch(e) { log("❌ GitHub backup error: " + e.message); }
 }
 
@@ -223,6 +227,31 @@ async function restoreFromGitHub() {
       }
     } catch(e) { log("Item KB restore error: " + e.message); }
   } catch(e) { log("Restore error: " + e.message); }
+}
+
+// Restores match cache from GitHub — always runs on startup, even when local prices exist.
+// Fixes the 22/61 cache miss issue after Railway deploys wipe the local /data volume.
+async function restoreCacheFromGitHub() {
+  const token = process.env.GITHUB_TOKEN, repo = process.env.GITHUB_REPO;
+  if (!token || !repo) return;
+  const localRdCount = Object.keys(matchCache.rd || {}).length;
+  if (localRdCount >= 40) {
+    log("Cache: local cache healthy (" + localRdCount + " RD entries), skipping GitHub restore");
+    return;
+  }
+  try {
+    const apiBase = "https://api.github.com/repos/" + repo + "/contents/backup/match_cache.json";
+    const r = await fetch(apiBase, { headers: { "Authorization": "token " + token, "User-Agent": "naan-curry-price-tracker" } });
+    if (!r.ok) { log("Cache restore: no backup found (" + r.status + ")"); return; }
+    const j = await r.json();
+    const saved = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
+    matchCache = {
+      rd:    { ...(saved.rd    || {}), ...CACHE_SEED.rd    },
+      sysco: { ...(saved.sysco || {}), ...CACHE_SEED.sysco },
+    };
+    saveCache();
+    log("✅ Cache restored from GitHub: RD=" + Object.keys(matchCache.rd).length + " Sysco=" + Object.keys(matchCache.sysco).length + " entries");
+  } catch(e) { log("Cache restore error: " + e.message); }
 }
 
 const _loaded = loadPrices();
@@ -2418,6 +2447,7 @@ app.listen(PORT, () => {
   log("🚀 Server port " + PORT);
   restoreFromGitHub()
     .catch(e => log("Restore error: " + e.message))
+    .then(() => restoreCacheFromGitHub().catch(e => log("Cache restore error: " + e.message)))
     .finally(() => {
       // Only scrape on startup if prices are stale (>12h since last update).
       // Prevents re-scraping on every code deploy / container restart.
