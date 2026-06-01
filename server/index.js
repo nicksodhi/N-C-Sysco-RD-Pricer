@@ -175,7 +175,14 @@ async function restoreFromGitHub() {
     }
     if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
     if (data.oos) { priceStore.oos = data.oos; }
-    if (data.matchCache) { matchCache = data.matchCache; }
+    if (data.matchCache) {
+      // Re-merge CACHE_SEED after restore — ensures new seed entries always win
+      // (backup cache may predate seed additions made in code updates)
+      matchCache = {
+        rd:    { ...(data.matchCache.rd    || {}), ...CACHE_SEED.rd    },
+        sysco: { ...(data.matchCache.sysco || {}), ...CACHE_SEED.sysco },
+      };
+    }
     if (data.crossVendor) {
       Object.assign(SYSCO_TO_RD, data.crossVendor);
       Object.assign(SYSCO_TO_RD, SYSCO_TO_RD_LOCK);
