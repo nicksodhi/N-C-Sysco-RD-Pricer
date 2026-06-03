@@ -1556,7 +1556,7 @@ async function scrapeSysco() {
       try {
         const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
         await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 2500)); // 2.5s: faster per-page
+        await new Promise(r => setTimeout(r, 3500)); // 3.5s: some pages need extra render time
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
         // Check network captures from this product page
         const pageCap = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
