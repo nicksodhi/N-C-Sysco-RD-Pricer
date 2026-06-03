@@ -1325,6 +1325,29 @@ async function scrapeSysco() {
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 4000));
 
+    // Dismiss Sysco marketing popup if present ("Save a bunch!" / new customer offer)
+    // This popup blocks all interaction with the Nick List until closed
+    const popupDismissed = await page.evaluate(() => {
+      const closeBtn = document.querySelector(
+        'button[aria-label="close icon"], '
+        + '.marketing-modal-close-btn, '
+        + '.btn-marketing-close, '
+        + '[class*="modal"] button[aria-label*="close"], '
+        + '[class*="modal-close"]'
+      );
+      if (closeBtn) { closeBtn.click(); return true; }
+      return false;
+    });
+    if (popupDismissed) {
+      log("Sysco: dismissed marketing popup");
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    // Also dismiss any promotional banner at the top of the page
+    await page.evaluate(() => {
+      const bannerClose = document.querySelector('[class*="banner"] button, [class*="alert"] button[aria-label*="close"], .close-banner');
+      if (bannerClose) bannerClose.click();
+    }).catch(() => {});
+
     let nickClicked = null;
 
     // Strategy 1: Check if Nick List content is already displayed (product rows visible)
