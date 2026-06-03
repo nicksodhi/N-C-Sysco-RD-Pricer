@@ -1498,7 +1498,7 @@ async function scrapeSysco() {
         const steps = 60;
         for (let s = 1; s <= steps; s++) {
           vList.scrollTop = Math.round((s / steps) * totalH);
-          await new Promise(r => setTimeout(r, 250));
+          await new Promise(r => setTimeout(r, 350));
           readVisible();
         }
       }
@@ -1581,7 +1581,36 @@ async function scrapeSysco() {
           }
           return results;
         }, item.id, isEaItem);
-        const exact = results.find(r => r.hasUpc), best = exact || results[0];
+        const exact = results.find(r => r.hasUpc);
+        let best = exact;
+        // If UPC search returned no exact match, retry with first 3 words of product name
+        if (!best) {
+          const nameKeyword = item.name.split(" ").slice(0, 3).join(" ");
+          await searchInput.click({ clickCount: 3 });
+          await page.keyboard.type(nameKeyword, { delay: 40 });
+          await new Promise(r => setTimeout(r, 1800));
+          const retryResults = await page.evaluate((upc, isEa) => {
+            const rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
+              const t = el.innerText || "";
+              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 10;
+            });
+            const out = [];
+            rows.forEach(row => {
+              const text = row.innerText || "";
+              const hasUpc = text.includes(upc);
+              const eaM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+              const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+              const m = isEa ? (eaM || csM) : (csM || eaM);
+              if (m && hasUpc) {
+                const p = parseFloat(m[1].replace(",",""));
+                if (p > 0.5) out.push({ name: text.split("\n")[0].trim(), price: p, raw: m[0], hasUpc: true });
+              }
+            });
+            return out;
+          }, item.id, isEaItem);
+          best = retryResults.find(r => r.hasUpc) || null;
+          if (best) log("Sysco: " + item.name + " → found via name retry");
+        }
         if (best) {
           const priceType = isEaItem ? " [EA/MKT price]" : "";
           log("Sysco: " + item.name + " → $" + best.price + priceType + " (search fallback)");
