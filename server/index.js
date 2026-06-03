@@ -1127,6 +1127,9 @@ async function scrapeRD() {
         const nearby = lines.slice(Math.max(0, i - 5), Math.min(lines.length, i + 10)).join(" ");
         const perLbM = nearby.match(/\$([\d]+\.[\d]{2})\s*\/\s*lb/i);
         if (perLbM) {
+          // Skip bulk discount prices (e.g. "Buy 1120 lb or more for $1.64/lb")
+          const isBulkDiscount = /or more|buy.*lb.*for|\d{3,}\s*lb.*for/i.test(nearby);
+          if (isBulkDiscount) { raw = line + " (bulk discount skipped)"; }
           const perLb = parseFloat(perLbM[1]);
           const aboutLbM = nearby.match(/About\s+([\d.]+)\s+lb/i);
           const pageWeight = aboutLbM ? parseFloat(aboutLbM[1]) : null;
@@ -1139,9 +1142,13 @@ async function scrapeRD() {
                    ctxLower.includes("leg meat") || ctxLower.includes("leg quarter") ||
                    ctxLower.includes("leg")) { caseWeight = 40; }
           else { caseWeight = pageWeight || 40; }
-          casePrice = Math.round(perLb * caseWeight * 100) / 100;
-          raw = line + " ($" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice + ")";
-          log("RD: by-weight — $" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice);
+          if (!isBulkDiscount) {
+            casePrice = Math.round(perLb * caseWeight * 100) / 100;
+            raw = line + " ($" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice + ")";
+            log("RD: by-weight — $" + perLb + "/lb × " + caseWeight + "lb = $" + casePrice);
+          } else {
+            log("RD: ⏭️ Skipping bulk discount price $" + perLb + "/lb ('or more' pricing)");
+          }
         } else {
           const estM = nearby.match(/Price estimate:\s*\$([\d,]+\.[\d]{2})/i);
           if (estM) { casePrice = parseFloat(estM[1].replace(",", "")); raw = line + " (est=" + casePrice + ")"; }
@@ -1239,7 +1246,8 @@ async function scrapeRD() {
         const cache = matchCache.rd || {};
         return Object.entries(cache).find(([k, v]) => v === itemId && i.name === k);
       });
-      if (alreadyFound) continue;
+      const priceMin = RD_PRICE_MIN[itemId];
+      if (alreadyFound && (!priceMin || alreadyFound.price >= priceMin)) continue;
       for (let li = 0; li < lines.length; li++) {
         const lineText = lines[li], ltLower = lineText.toLowerCase();
         const matched = nameVariants.some(v => {
@@ -1548,7 +1556,7 @@ async function scrapeSysco() {
       try {
         const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
         await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 3500));
+        await new Promise(r => setTimeout(r, 2500)); // 2.5s: faster per-page
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
         // Check network captures from this product page
         const pageCap = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
@@ -1556,7 +1564,7 @@ async function scrapeSysco() {
         let priceResult = netPrices.has(item.id) ? { price: netPrices.get(item.id), method: "api" } : null;
         if (!priceResult) {
           priceResult = await page.evaluate((supc, isEa) => {
-            const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
+            const UI_JUNK = new Set([0.00]); // Only filter $0 — product pages show real prices
             const body = document.body.innerText || "";
             if (body.includes(supc)) {
               const idx = body.indexOf(supc);
@@ -1586,7 +1594,36 @@ async function scrapeSysco() {
             allItems.set(item.id, { name: item.name, price: priceResult.price, upc: item.id, raw: "$" + priceResult.price });
           }
         } else {
-          log("Sysco: " + item.name + " — no price on product page");
+          // Retry: wait 3 more seconds and scan again — some pages need extra render time
+          await new Promise(r => setTimeout(r, 3000));
+          const retryResult = await page.evaluate((supc) => {
+            const body = document.body.innerText || "";
+            // Try near-supc first
+            if (body.includes(supc)) {
+              const idx = body.indexOf(supc);
+              const nearby = body.slice(Math.max(0, idx - 300), idx + 600);
+              const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+              const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
+              const m = csM || anyM;
+              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 0.5) return { price: p, method: "retry-near-supc" }; }
+            }
+            // Scan all prices on page — first dollar amount is usually main price
+            const allP = [...body.matchAll(/\$([\d,]+\.[\d]{2})/g)]
+              .map(x => parseFloat(x[1].replace(",",""))).filter(p => p > 1 && p < 9999);
+            if (allP.length > 0) return { price: allP[0], method: "retry-scan" };
+            return null;
+          }, item.id);
+          if (retryResult && retryResult.price) {
+            const min = SYSCO_PRICE_MIN[item.id];
+            if (!min || retryResult.price >= min) {
+              log("Sysco: " + item.name + " → $" + retryResult.price + " (" + retryResult.method + ")");
+              allItems.set(item.id, { name: item.name, price: retryResult.price, upc: item.id, raw: "$" + retryResult.price });
+            } else {
+              log("Sysco: " + item.name + " — retry price $" + retryResult.price + " below min $" + min);
+            }
+          } else {
+            log("Sysco: " + item.name + " — no price on product page (retried)");
+          }
         }
       } catch(e) { log("Sysco: error on " + item.name + ": " + e.message); }
     }
