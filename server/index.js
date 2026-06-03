@@ -1356,16 +1356,37 @@ async function scrapeSysco() {
     await searchInput.click({ clickCount: 3 });
     await page.keyboard.press("Backspace");
     await new Promise(r => setTimeout(r, 2000));
-    await page.evaluate(async () => {
-      const container = document.querySelector("[class*='product-list']") || document.querySelector("[class*='list-items']") || document.querySelector("[class*='products-list']") || document.querySelector("[class*='order-guide']") || document.querySelector("main") || document.body;
-      for (let s = 0; s < 40; s++) {
-        container.scrollTop = s * 400;
-        window.scrollBy(0, 400);
-        await new Promise(r => setTimeout(r, 150));
-      }
-      container.scrollTop = 0;
-      window.scrollTo(0, 0);
-    });
+    // Scroll aggressively to force virtual list to render all rows
+    // Sysco uses a virtualized list — must scroll slowly with pauses so DOM catches up
+    for (let pass = 0; pass < 3; pass++) {
+      await page.evaluate(async (passNum) => {
+        const container = document.querySelector("[class*='product-list-body']") ||
+          document.querySelector("[class*='product-list']") ||
+          document.querySelector("[class*='list-items']") ||
+          document.querySelector("[class*='products-list']") ||
+          document.querySelector("[class*='order-guide']") ||
+          document.querySelector("main") || document.body;
+        const totalHeight = Math.max(container.scrollHeight, document.body.scrollHeight, 15000);
+        const steps = 60;
+        for (let s = 0; s <= steps; s++) {
+          const pos = Math.round((s / steps) * totalHeight);
+          container.scrollTop = pos;
+          window.scrollTo(0, pos);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        // Scroll back to top
+        container.scrollTop = 0;
+        window.scrollTo(0, 0);
+      }, pass);
+      await new Promise(r => setTimeout(r, 1500));
+      const rowCount = await page.evaluate(() => {
+        const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
+        for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) return found.length; }
+        return 0;
+      });
+      log("Sysco: scroll pass " + (pass+1) + " — " + rowCount + " rows visible");
+      if (rowCount >= 40) break; // Good enough, stop scrolling
+    }
     await new Promise(r => setTimeout(r, 2000));
 
     const allDiscovered = await page.evaluate((eaIds) => {
@@ -1405,6 +1426,22 @@ async function scrapeSysco() {
     const allItems = new Map();
     allDiscovered.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
     log("Sysco: bulk discovery got " + allItems.size + " items");
+    if (allItems.size < 20) {
+      // Too few items found — log DOM info to help diagnose the page layout
+      const domDiag = await page.evaluate(() => {
+        const allClasses = new Set();
+        document.querySelectorAll("[class]").forEach(el =>
+          el.className.toString().split(/\s+/).forEach(c => {
+            if (c.includes("row") || c.includes("product") || c.includes("item") || c.includes("list") || c.includes("price"))
+              allClasses.add(c);
+          })
+        );
+        const priceCount = (document.body.innerText.match(/\$[\d]+\.[\d]{2}/g) || []).length;
+        const csCount = (document.body.innerText.match(/\bCS\b/g) || []).length;
+        return { classes: [...allClasses].slice(0, 20).join(","), priceCount, csCount, bodyLen: document.body.innerText.length };
+      });
+      log("Sysco: ⚠️ Low bulk discovery — DOM: prices=" + domDiag.priceCount + " CS=" + domDiag.csCount + " bodyLen=" + domDiag.bodyLen + " classes=" + domDiag.classes);
+    }
 
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue;
@@ -1419,6 +1456,8 @@ async function scrapeSysco() {
           const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
           let rows = [];
           for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
+          // Prices that appear in Sysco UI chrome (delivery min, cart banner) — never real item prices
+          const UI_JUNK = new Set([15.49, 14.99, 9.99, 0.00]);
           const results = [];
           rows.forEach(row => {
             const text = row.innerText || "";
@@ -1428,7 +1467,10 @@ async function scrapeSysco() {
             const csM  = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
             const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
             const m = isEa ? (eaM || anyM) : (csM || anyM);
-            if (m) results.push({ name: text.split("\n")[0].trim(), price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc });
+            if (m) {
+              const p = parseFloat(m[1].replace(",", ""));
+              if (!UI_JUNK.has(p)) results.push({ name: text.split("\n")[0].trim(), price: p, raw: m[0], hasUpc });
+            }
           });
           if (results.length === 0) {
             const bodyText = document.body.innerText || "";
@@ -1437,9 +1479,15 @@ async function scrapeSysco() {
               const nearby = bodyText.slice(Math.max(0, idx - 300), idx + 300);
               const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
               const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-              const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
-              const m = isEa ? (eaM || anyM) : (csM || anyM);
-              if (m) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: parseFloat(m[1].replace(",", "")), raw: m[0], hasUpc: true });
+              // Gather all non-junk prices from the nearby text
+              const allP = [...nearby.matchAll(/\$([\d,]+\.[\d]{2})/g)]
+                .map(x => ({ raw: x[0], price: parseFloat(x[1].replace(",","")) }))
+                .filter(x => !UI_JUNK.has(x.price));
+              const preferM = isEa ? (eaM || (allP[0] || null)) : (csM || (allP[0] || null));
+              if (preferM) {
+                const p = preferM[1] ? parseFloat(preferM[1].replace(",","")) : (preferM.price || 0);
+                if (p && !UI_JUNK.has(p)) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: p, raw: preferM[0] || preferM.raw, hasUpc: true });
+              }
             }
           }
           return results;
