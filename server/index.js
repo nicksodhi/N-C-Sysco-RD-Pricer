@@ -40,7 +40,7 @@ const RD_PRICE_MAX = {
 const RD_PRICE_MIN = {
   "77658":  25,  // Chicken Leg Meat 40lb — per-lb would be ~$3-5, case must be $25+
   "77670":  25,  // Chicken Leg Quarters 40lb
-  "77232":  30,  // Chicken Breast 40lb
+  "77232":  67,  // Chicken Breast 40lb — $1.69/lb×40lb=$67.60; rejects $1.64/lb cross-attribution
   "77682":  30,  // Chicken Thighs 40lb
   "77200":  30,  // Chicken Wings 40lb
   "79042":  50,  // Lamb Leg 40lb
@@ -1521,6 +1521,27 @@ async function scrapeSysco() {
     // changes and virtual scroll issues. ~4s per item = ~3.5 min total.
     // URL: shop.sysco.com/app/product-details/opco/017/product/{supc}?seller_id=USBL
     const allItems = new Map();
+    const netPrices = new Map(); // prices captured from product page API calls
+    function extractPrices(obj, depth) {
+      if (!obj || typeof obj !== "object" || depth > 15) return;
+      if (Array.isArray(obj)) { obj.forEach(x => extractPrices(x, depth + 1)); return; }
+      const UPC_FIELDS = ["supc","syscoCode","materialNumber","productCode","itemCode","sku","upc","code","productId","id"];
+      const PRICE_FIELDS = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue","unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue","net","list","cs","case","customer","contract"];
+      const SYSCO_IDS = new Set(SYSCO_ITEMS.map(i => i.id));
+      let upc = null;
+      for (const f of UPC_FIELDS) { const v = String(obj[f]||"").trim(); if (/^\d{6,8}$/.test(v) && SYSCO_IDS.has(v)) { upc = v; break; } }
+      if (upc) {
+        const gatherNums = (o, d) => {
+          if (!o || typeof o !== "object" || d > 4) return [];
+          if (Array.isArray(o)) return o.flatMap(x => gatherNums(x, d+1));
+          return Object.entries(o).flatMap(([k, v]) => typeof v === "number" && v > 0.5 && v < 9999 ? [{key:k,val:v}] : (v && typeof v === "object" ? gatherNums(v, d+1) : []));
+        };
+        const prices = gatherNums(obj, 0);
+        const best = prices.find(p => PRICE_FIELDS.includes(p.key)) || prices[0];
+        if (best && !netPrices.has(upc)) netPrices.set(upc, best.val);
+      }
+      Object.values(obj).forEach(v => { if (v && typeof v === "object") extractPrices(v, depth + 1); });
+    }
     log("Sysco: 🔍 Scraping " + SYSCO_ITEMS.length + " product pages...");
 
     for (const item of SYSCO_ITEMS) {
