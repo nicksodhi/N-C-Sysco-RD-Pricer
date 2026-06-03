@@ -1649,112 +1649,59 @@ async function scrapeSysco() {
     log("Sysco: 🌐 API parse: " + netPrices.size + " Nick List prices found, " + netCount + " new");
     log("Sysco: bulk discovery got " + allItems.size + " items (DOM=" + _allDiscItems.length + " + API=" + netCount + ")");
 
-    // Search each item by its Sysco UPC directly — one UPC = one result = exact price
-    // This bypasses virtual scroll entirely and is immune to CSS class changes
-    for (const item of SYSCO_ITEMS) {
-      if (allItems.has(item.id)) continue;
+    // ── PRODUCT PAGE FALLBACK for missing items ─────────────────────────────
+    // Navigate to each missing item's product page — reliable, no virtual scroll.
+    // Product pages at /app/product/{supc} always show Nick List prices when logged in.
+    if (searchInput) { await searchInput.click({ clickCount: 3 }); await page.keyboard.press("Backspace"); } // clear any search
+    const missingItems = SYSCO_ITEMS.filter(i => !allItems.has(i.id));
+    log("Sysco: 🔍 Product page fallback for " + missingItems.length + " missing items");
+    for (const item of missingItems) {
       try {
-        // Type the 7-digit Sysco UPC — filters list to exactly 1 row with the right price
-        await searchInput.click({ clickCount: 3 });
-        await page.keyboard.type(item.id, { delay: 40 });
-        await new Promise(r => setTimeout(r, 1500));
+        const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
+        await page.goto(productUrl, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
+        await new Promise(r => setTimeout(r, 2500));
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
-        const results = await page.evaluate((upc, isEa) => {
-          const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
-          let rows = [];
-          for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
-          // Fallback: content-based — find elements with CS price (immune to CSS class renames)
-          if (rows.length === 0) {
-            rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
-              const t = el.innerText || "";
-              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 10;
-            });
+        const priceResult = await page.evaluate((supc, isEa) => {
+          const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
+          // Strategy 1: price near the SUPC in page text
+          const body = document.body.innerText || "";
+          if (body.includes(supc)) {
+            const idx = body.indexOf(supc);
+            const nearby = body.slice(Math.max(0, idx - 200), idx + 500);
+            const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?CS/i);
+            const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?(?:EA|EACH|MKT)/i);
+            const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
+            const m = isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
+            if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc" }; }
           }
-          const results = [];
-          rows.forEach(row => {
-            const text = row.innerText || "";
-            const hasUpc = text.includes(upc);
-            // EA/MKT items: prefer market/each price — do NOT grab CS case price
-            const eaM  = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-            const csM  = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-            const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
-            const m = isEa ? (eaM || anyM) : (csM || anyM);
-            if (m) {
-              const p = parseFloat(m[1].replace(",", ""));
-              // Skip UI chrome prices (delivery minimums, promo banners) that appear on every page
-              const UI_JUNK = new Set([15.49, 14.99, 9.99, 0.00]);
-              if (!UI_JUNK.has(p)) results.push({ name: text.split("\n")[0].trim(), price: p, raw: m[0], hasUpc });
-            }
-          });
-          if (results.length === 0) {
-            const bodyText = document.body.innerText || "";
-            if (bodyText.includes(upc)) {
-              const idx = bodyText.indexOf(upc);
-              const nearby = bodyText.slice(Math.max(0, idx - 300), idx + 300);
-              const eaM  = nearby.match(/\$([',]+\.[',]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-              const csM  = nearby.match(/\$([',]+\.[',]{2})\s*CS/i);
-              // Gather all non-junk prices from the nearby text
-              const UI_JUNK2 = new Set([15.49, 14.99, 9.99, 0.00]);
-              const allP = [...nearby.matchAll(/\$([\d,]+\.[\d]{2})/g)]
-                .map(x => ({ raw: x[0], price: parseFloat(x[1].replace(",","")) }))
-                .filter(x => !UI_JUNK2.has(x.price));
-              const preferM = isEa ? (eaM || (allP[0] || null)) : (csM || (allP[0] || null));
-              if (preferM) {
-                const p = preferM[1] ? parseFloat(preferM[1].replace(",","")) : (preferM.price || 0);
-                if (p && !UI_JUNK2.has(p)) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: p, raw: preferM[0] || preferM.raw, hasUpc: true });
-              }
-            }
+          // Strategy 2: price elements on product detail page
+          const priceEls = Array.from(document.querySelectorAll(
+            "[class*='price'], [class*='Price'], [data-testid*='price'], [class*='your-price'], [class*='list-price'], [class*='contract-price'], [class*='nick']"
+          ));
+          for (const el of priceEls) {
+            const m = (el.innerText || "").match(/\$([\d,]+\.[\d]{2})/);
+            if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "price-element" }; }
           }
-          return results;
+          // Strategy 3: all $ amounts on page, exclude junk
+          const allP = [...body.matchAll(/\$([\d,]+\.[\d]{2})/g)]
+            .map(x => parseFloat(x[1].replace(",","")))
+            .filter(p => p > 1 && p < 9999 && !UI_JUNK.has(p));
+          if (allP.length > 0) return { price: allP[0], method: "page-scan" };
+          return null;
         }, item.id, isEaItem);
-        const exact = results.find(r => r.hasUpc);
-        let best = exact;
-        // If UPC search returned no exact match, retry with first 3 words of product name
-        if (!best) {
-          const nameKeyword = item.name.split(" ").slice(0, 3).join(" ");
-          await searchInput.click({ clickCount: 3 });
-          await page.keyboard.type(nameKeyword, { delay: 40 });
-          await new Promise(r => setTimeout(r, 1800));
-          // Body-text approach: after name filters the list, find UPC anywhere in page
-          // More reliable than row-based when price format varies (CS/EA/MKT) or DOM splits UPC/price
-          const retryResults = await page.evaluate((upc, isEa) => {
-            const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
-            const bodyText = (document.body.innerText || "").replace(/\s+/g, " ");
-            if (!bodyText.includes(upc)) return [];
-            const idx = bodyText.indexOf(upc);
-            const nearby = bodyText.slice(Math.max(0, idx - 200), idx + 500);
-            // Try CS price first, then EA/MKT, then any $X.XX
-            const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-            const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-            const allP = [...nearby.matchAll(/\$([\d,]+\.[\d]{2})/g)]
-              .map(x => parseFloat(x[1].replace(",","")))
-              .filter(p => p > 1 && p < 5000 && !UI_JUNK.has(p));
-            const m = isEa ? (eaM || csM) : (csM || eaM);
-            const price = m ? parseFloat(m[1].replace(",","")) : (allP[0] || 0);
-            if (!price || price < 1 || UI_JUNK.has(price)) return [];
-            return [{ name: upc, price, raw: "$" + price, hasUpc: true }];
-          }, item.id, isEaItem);
-          best = retryResults[0] || null;
-          if (best) log("Sysco: " + item.name + " → $" + best.price + " (body-text near UPC)");
-        }
-        if (best) {
-          const priceType = isEaItem ? " [EA/MKT price]" : "";
-          log("Sysco: " + item.name + " → $" + best.price + priceType + " (search fallback)");
-          allItems.set(item.id, { name: item.name, price: best.price, upc: item.id, raw: best.raw });
+        if (priceResult && priceResult.price) {
+          const minPrice = SYSCO_PRICE_MIN[item.id];
+          if (minPrice && priceResult.price < minPrice) {
+            log("Sysco: ⚠️ Product page price $" + priceResult.price + " for " + item.name + " below min $" + minPrice + " — skipped");
+          } else {
+            log("Sysco: " + item.name + " → $" + priceResult.price + " (" + priceResult.method + ")");
+            allItems.set(item.id, { name: item.name, price: priceResult.price, upc: item.id, raw: "$" + priceResult.price });
+          }
         } else {
-          const diagInfo = await page.evaluate(() => {
-            const allClasses = new Set();
-            document.querySelectorAll("[class]").forEach(el => el.className.toString().split(/\s+/).forEach(c => { if (c.includes("row") || c.includes("product") || c.includes("item") || c.includes("price") || c.includes("list")) allClasses.add(c); }));
-            return { classHints: [...allClasses].slice(0, 10), hasCS: (document.body.innerText || "").includes("CS") };
-          });
-          log("Sysco: " + item.name + " not found in search" + (diagInfo.hasCS ? " (CSS class changed?)" : " (no CS prices — empty or different layout)") + " classes:" + diagInfo.classHints.join(","));
+          log("Sysco: " + item.name + " — no price found at " + productUrl);
         }
-        await searchInput.click({ clickCount: 3 });
-        await page.keyboard.press("Backspace");
-        await new Promise(r => setTimeout(r, 500));
       } catch(e) { log("Sysco: error on " + item.name + ": " + e.message); }
     }
-
     const items = Array.from(allItems.values());
     log("Sysco: " + items.length + " items total");
     return { success: true, items };
