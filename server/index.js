@@ -460,7 +460,10 @@ const CACHE_SEED = {
     "Flour Wheat Whole Stone Ground": "4014684",
     "Bean Garbanzo Fancy No Sulfite": "4062337",
     "Bean Kidney Dark Red": "4014973",
-    "Tomato Diced Salsa Style": "5895750",
+    "Tomato Diced In Juice": "4978856",
+    "Sysco Classic Tomato Diced": "4978856",
+    "Tomato Diced Classic": "4978856",
+    "Classic Tomato Diced": "4978856",
     "Onion Yellow Jumbo Bag": "1094721",
     "Cream Heavy Whipping 40%": "6935464",
     "Cream Heavy Whipping": "6935464",
@@ -695,6 +698,7 @@ const SYSCO_ITEMS = [
   { id: "4062337", name: "Bean Garbanzo Fancy No Sulfite",                   pack: "6/#10"     },
   { id: "4014973", name: "Bean Kidney Dark Red",                             pack: "6/#10"     },
   { id: "4978884", name: "Sauce Tomato California",                          pack: "6/#10"     },
+  { id: "4978856", name: "Tomato Diced In Juice",                            pack: "6/#10"     },
   { id: "7350788", name: "Onion Green Iceless",                              pack: "4/2 LB"    },
   { id: "1910231", name: "Pepper Green Bell Choice Fresh",                   pack: "1/22-25#"  },
   { id: "9903790", name: "Ketchup Jug Red In Plastic Bottle With Pump",     pack: "6/114 OZ"  },
@@ -746,7 +750,7 @@ const SYSCO_TO_RD_SEED = {
   "4014684": { rdId: "53556",   rdMult: 1 }, // Roti Atta
   "4062337": { rdId: "16200",   rdMult: 1 }, // Garbanzo Beans
   "4014973": { rdId: "69810",   rdMult: 1 }, // Kidney Beans
-  "5895750": { rdId: "860135",  rdMult: 1 }, // Petite Diced Tomato
+  "4978856": { rdId: "860135",  rdMult: 1 }, // Diced Tomato In Juice → 860135 (Isabella Petite Diced)
   "4978884": { rdId: "860044",  rdMult: 1 }, // Tomato Sauce CA
   "6935464": { rdId: "1530438", rdMult: 1 }, // Heavy Cream 12×32oz
   "7350788": { rdId: "40138",   rdMult: 1 }, // Green Onions EA split
@@ -758,7 +762,7 @@ const SYSCO_TO_RD_SEED = {
 // Locked — override seed AND any saved/backup data. Use for known-wrong auto-learned mappings.
 const SYSCO_TO_RD_LOCK = {
   "4002325": { rdId: "860043",  rdMult: 1 }, // Tomato Puree → must be 860043, NEVER 860044
-  "5895750": { rdId: "860135",  rdMult: 1 }, // Diced Tomato → must be 860135, NEVER 860044
+  // 5895750 removed — replaced by 4978856 (Sysco Classic Tomato Diced In Juice 6/#10)
   "8053456": { rdId: null,      rdMult: 1 }, // Chicken Thighs Sysco — not tracked in RD, block
 };
 
@@ -1405,7 +1409,7 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue;
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1675925":"Spinach Clipped Fresh","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1675925":"Spinach Clipped Fresh","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California","4978856":"Tomato Diced Juice"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
@@ -2025,7 +2029,7 @@ const PACK_SIZES = {
   "45900":  { rd: "4 × 1 gallon (512 oz)",       sysco: "4 × 1 gallon (512 oz)",      rdTotal: 512,   syscoTotal: 512,   unit: "oz"    }, // White Vinegar (4113049)
   "860043": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Tomato Puree (4002325) — price per can
   "860044": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Tomato Sauce (4978884) — price per can
-  "860135": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Petite Diced Tomato (5895750) — price per can
+  "860135": { rd: "6 × #10 cans",                sysco: "6 × #10 cans",               rdTotal: 6,     syscoTotal: 6,     unit: "can"   }, // Petite Diced Tomato → 4978856 (Sysco Classic Tomato Diced In Juice) — price per can
   "2010066":{ rd: "6 × 114 oz jugs (684 oz)",    sysco: "6 × 114 oz jugs (684 oz)",   rdTotal: 684,   syscoTotal: 684,   unit: "oz"    }, // Ketchup (9903790)
   // ── DRY / PANTRY ──────────────────────────────────────────────────────────────
   "2061212":{ rd: "1 × 25 lb bag",               sysco: "1 × 25 lb bag",              rdTotal: 25,    syscoTotal: 25,    unit: "lb"    }, // All Purpose Flour (8379251)
@@ -2362,7 +2366,7 @@ frozen spinach / chopped spinach = Frozen Spinach
 baby spinach / fresh spinach / clipped spinach / spinach clipped = Fresh Spinach
 tomato puree = Tomato Puree (NOT Tomato Sauce)
 tomato sauce = Tomato Sauce
-petite diced / diced tomato = Petite Diced Tomato
+petite diced / diced tomato / tomato diced in juice / diced in juice = Petite Diced Tomato
 roti / atta = Roti Atta
 fryer oil / frying oil = Fryer Oil
 cooking oil / salad oil / canola oil / canola / vegetable oil / soybean oil / soybean = Cooking Oil
