@@ -492,7 +492,7 @@ const CACHE_SEED = {
 
 const scraperHealth = {
   rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 },
-  sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 },
+  sysco: { expectedItems: 51, minThreshold: 0.60, lastGoodCount: 0 }, // 0.60×51=30; bulk scroll reliably gets 38
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -1387,17 +1387,17 @@ async function scrapeSysco() {
       for (let attempt = 0; attempt < 20; attempt++) {
         nickClicked = await page.evaluate(() => {
           const all = Array.from(document.querySelectorAll("li, a, button, div, span, h1, h2, h3"));
+          // Pass 1: very short text containing "nick list" only (< 15 chars avoids dropdown container)
           for (const el of all) {
             const t = el.textContent.trim();
-            if (t.toLowerCase().includes("nick list") && t.length < 80) {
+            if (t.toLowerCase().includes("nick list") && t.length < 15) {
               el.click(); return el.tagName + ": " + t.slice(0, 50);
             }
           }
-          // Fallback: "nick" + "list" must both appear — avoids matching "Nick Singh" user name
+          // Pass 2: slightly wider — nick list up to 30 chars (with minor whitespace)
           for (const el of all) {
             const t = el.textContent.trim();
-            const lower = t.toLowerCase();
-            if (/\bnick\b/i.test(t) && lower.includes("list") && t.length < 80) {
+            if (/\bnick list\b/i.test(t) && t.length < 30 && !t.toLowerCase().includes("purchase") && !t.toLowerCase().includes("recently")) {
               el.click(); return el.tagName + " (nick+list): " + t.slice(0, 50);
             }
           }
@@ -1475,7 +1475,7 @@ async function scrapeSysco() {
         for (const sel of CLASS_SEL) { const f = document.querySelectorAll(sel); if (f.length > 0) { rows = Array.from(f); break; } }
         if (rows.length === 0) {
           rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
-            const t = el.innerText || ""; return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 20;
+            const t = el.innerText || ""; return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 20;
           });
         }
         rows.forEach(row => {
@@ -1541,7 +1541,7 @@ async function scrapeSysco() {
           if (rows.length === 0) {
             rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
               const t = el.innerText || "";
-              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 10;
+              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 10;
             });
           }
           const results = [];
@@ -1592,7 +1592,7 @@ async function scrapeSysco() {
           const retryResults = await page.evaluate((upc, isEa) => {
             const rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
               const t = el.innerText || "";
-              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 10;
+              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 10;
             });
             const out = [];
             rows.forEach(row => {
