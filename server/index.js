@@ -47,15 +47,22 @@ const RD_PRICE_MIN = {
   "1810019": 20, // Goat Bone-in 15lb
   "1020075": 20, // Soybean Oil 35lb — $39.34 confirmed; per-lb ~$1.12 would be rejected
   "1020077": 20, // Fryer Oil 35lb — same range; per-lb price would be rejected
-  "40212":  55,  // Shrimp 16/20 — Case of 5×2lb = 10lb @ $62.3; reject per-unit prices
 };
+
+// Items confirmed in-stock by user — never mark OOS even if page shows label near similar name
+// Defined at module scope so both scrapeRD() and runScrape() can access it
+const RD_FORCE_IN_STOCK = new Set([
+  "77658", // Fresh Boneless Skinless Chicken Leg Meat — confirmed in stock 2026-06-01
+  "40212", // SHRP P&D TF 16-20 Shrimp — confirmed in stock 2026-06-01 ("Many in stock")
+]);
 
 // Confirmed prices for items the RD scraper cannot auto-detect
 // (virtual scroll rendering gaps, lazy-loaded sections that unload before extraction)
 // These seed the store on startup if the item has no current live price.
 // Any live scrape result overwrites these immediately.
 const RD_PRICE_SEED = {
-  "1020075": { price: 39.34, note: "Soybean Salad Oil 35lb - confirmed 2026-06-01, Bin 426" },
+  "1020075": { price: 39.34,  note: "Soybean Salad Oil 35lb - confirmed 2026-06-01, Bin 426" },
+  "77658":   { price: 67.60,  note: "Chicken Leg Meat 40lb - confirmed 2026-06-03, $1.69/lb est, Bin 6026" },
 };
 
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
@@ -1248,13 +1255,6 @@ async function scrapeRD() {
       }
     }
 
-    // Items confirmed in-stock by the user — never mark these as OOS
-    // even if the scraper finds an OOS label near a similar product name
-    const RD_FORCE_IN_STOCK = new Set([
-      "77658", // Fresh Boneless Skinless Chicken Leg Meat — confirmed in stock 2026-06-01
-      "40212", // SHRP P&D TF 16-20 Shrimp — confirmed in stock 2026-06-01 ("Many in stock")
-    ]);
-
     const OOS_PATTERNS = [/^out of stock$/i,/^likely out of stock$/i,/^temporarily out of stock$/i,/^currently out of stock$/i,/^item unavailable$/i,/^unavailable$/i];
     function isOosLine(line) { return OOS_PATTERNS.some(p => p.test(line.trim())); }
     const oosNames = [];
@@ -1357,37 +1357,16 @@ async function scrapeSysco() {
     await searchInput.click({ clickCount: 3 });
     await page.keyboard.press("Backspace");
     await new Promise(r => setTimeout(r, 2000));
-    // Scroll aggressively to force virtual list to render all rows
-    // Sysco uses a virtualized list — must scroll slowly with pauses so DOM catches up
-    for (let pass = 0; pass < 3; pass++) {
-      await page.evaluate(async (passNum) => {
-        const container = document.querySelector("[class*='product-list-body']") ||
-          document.querySelector("[class*='product-list']") ||
-          document.querySelector("[class*='list-items']") ||
-          document.querySelector("[class*='products-list']") ||
-          document.querySelector("[class*='order-guide']") ||
-          document.querySelector("main") || document.body;
-        const totalHeight = Math.max(container.scrollHeight, document.body.scrollHeight, 15000);
-        const steps = 60;
-        for (let s = 0; s <= steps; s++) {
-          const pos = Math.round((s / steps) * totalHeight);
-          container.scrollTop = pos;
-          window.scrollTo(0, pos);
-          await new Promise(r => setTimeout(r, 200));
-        }
-        // Scroll back to top
-        container.scrollTop = 0;
-        window.scrollTo(0, 0);
-      }, pass);
-      await new Promise(r => setTimeout(r, 1500));
-      const rowCount = await page.evaluate(() => {
-        const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
-        for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) return found.length; }
-        return 0;
-      });
-      log("Sysco: scroll pass " + (pass+1) + " — " + rowCount + " rows visible");
-      if (rowCount >= 40) break; // Good enough, stop scrolling
-    }
+    await page.evaluate(async () => {
+      const container = document.querySelector("[class*='product-list']") || document.querySelector("[class*='list-items']") || document.querySelector("[class*='products-list']") || document.querySelector("[class*='order-guide']") || document.querySelector("main") || document.body;
+      for (let s = 0; s < 40; s++) {
+        container.scrollTop = s * 400;
+        window.scrollBy(0, 400);
+        await new Promise(r => setTimeout(r, 150));
+      }
+      container.scrollTop = 0;
+      window.scrollTo(0, 0);
+    });
     await new Promise(r => setTimeout(r, 2000));
 
     const allDiscovered = await page.evaluate((eaIds) => {
@@ -1427,22 +1406,6 @@ async function scrapeSysco() {
     const allItems = new Map();
     allDiscovered.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
     log("Sysco: bulk discovery got " + allItems.size + " items");
-    if (allItems.size < 20) {
-      // Too few items found — log DOM info to help diagnose the page layout
-      const domDiag = await page.evaluate(() => {
-        const allClasses = new Set();
-        document.querySelectorAll("[class]").forEach(el =>
-          el.className.toString().split(/\s+/).forEach(c => {
-            if (c.includes("row") || c.includes("product") || c.includes("item") || c.includes("list") || c.includes("price"))
-              allClasses.add(c);
-          })
-        );
-        const priceCount = (document.body.innerText.match(/\$[\d]+\.[\d]{2}/g) || []).length;
-        const csCount = (document.body.innerText.match(/\bCS\b/g) || []).length;
-        return { classes: [...allClasses].slice(0, 20).join(","), priceCount, csCount, bodyLen: document.body.innerText.length };
-      });
-      log("Sysco: ⚠️ Low bulk discovery — DOM: prices=" + domDiag.priceCount + " CS=" + domDiag.csCount + " bodyLen=" + domDiag.bodyLen + " classes=" + domDiag.classes);
-    }
 
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue;
@@ -1457,8 +1420,6 @@ async function scrapeSysco() {
           const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
           let rows = [];
           for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
-          // Prices that appear in Sysco UI chrome (delivery min, cart banner) — never real item prices
-          const UI_JUNK = new Set([15.49, 14.99, 9.99, 0.00]);
           const results = [];
           rows.forEach(row => {
             const text = row.innerText || "";
@@ -1470,6 +1431,8 @@ async function scrapeSysco() {
             const m = isEa ? (eaM || anyM) : (csM || anyM);
             if (m) {
               const p = parseFloat(m[1].replace(",", ""));
+              // Skip UI chrome prices (delivery minimums, promo banners) that appear on every page
+              const UI_JUNK = new Set([15.49, 14.99, 9.99, 0.00]);
               if (!UI_JUNK.has(p)) results.push({ name: text.split("\n")[0].trim(), price: p, raw: m[0], hasUpc });
             }
           });
@@ -1478,16 +1441,17 @@ async function scrapeSysco() {
             if (bodyText.includes(upc)) {
               const idx = bodyText.indexOf(upc);
               const nearby = bodyText.slice(Math.max(0, idx - 300), idx + 300);
-              const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-              const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+              const eaM  = nearby.match(/\$([',]+\.[',]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+              const csM  = nearby.match(/\$([',]+\.[',]{2})\s*CS/i);
               // Gather all non-junk prices from the nearby text
+              const UI_JUNK2 = new Set([15.49, 14.99, 9.99, 0.00]);
               const allP = [...nearby.matchAll(/\$([\d,]+\.[\d]{2})/g)]
                 .map(x => ({ raw: x[0], price: parseFloat(x[1].replace(",","")) }))
-                .filter(x => !UI_JUNK.has(x.price));
+                .filter(x => !UI_JUNK2.has(x.price));
               const preferM = isEa ? (eaM || (allP[0] || null)) : (csM || (allP[0] || null));
               if (preferM) {
                 const p = preferM[1] ? parseFloat(preferM[1].replace(",","")) : (preferM.price || 0);
-                if (p && !UI_JUNK.has(p)) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: p, raw: preferM[0] || preferM.raw, hasUpc: true });
+                if (p && !UI_JUNK2.has(p)) results.push({ name: nearby.split("\n").find(l => l.trim().length > 3) || "unknown", price: p, raw: preferM[0] || preferM.raw, hasUpc: true });
               }
             }
           }
@@ -1800,6 +1764,20 @@ async function runScrape(source = "all") {
           log("🛡️ Health guard: applied " + matched.length + " confirmed prices, marked rest as stale");
           return;
         }
+        // Sanity check: reject scrape if >40% of items share the exact same price
+        // (indicates a UI artifact like a promo banner price being scraped instead of item price)
+        if (matched.length > 10) {
+          const priceFreq = {};
+          matched.forEach(m => { priceFreq[m.price] = (priceFreq[m.price] || 0) + 1; });
+          const maxFreq = Math.max(...Object.values(priceFreq));
+          const dominantPrice = Object.keys(priceFreq).find(p => priceFreq[p] === maxFreq);
+          if (maxFreq / matched.length > 0.4) {
+            log("❌ Sysco: REJECTED entire scrape — " + maxFreq + "/" + matched.length + " items share price $" + dominantPrice + " (UI artifact detected)");
+            log("❌ Sysco: keeping previous prices — check if Sysco site changed");
+            return; // Skip all price saves, keep old prices
+          }
+        }
+
         let savedCount = 0;
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
@@ -1926,7 +1904,7 @@ function patchItemKnowledge() {
     "64046":  [36,  "12 x 3 lb bags (36 lb)",   "lb",  36,   "12 x 3 lb bags (36 lb)"],  // RD Case of 12 confirmed
     "86527":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "1 x 30 lb bag"],  // RD Case of 12 confirmed
     "51457":  [10,  "1 x 10 lb box",            "lb",  10,   "2 x 5 lb boxes (10 lb)"],
-    "40212":  [10,  "5 x 2 lb bags (10 lb)",   "lb",  10,   "4 x 2.5 lb bags (10 lb)"],  // RD Case of 5 confirmed @ $62.3
+    "40212":  [10,  "1 x 10 lb box",            "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
     "1810019":[15,  "1 x 15 lb box",            "lb",  null, null],
     "79042":  [42,  "~42 lb variable weight",   "lb",  null, null],
     "45900":  [512, "4 x 1 gallon (512 oz)",    "oz",  512,  "4 x 1 gallon (512 oz)"],
@@ -2058,7 +2036,7 @@ const PACK_SIZES = {
   "77658":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Meat (0868459)
   "77200":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Wings (6344790)
   // ── SEAFOOD / MEAT ────────────────────────────────────────────────────────────
-  "40212":  { rd: "5 × 2 lb bags (10 lb)",      sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
+  "40212":  { rd: "1 × 10 lb box",              sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
   "51457":  { rd: "1 × 10 lb box",              sysco: "2 × 5 lb boxes (10 lb)",     rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Tilapia (0496671)
   "79042":  { rd: "~42 lb variable weight",      sysco: null,                          rdTotal: 42,    syscoTotal: null,  unit: "lb"    }, // Lamb Leg Boneless — RD only
   "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
@@ -2191,12 +2169,11 @@ app.get("/api/trigger", (req, res) => {
   if (priceStore.scraping) {
     return res.json({ message: "Scrape already in progress", skipped: true });
   }
-  const forceOverride = req.query.force === "true";
-  if (minSince < 30 && !forceOverride) {
+  if (minSince < 30) {
     return res.json({ message: "Prices are fresh (" + Math.round(minSince) + " min ago) — skipping", skipped: true, minSince: Math.round(minSince) });
   }
-  res.json({ message: "Scraping " + src + (forceOverride ? " (forced)" : "") });
-  runScrape(forceOverride ? "forced" : src).catch(e => log("Trigger: " + e.message));
+  res.json({ message: "Scraping " + src });
+  runScrape(src).catch(e => log("Trigger: " + e.message));
 });
 app.get("/api/debug-rd", async (req, res) => {
   res.json({ message: "Debugging RD scrape — check /api/status in 3 minutes" });
