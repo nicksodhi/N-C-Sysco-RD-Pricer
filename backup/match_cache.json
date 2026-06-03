@@ -88,7 +88,8 @@
     "Chef's Quality - White Vinegar (4% acidity) - gallon": "45900",
     "Rice Flour - 50 lbs": "69778",
     "Serrano Peppers": "44137",
-    "Sunset 7313 - POS Thermal Printer Rolls, 1 ply, 3-1/8\", 200' rolls - 10 per tray": "50103"
+    "Sunset 7313 - POS Thermal Printer Rolls, 1 ply, 3-1/8\", 200' rolls - 10 per tray": "50103",
+    "SHRP P&D TF 16-20": "40212"
   },
   "sysco": {
     "Chicken Cvp Leg Quarter Small Halal": "1803287",
@@ -156,6 +157,13 @@
     "Ketchup Jug Red Plastic Bottle": "9903790",
     "Cheese Paneer": "7102961",
     "Cream Heavy 40% Extended Shelf Life Stabilized": "6935464",
-    "Onion Green Iceless": "7350788"
+    "Onion Green Iceless": "7350788",
+    "Spinach Clipped Fresh": "1675925",
+    "Spinach Clipped": "1675925",
+    "Spinach Fresh Clipped": "1675925",
+    "Tomato Diced In Juice": "4978856",
+    "Sysco Classic Tomato Diced": "4978856",
+    "Tomato Diced Classic": "4978856",
+    "Classic Tomato Diced": "4978856"
   }
 }
