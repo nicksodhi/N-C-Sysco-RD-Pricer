@@ -180,7 +180,12 @@ async function restoreFromGitHub() {
       ]));
     }
     if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
-    if (data.oos) { priceStore.oos = data.oos; }
+    if (data.oos) {
+      // Remove any force-in-stock items from restored OOS list
+      const RD_FORCE_IN_STOCK_GLOBAL = ["77658", "40212"];
+      data.oos.rd = (data.oos.rd || []).filter(id => !RD_FORCE_IN_STOCK_GLOBAL.includes(id));
+      priceStore.oos = data.oos;
+    }
     if (data.matchCache) {
       // Re-merge CACHE_SEED after restore — ensures new seed entries always win
       // (backup cache may predate seed additions made in code updates)
@@ -443,7 +448,9 @@ const CACHE_SEED = {
     "Broccoli Floret Poly Packaging Grade A": "6988158",
     "Spinach Chopped Bag": "2523833",
     "Demand Cheese Paneer": "7102961",
-    "Spinach Baby Fresh": "8474538",
+    "Spinach Clipped Fresh": "1675925",
+    "Spinach Clipped": "1675925",
+    "Spinach Fresh Clipped": "1675925",
     "Carrots Loose Fresh": "3879962",
     "Lemon Choice Fresh": "2252013",
     "Cucumber Select Fresh": "7410640",
@@ -677,7 +684,7 @@ const SYSCO_ITEMS = [
   { id: "6988158", name: "Broccoli Floret Poly Packaging Grade A",           pack: "12/2 LB"   },
   { id: "2523833", name: "Spinach Chopped Bag",                              pack: "12/3LB"    },
   { id: "7102961", name: "Demand Cheese Paneer",                             pack: "2/5 LB"    },
-  { id: "8474538", name: "Spinach Baby Fresh",                               pack: "1 x 4 LB"  },
+  { id: "1675925", name: "Spinach Clipped Fresh",                            pack: "4/2.5LB"   },
   { id: "3879962", name: "Carrots Loose Fresh",                              pack: "1/10 LB"   },
   { id: "2252013", name: "Lemon Choice Fresh",                               pack: "1/115 CT"  },
   { id: "7410640", name: "Cucumber Select Fresh",                            pack: "1/5 LB"    },
@@ -729,7 +736,7 @@ const SYSCO_TO_RD_SEED = {
   "6988158": { rdId: "64120",   rdMult: 1 }, // Frozen Broccoli
   "2523833": { rdId: "64046",   rdMult: 1 }, // Frozen Spinach
   "7102961": { rdId: "1440528", rdMult: 1 }, // Paneer
-  "8474538": { rdId: "44211",   rdMult: 1 }, // Baby Spinach
+  "1675925": { rdId: "44211",   rdMult: 1 }, // Spinach Clipped Fresh (4/2.5lb = same as RD)
   "3879962": { rdId: "79152",   rdMult: 1 }, // Carrots
   "2252013": { rdId: "42570",   rdMult: 1 }, // Lemons
   "7410640": { rdId: "42504",   rdMult: 1 }, // Cucumbers
@@ -1236,6 +1243,13 @@ async function scrapeRD() {
       }
     }
 
+    // Items confirmed in-stock by the user — never mark these as OOS
+    // even if the scraper finds an OOS label near a similar product name
+    const RD_FORCE_IN_STOCK = new Set([
+      "77658", // Fresh Boneless Skinless Chicken Leg Meat — confirmed in stock 2026-06-01
+      "40212", // SHRP P&D TF 16-20 Shrimp — confirmed in stock 2026-06-01 ("Many in stock")
+    ]);
+
     const OOS_PATTERNS = [/^out of stock$/i,/^likely out of stock$/i,/^temporarily out of stock$/i,/^currently out of stock$/i,/^item unavailable$/i,/^unavailable$/i];
     function isOosLine(line) { return OOS_PATTERNS.some(p => p.test(line.trim())); }
     const oosNames = [];
@@ -1391,7 +1405,7 @@ async function scrapeSysco() {
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue;
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California"};
+        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1675925":"Spinach Clipped Fresh","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California"};
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
@@ -1685,7 +1699,13 @@ async function runScrape(source = "all") {
               oosLower.split(" ").forEach(w => { if (w.length > 3 && iLower.includes(w)) score += w.length; });
               if (score > bestScore) { bestScore = score; bestId = item.id; }
             });
-            if (bestId && bestScore >= 4) { oosIds.push(bestId); log("RD: OOS matched '" + oosName + "' → " + bestId + " (score=" + bestScore + ")"); }
+            if (bestId && bestScore >= 4) {
+              if (RD_FORCE_IN_STOCK.has(bestId)) {
+                log("RD: OOS skipped '" + oosName + "' → " + bestId + " (force in-stock override)");
+              } else {
+                oosIds.push(bestId); log("RD: OOS matched '" + oosName + "' → " + bestId + " (score=" + bestScore + ")");
+              }
+            }
             else { log("RD: OOS no match for '" + oosName + "' (best score=" + bestScore + ")"); }
           });
         }
@@ -1817,7 +1837,7 @@ function patchItemKnowledge() {
     "44137":  [40,  "1 x 40 lb box",            "lb",  40,   "1 x 40 lb case"],
     "40138":  [4,   "1 x 4 lb bunch",           "lb",  2,    "1 x 2 lb split (EA)"],  // RD single 4lb bunch confirmed
     "42706":  [5,   "1 x 5 lb bag",             "lb",  23.5, "1 x 22-25 lb case"],
-    "44211":  [10,  "4 x 2.5 lb bags (10 lb)",  "lb",  4,    "1 x 4 lb bag"],
+    "44211":  [10,  "4 x 2.5 lb bags (10 lb)",  "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
     "42566":  [null,"RD case",                  "lb",  4,    "4 x 1 lb bunches"],
     "42647":  [1,   "1 x 1 lb package",         "lb",  1,    "1 x 1 lb package"],
     "42504":  [6,   "1 x 6ct pack",             "each",8,    "1 x 5 lb pack (~8ct est)"],
@@ -1969,7 +1989,7 @@ const PACK_SIZES = {
   "44137":  { rd: "1 × 40 lb box",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Serrano Peppers (7007376)
   "40138":  { rd: "1 × 4 lb bunch",             sysco: "1 × 2 lb split (EA)",        rdTotal: 4,     syscoTotal: 2,     unit: "lb"    }, // Green Onions — always buy single packs; RD $10.35/4lb=$2.59/lb; Sysco $6.89/2lb=$3.45/lb → RD cheaper
   "42706":  { rd: "1 × 5 lb bag",              sysco: "1 × 22-25 lb case",          rdTotal: 5,     syscoTotal: 23.5,  unit: "lb"    }, // Green Bell Pepper (1910231) — DIFF SIZES
-  "44211":  { rd: "4 × 2.5 lb bags (10 lb)",   sysco: "1 × 4 lb bag",               rdTotal: 10,    syscoTotal: 4,     unit: "lb"    }, // Baby Spinach (8474538) — DIFF SIZES
+  "44211":  { rd: "4 × 2.5 lb bags (10 lb)",   sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Spinach Clipped Fresh (1675925) — SAME SIZE
   "42566":  { rd: "1 case",                    sysco: "4 × 1 lb bunches (4 lb)",    rdTotal: null,  syscoTotal: 4,     unit: "lb"    }, // Cilantro (2219095) — RD case size not on order guide
   "42647":  { rd: "1 × 1 lb package",          sysco: "1 × 1 lb package",           rdTotal: 1,     syscoTotal: 1,     unit: "lb"    }, // Mint (2037125)
   "42504":  { rd: "1 × 6 ct pack",             sysco: "1 × 5 lb pack (~8 ct est)",  rdTotal: 6,     syscoTotal: 8,     unit: "each"  }, // Cucumbers (7410640) — DIFF UNITS; est 8ct per 5lb
@@ -2168,6 +2188,18 @@ app.post("/api/scrape", (req, res) => {
 });
 // Debug: scrapes RD and logs ALL extracted item names containing oil/soybean
 // Call once: GET /api/debug-rd-oil — then check /api/status for results
+// Manually clear OOS flag for a specific item: POST /api/clear-oos?vendor=rd&id=77658
+app.post("/api/clear-oos", (req, res) => {
+  const { vendor, id } = req.query;
+  if (!vendor || !id) return res.status(400).json({ error: "vendor and id required" });
+  if (!priceStore.oos) priceStore.oos = { rd: [], sysco: [] };
+  const before = (priceStore.oos[vendor] || []).length;
+  priceStore.oos[vendor] = (priceStore.oos[vendor] || []).filter(x => x !== id);
+  savePrices();
+  log("Manual OOS clear: " + vendor + "[" + id + "] removed (was " + (before > (priceStore.oos[vendor]||[]).length ? "OOS" : "not OOS") + ")");
+  res.json({ cleared: true, vendor, id, remaining: priceStore.oos[vendor] });
+});
+
 app.get("/api/debug-rd-oil", async (req, res) => {
   res.json({ message: "Scraping RD for oil/soybean items — check /api/status in 3 min" });
   try {
@@ -2327,7 +2359,7 @@ green pepper / bell pepper = Green Bell Pepper
 serrano / green chili = Green Chilies
 4-way / frozen mix / mixed veg = Frozen 4-Way Mix
 frozen spinach / chopped spinach = Frozen Spinach
-baby spinach / fresh spinach = Fresh Spinach
+baby spinach / fresh spinach / clipped spinach / spinach clipped = Fresh Spinach
 tomato puree = Tomato Puree (NOT Tomato Sauce)
 tomato sauce = Tomato Sauce
 petite diced / diced tomato = Petite Diced Tomato
