@@ -1589,27 +1589,27 @@ async function scrapeSysco() {
           await searchInput.click({ clickCount: 3 });
           await page.keyboard.type(nameKeyword, { delay: 40 });
           await new Promise(r => setTimeout(r, 1800));
+          // Body-text approach: after name filters the list, find UPC anywhere in page
+          // More reliable than row-based when price format varies (CS/EA/MKT) or DOM splits UPC/price
           const retryResults = await page.evaluate((upc, isEa) => {
-            const rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
-              const t = el.innerText || "";
-              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 10;
-            });
-            const out = [];
-            rows.forEach(row => {
-              const text = row.innerText || "";
-              const hasUpc = text.includes(upc);
-              const eaM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-              const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-              const m = isEa ? (eaM || csM) : (csM || eaM);
-              if (m && hasUpc) {
-                const p = parseFloat(m[1].replace(",",""));
-                if (p > 0.5) out.push({ name: text.split("\n")[0].trim(), price: p, raw: m[0], hasUpc: true });
-              }
-            });
-            return out;
+            const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
+            const bodyText = (document.body.innerText || "").replace(/\s+/g, " ");
+            if (!bodyText.includes(upc)) return [];
+            const idx = bodyText.indexOf(upc);
+            const nearby = bodyText.slice(Math.max(0, idx - 200), idx + 500);
+            // Try CS price first, then EA/MKT, then any $X.XX
+            const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+            const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+            const allP = [...nearby.matchAll(/\$([\d,]+\.[\d]{2})/g)]
+              .map(x => parseFloat(x[1].replace(",","")))
+              .filter(p => p > 1 && p < 5000 && !UI_JUNK.has(p));
+            const m = isEa ? (eaM || csM) : (csM || eaM);
+            const price = m ? parseFloat(m[1].replace(",","")) : (allP[0] || 0);
+            if (!price || price < 1 || UI_JUNK.has(price)) return [];
+            return [{ name: upc, price, raw: "$" + price, hasUpc: true }];
           }, item.id, isEaItem);
-          best = retryResults.find(r => r.hasUpc) || null;
-          if (best) log("Sysco: " + item.name + " → found via name retry");
+          best = retryResults[0] || null;
+          if (best) log("Sysco: " + item.name + " → $" + best.price + " (body-text near UPC)");
         }
         if (best) {
           const priceType = isEaItem ? " [EA/MKT price]" : "";
