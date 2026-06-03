@@ -1393,11 +1393,12 @@ async function scrapeSysco() {
               el.click(); return el.tagName + ": " + t.slice(0, 50);
             }
           }
-          // Fallback: just "nick" (in case name changed slightly)
+          // Fallback: "nick" + "list" must both appear — avoids matching "Nick Singh" user name
           for (const el of all) {
             const t = el.textContent.trim();
-            if (/\bnick\b/i.test(t) && t.length < 60 && !t.toLowerCase().includes("nicholas")) {
-              el.click(); return el.tagName + " (nick): " + t.slice(0, 50);
+            const lower = t.toLowerCase();
+            if (/\bnick\b/i.test(t) && lower.includes("list") && t.length < 80) {
+              el.click(); return el.tagName + " (nick+list): " + t.slice(0, 50);
             }
           }
           return null;
@@ -1458,61 +1459,57 @@ async function scrapeSysco() {
     // Scroll the virtualized-list container to trigger virtual rendering of all rows
     // DevTools confirmed: div.virtualized-list { overflow: auto; height: 355px }
     // Only 6 rows are visible until this container is scrolled through
-    const scrollResult = await page.evaluate(async () => {
+    // Scroll virtual list while accumulating discovered items at each scroll position
+    // Virtual lists only render visible rows — must read during scroll, not after returning to top
+    const allDiscovered = await page.evaluate(async (eaIds) => {
       const vList = document.querySelector(".virtualized-list")
         || document.querySelector("[class*='virtualized']")
         || document.querySelector(".data-grid-body")
         || document.querySelector("[class*='data-grid']")
-        || document.querySelector("[class*='lists-product-grid']")
-        || document.querySelector("main");
-      if (!vList) return "no container found";
-      const totalH = vList.scrollHeight || 5000;
-      // Slow scroll: 60 steps with 200ms pause to allow virtual rendering
-      for (let s = 0; s <= 60; s++) {
-        vList.scrollTop = Math.round((s / 60) * totalH);
-        await new Promise(r => setTimeout(r, 200));
-      }
-      vList.scrollTop = 0;
-      await new Promise(r => setTimeout(r, 500));
-      return vList.className + " scrollHeight=" + totalH;
-    });
-    log("Sysco: scroll complete — " + scrollResult);
-    await new Promise(r => setTimeout(r, 2000));
-
-    const allDiscovered = await page.evaluate((eaIds) => {
-      // Content-based row detection: find elements containing a 7-digit UPC + CS price
-      // This is immune to Sysco CSS class renames which break selector-based approaches
-      const CLASS_SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
-      let rows = [];
-      for (const sel of CLASS_SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
-      // Fallback: content-based — look for tr/li/div containing a UPC + CS price
-      if (rows.length === 0) {
-        rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
-          const t = el.innerText || "";
-          return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 20;
+        || document.querySelector("[class*='lists-product-grid']");
+      const totalH = vList ? (vList.scrollHeight || 0) : 0;
+      const accumulated = new Map();
+      const readVisible = () => {
+        const CLASS_SEL = ["[class*='product-item-row']","[class*='list-row']","[class*='item-row']"];
+        let rows = [];
+        for (const sel of CLASS_SEL) { const f = document.querySelectorAll(sel); if (f.length > 0) { rows = Array.from(f); break; } }
+        if (rows.length === 0) {
+          rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
+            const t = el.innerText || ""; return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 20;
+          });
+        }
+        rows.forEach(row => {
+          const text = row.innerText || "";
+          const upcM = text.match(/\b(\d{7})\b/);
+          if (!upcM || accumulated.has(upcM[1])) return;
+          const isEa = eaIds.includes(upcM[1]);
+          const eaM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
+          const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
+          const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
+          const m = isEa ? (eaM || anyM) : (csM || anyM);
+          if (!m) return;
+          const nameEl = row.querySelector("[class*='item-details'], [class*='product-name'], [class*='item-name']");
+          const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
+          accumulated.set(upcM[1], { upc: upcM[1], name, price: parseFloat(m[1].replace(",","")), raw: m[0], isEa: !!isEa });
         });
+      };
+      readVisible();
+      if (vList && totalH > 200) {
+        const steps = 60;
+        for (let s = 1; s <= steps; s++) {
+          vList.scrollTop = Math.round((s / steps) * totalH);
+          await new Promise(r => setTimeout(r, 250));
+          readVisible();
+        }
       }
-      const found = [];
-      rows.forEach(row => {
-        const text = row.innerText || "";
-        const upcM = text.match(/\b(\d{7})\b/);
-        const upc  = upcM?.[1];
-        const isEa = upc && eaIds.includes(upc);
-        // EA/MKT items: prefer market/each price over case price
-        const eaM  = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-        const csM  = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-        const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
-        const m = isEa ? (eaM || anyM) : (csM || anyM);
-        const nameEl = row.querySelector("[class*='item-details-col'], [class*='product-name'], [class*='item-name']");
-        const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
-        if (upcM && m && name) found.push({ upc: upcM[1], name, price: parseFloat(m[1].replace(",", "")), raw: m[0], isEa });
-      });
-      return found;
+      return { items: [...accumulated.values()], scrollH: totalH, container: vList ? vList.className : "none" };
     }, [...SYSCO_EA_ITEMS]);
+    log("Sysco: scroll complete — " + allDiscovered.container + " scrollH=" + allDiscovered.scrollH + " found=" + allDiscovered.items.length);
+    const _allDiscItems = allDiscovered.items; // real items from scroll
 
     const knownIds = new Set(SYSCO_ITEMS.map(i => i.id));
     let newItemsFound = 0;
-    allDiscovered.forEach(disc => {
+    _allDiscItems.forEach(disc => {
       if (!knownIds.has(disc.upc)) {
         SYSCO_ITEMS.push({ id: disc.upc, name: disc.name, pack: "" });
         knownIds.add(disc.upc);
@@ -1523,24 +1520,18 @@ async function scrapeSysco() {
     if (newItemsFound > 0) log("Sysco: " + newItemsFound + " new SKUs added to list");
 
     const allItems = new Map();
-    allDiscovered.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
+    _allDiscItems.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
     log("Sysco: bulk discovery got " + allItems.size + " items");
 
+    // Search each item by its Sysco UPC directly — one UPC = one result = exact price
+    // This bypasses virtual scroll entirely and is immune to CSS class changes
     for (const item of SYSCO_ITEMS) {
       if (allItems.has(item.id)) continue;
       try {
-        const SEARCH_OVERRIDES = {"7102961":"Paneer","0868459":"Chicken Leg Meat","4418117":"Chicken Leg Quarter Jumbo","5231238":"Chicken Breast Boneless","6344790":"Chicken Wings Jumbo","9903790":"Ketchup Jug Pump","7350788":"Onion Green Iceless","1675925":"Spinach Clipped Fresh","1910231":"Pepper Green Bell","6935464":"Cream Heavy 40%","2219095":"Cilantro Cleaned Herb","4978884":"Sauce Tomato California","4978856":"Tomato Diced Juice"};
-        const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
+        // Type the 7-digit Sysco UPC — filters list to exactly 1 row with the right price
         await searchInput.click({ clickCount: 3 });
-        await page.keyboard.type(keyword, { delay: 50 });
+        await page.keyboard.type(item.id, { delay: 40 });
         await new Promise(r => setTimeout(r, 1500));
-        // After typing, scroll .virtualized-list so filtered result renders
-        await page.evaluate(async () => {
-          const vList = document.querySelector(".virtualized-list")
-            || document.querySelector("[class*='virtualized']")
-            || document.querySelector(".data-grid-body");
-          if (vList) { vList.scrollTop = 0; await new Promise(r => setTimeout(r, 300)); }
-        }).catch(() => {});
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
         const results = await page.evaluate((upc, isEa) => {
           const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
