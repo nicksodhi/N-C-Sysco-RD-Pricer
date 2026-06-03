@@ -67,6 +67,14 @@ const RD_PRICE_SEED = {
   "40212":   { price: 62.31,  note: "SHRP P&D TF 16-20 Shrimp, Case of 5 × 2lb = 10lb, $62.31/case - confirmed 2026-06-03, UPC 64728331897" },
 };
 
+// Confirmed Sysco prices for items the Nick List scraper cannot reliably get
+// (virtual scroll bottom items 38-51 that rarely render, or items with non-CS price format)
+const SYSCO_PRICE_SEED = {
+  // Confirmed prices — live scraper cannot reliably get items 38-51 from virtual list
+  "5106388": { price: 62.65, note: "Shrimp White P&D TF 16/20 Count, 4/2.5LB = 10lb, $62.65 CS - confirmed 2026-06-03" },
+  // Add more as confirmed: "UPC": { price: X.XX, note: "..." }
+};
+
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
 // Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
 const SYSCO_PRICE_MIN = {
@@ -75,6 +83,7 @@ const SYSCO_PRICE_MIN = {
   "77670":   20,  // same item stored under RD ID
   "0868459": 20,  // Chicken Leg Meat 4×10lb = 40lb case
   "77658":   20,  // same item stored under RD ID
+  "5106388": 50,  // Sysco Shrimp 4/2.5LB = 10lb case — $62.65; per-2.5lb bag ~$15 must be rejected
   "5231238": 25,  // Chicken Breast 40lb
   "77232":   25,  // same under RD ID
   "6344790": 25,  // Chicken Wings 40lb
@@ -345,6 +354,19 @@ function cleanBadPrices() {
       };
       seeded++;
       console.log("🌱 Price seed applied: RD[" + id + "] = $" + seed.price + " (" + seed.note + ")");
+    }
+  });
+  Object.entries(SYSCO_PRICE_SEED).forEach(([id, seed]) => {
+    if (!priceStore.sysco[id] || !priceStore.sysco[id].price) {
+      priceStore.sysco[id] = {
+        price: seed.price,
+        date: new Date().toISOString(),
+        source: "confirmed_seed",
+        confidence: "high",
+        note: seed.note,
+      };
+      seeded++;
+      console.log("🌱 Price seed applied: Sysco[" + id + "] = $" + seed.price + " (" + seed.note + ")");
     }
   });
   // Only save if we have a valid lastUpdated — prevents writing null timestamp
@@ -1323,6 +1345,56 @@ async function scrapeSysco() {
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
 
+    // ── NETWORK INTERCEPTION ─────────────────────────────────────────────────
+    // Sysco's React app fetches all Nick List prices from their API as JSON.
+    // We intercept those responses directly — no DOM scraping, no virtual scroll.
+    // This is immune to CSS changes, virtual list bugs, and layout redesigns.
+    const netPrices = new Map(); // UPC string -> { price, unit, source }
+    const seenUrls  = new Set();
+
+    function extractFromJson(obj, depth) {
+      if (!obj || typeof obj !== "object" || depth > 12) return;
+      if (Array.isArray(obj)) { obj.forEach(x => extractFromJson(x, depth + 1)); return; }
+      // Look for a Sysco UPC (7-digit number) and a price in the same object
+      const upcFields   = ["supc","syscoCode","materialNumber","productCode","itemCode","id","sku","upc","code"];
+      const priceFields = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue","unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue"];
+      const unitFields  = ["priceUnit","unit","uom","pricingUOM","orderUnit"];
+      let upc = null, price = null, unit = "";
+      for (const f of upcFields) {
+        const v = obj[f];
+        if (v && /^\d{7}$/.test(String(v).trim())) { upc = String(v).trim(); break; }
+      }
+      for (const f of priceFields) {
+        const v = obj[f];
+        if (v == null) continue;
+        const p = typeof v === "number" ? v : parseFloat(String(v).replace(/[^\d.]/g,""));
+        if (!isNaN(p) && p > 0.5 && p < 9999) { price = p; break; }
+      }
+      for (const f of unitFields) { if (obj[f]) { unit = String(obj[f]).toUpperCase(); break; } }
+      if (upc && price && !netPrices.has(upc)) {
+        netPrices.set(upc, { price, unit: unit || "CS", source: "api" });
+      }
+      Object.values(obj).forEach(v => { if (v && typeof v === "object") extractFromJson(v, depth + 1); });
+    }
+
+    const responseHandler = async (response) => {
+      try {
+        const url = response.url();
+        if (!url.includes("sysco.com")) return;
+        if (response.status() < 200 || response.status() >= 300) return;
+        const ct = response.headers()["content-type"] || "";
+        if (!ct.includes("json")) return;
+        if (seenUrls.has(url)) return;
+        seenUrls.add(url);
+        const text = await response.text().catch(() => "");
+        if (!text || text.length < 30) return;
+        // Quick filter: must mention price-like keys before parsing
+        if (!/price|Price|supc|SUPC|syscoCode/i.test(text)) return;
+        try { extractFromJson(JSON.parse(text), 0); } catch {}
+      } catch {}
+    };
+    page.on("response", responseHandler);
+
     // Navigate to the lists page — Nick List is already shown here per screenshot
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 4000));
@@ -1495,11 +1567,21 @@ async function scrapeSysco() {
       };
       readVisible();
       if (vList && totalH > 200) {
-        const steps = 60;
+        const rect = vList.getBoundingClientRect();
+        const containerTop = rect.top + window.scrollY;
+        const steps = 80; // more steps = better coverage
         for (let s = 1; s <= steps; s++) {
-          vList.scrollTop = Math.round((s / steps) * totalH);
+          const pos = Math.round((s / steps) * totalH);
+          vList.scrollTop = pos;
+          // Also scroll window to keep container visible — virtual list may use window.scrollY
+          window.scrollTo(0, containerTop + pos * 0.5);
           await new Promise(r => setTimeout(r, 350));
           readVisible();
+          // Extra pause at the bottom third to catch items 38-51
+          if (s === Math.floor(steps * 0.65) || s === Math.floor(steps * 0.80) || s === steps - 2) {
+            await new Promise(r => setTimeout(r, 800));
+            readVisible();
+          }
         }
       }
       return { items: [...accumulated.values()], scrollH: totalH, container: vList ? vList.className : "none" };
@@ -1521,7 +1603,23 @@ async function scrapeSysco() {
 
     const allItems = new Map();
     _allDiscItems.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
-    log("Sysco: bulk discovery got " + allItems.size + " items");
+        // ── MERGE NETWORK-INTERCEPTED PRICES ────────────────────────────────────
+    // API prices captured during page load — highest confidence, covers all items
+    const SYSCO_IDS = new Set(SYSCO_ITEMS.map(i => i.id));
+    let netCount = 0;
+    for (const [upc, data] of netPrices.entries()) {
+      if (!SYSCO_IDS.has(upc)) continue; // ignore items not on our list
+      const min = SYSCO_PRICE_MIN[upc];
+      if (min && data.price < min) { log("Sysco: ⚠️ API price $" + data.price + " for " + upc + " below min $" + min + " — skipped"); continue; }
+      if (!allItems.has(upc)) { // API wins over DOM scroll when both present
+        const item = SYSCO_ITEMS.find(i => i.id === upc);
+        allItems.set(upc, { name: item ? item.name : upc, price: data.price, upc, raw: "$" + data.price + " " + data.unit });
+        netCount++;
+      }
+    }
+    log("Sysco: 🌐 API interception: " + netPrices.size + " total captured, " + netCount + " new Nick List prices added");
+    page.off("response", responseHandler);
+    log("Sysco: bulk discovery got " + allItems.size + " items (DOM=" + _allDiscItems.length + " + API=" + netCount + ")");
 
     // Search each item by its Sysco UPC directly — one UPC = one result = exact price
     // This bypasses virtual scroll entirely and is immune to CSS class changes
