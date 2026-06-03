@@ -2191,11 +2191,12 @@ app.get("/api/trigger", (req, res) => {
   if (priceStore.scraping) {
     return res.json({ message: "Scrape already in progress", skipped: true });
   }
-  if (minSince < 30) {
+  const forceOverride = req.query.force === "true";
+  if (minSince < 30 && !forceOverride) {
     return res.json({ message: "Prices are fresh (" + Math.round(minSince) + " min ago) — skipping", skipped: true, minSince: Math.round(minSince) });
   }
-  res.json({ message: "Scraping " + src });
-  runScrape(src).catch(e => log("Trigger: " + e.message));
+  res.json({ message: "Scraping " + src + (forceOverride ? " (forced)" : "") });
+  runScrape(forceOverride ? "forced" : src).catch(e => log("Trigger: " + e.message));
 });
 app.get("/api/debug-rd", async (req, res) => {
   res.json({ message: "Debugging RD scrape — check /api/status in 3 minutes" });
