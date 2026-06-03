@@ -1661,13 +1661,6 @@ Return [] if nothing should be added.`;
 async function runScrape(source = "all") {
   // Concurrency guard — never run two scrapes at once (two Puppeteers = OOM crash)
   if (priceStore.scraping) { log("\u23ED\uFE0F  Scrape skipped \u2014 already running"); return; }
-  // Cooldown guard — minimum 30 min between manual scrapes (prevents Sync button spam)
-  // "forced" bypasses cooldown: used by 6am cron and startup staleness check
-  if (source !== "forced") {
-    const lastUp = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
-    const minSince = lastUp ? (Date.now() - lastUp.getTime()) / 60000 : 999;
-    if (minSince < 30) { log("\u23ED\uFE0F  Scrape skipped \u2014 prices only " + Math.round(minSince) + " min old"); return; }
-  }
   priceStore.scraping = true;
   try {
   if (source === "rd" || source === "all") {
@@ -2163,14 +2156,8 @@ app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceS
 app.get("/api/status", (req, res) => res.json({ status: "running", lastUpdated: priceStore.lastUpdated, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length, log: priceStore.log.slice(0, 200) }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
-  // Cooldown: block re-trigger if a scrape finished < 30 min ago (prevents double-scrapes)
-  const lastUpdate = priceStore.lastUpdated ? new Date(priceStore.lastUpdated) : null;
-  const minSince = lastUpdate ? (Date.now() - lastUpdate.getTime()) / 60000 : 999;
   if (priceStore.scraping) {
     return res.json({ message: "Scrape already in progress", skipped: true });
-  }
-  if (minSince < 30) {
-    return res.json({ message: "Prices are fresh (" + Math.round(minSince) + " min ago) — skipping", skipped: true, minSince: Math.round(minSince) });
   }
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Trigger: " + e.message));
