@@ -47,6 +47,7 @@ const RD_PRICE_MIN = {
   "1810019": 20, // Goat Bone-in 15lb
   "1020075": 20, // Soybean Oil 35lb — $39.34 confirmed; per-lb ~$1.12 would be rejected
   "1020077": 20, // Fryer Oil 35lb — same range; per-lb price would be rejected
+  "40212":  55,  // Shrimp 16/20 — Case of 5×2lb = 10lb @ $62.3; reject per-unit prices
 };
 
 // Confirmed prices for items the RD scraper cannot auto-detect
@@ -1925,7 +1926,7 @@ function patchItemKnowledge() {
     "64046":  [36,  "12 x 3 lb bags (36 lb)",   "lb",  36,   "12 x 3 lb bags (36 lb)"],  // RD Case of 12 confirmed
     "86527":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "1 x 30 lb bag"],  // RD Case of 12 confirmed
     "51457":  [10,  "1 x 10 lb box",            "lb",  10,   "2 x 5 lb boxes (10 lb)"],
-    "40212":  [10,  "1 x 10 lb box",            "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
+    "40212":  [10,  "5 x 2 lb bags (10 lb)",   "lb",  10,   "4 x 2.5 lb bags (10 lb)"],  // RD Case of 5 confirmed @ $62.3
     "1810019":[15,  "1 x 15 lb box",            "lb",  null, null],
     "79042":  [42,  "~42 lb variable weight",   "lb",  null, null],
     "45900":  [512, "4 x 1 gallon (512 oz)",    "oz",  512,  "4 x 1 gallon (512 oz)"],
@@ -2057,7 +2058,7 @@ const PACK_SIZES = {
   "77658":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Meat (0868459)
   "77200":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Wings (6344790)
   // ── SEAFOOD / MEAT ────────────────────────────────────────────────────────────
-  "40212":  { rd: "1 × 10 lb box",              sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
+  "40212":  { rd: "5 × 2 lb bags (10 lb)",      sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
   "51457":  { rd: "1 × 10 lb box",              sysco: "2 × 5 lb boxes (10 lb)",     rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Tilapia (0496671)
   "79042":  { rd: "~42 lb variable weight",      sysco: null,                          rdTotal: 42,    syscoTotal: null,  unit: "lb"    }, // Lamb Leg Boneless — RD only
   "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
