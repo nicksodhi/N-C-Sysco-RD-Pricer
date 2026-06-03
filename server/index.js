@@ -47,6 +47,7 @@ const RD_PRICE_MIN = {
   "1810019": 20, // Goat Bone-in 15lb
   "1020075": 20, // Soybean Oil 35lb — $39.34 confirmed; per-lb ~$1.12 would be rejected
   "1020077": 20, // Fryer Oil 35lb — same range; per-lb price would be rejected
+  "40212":  55, // Shrimp 5x2lb = 10lb case — $62.31; per-2lb-bag ~$12 must be rejected
 };
 
 // Items confirmed in-stock by user — never mark OOS even if page shows label near similar name
@@ -63,6 +64,7 @@ const RD_FORCE_IN_STOCK = new Set([
 const RD_PRICE_SEED = {
   "1020075": { price: 39.34,  note: "Soybean Salad Oil 35lb - confirmed 2026-06-01, Bin 426" },
   "77658":   { price: 67.60,  note: "Chicken Leg Meat 40lb - confirmed 2026-06-03, $1.69/lb est, Bin 6026" },
+  "40212":   { price: 62.31,  note: "SHRP P&D TF 16-20 Shrimp, Case of 5 × 2lb = 10lb, $62.31/case - confirmed 2026-06-03, UPC 64728331897" },
 };
 
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
@@ -1342,11 +1344,7 @@ async function scrapeSysco() {
       log("Sysco: dismissed marketing popup");
       await new Promise(r => setTimeout(r, 1500));
     }
-    // Also dismiss any promotional banner at the top of the page
-    await page.evaluate(() => {
-      const bannerClose = document.querySelector('[class*="banner"] button, [class*="alert"] button[aria-label*="close"], .close-banner');
-      if (bannerClose) bannerClose.click();
-    }).catch(() => {});
+    // NOTE: Do NOT try to dismiss the promo banner at top — that button navigates to deals page
 
     let nickClicked = null;
 
@@ -1448,8 +1446,9 @@ async function scrapeSysco() {
       const inputs = await page.evaluate(() =>
         Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name, dataId: i.getAttribute("data-id") }))
       );
-      log("Sysco: inputs on page: " + JSON.stringify(inputs));
-      throw new Error("Search List input not found");
+      log("Sysco: ⚠️ Search List input not found — saving " + allItems.size + " bulk items, skipping per-item search fallback");
+      log("Sysco: inputs on page: " + JSON.stringify(inputs.slice(0,5)));
+      return { success: true, items: [...allItems.values()].map(d => ({ id: d.upc, name: d.name, price: d.price, raw: d.raw, source: "bulk" })) };
     }
     log("Sysco: Search List input found");
     await searchInput.click({ clickCount: 3 });
@@ -2031,7 +2030,7 @@ function patchItemKnowledge() {
     "64046":  [36,  "12 x 3 lb bags (36 lb)",   "lb",  36,   "12 x 3 lb bags (36 lb)"],  // RD Case of 12 confirmed
     "86527":  [30,  "12 x 2.5 lb bags (30 lb)", "lb",  30,   "1 x 30 lb bag"],  // RD Case of 12 confirmed
     "51457":  [10,  "1 x 10 lb box",            "lb",  10,   "2 x 5 lb boxes (10 lb)"],
-    "40212":  [10,  "1 x 10 lb box",            "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
+    "40212":  [10,  "5 x 2 lb bags (10 lb)",   "lb",  10,   "4 x 2.5 lb bags (10 lb)"],
     "1810019":[15,  "1 x 15 lb box",            "lb",  null, null],
     "79042":  [42,  "~42 lb variable weight",   "lb",  null, null],
     "45900":  [512, "4 x 1 gallon (512 oz)",    "oz",  512,  "4 x 1 gallon (512 oz)"],
@@ -2163,7 +2162,7 @@ const PACK_SIZES = {
   "77658":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Meat (0868459)
   "77200":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Wings (6344790)
   // ── SEAFOOD / MEAT ────────────────────────────────────────────────────────────
-  "40212":  { rd: "1 × 10 lb box",              sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
+  "40212":  { rd: "5 × 2 lb bags (10 lb)",    sysco: "4 × 2.5 lb bags (10 lb)",    rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Shrimp 16/20 (5106388)
   "51457":  { rd: "1 × 10 lb box",              sysco: "2 × 5 lb boxes (10 lb)",     rdTotal: 10,    syscoTotal: 10,    unit: "lb"    }, // Tilapia (0496671)
   "79042":  { rd: "~42 lb variable weight",      sysco: null,                          rdTotal: 42,    syscoTotal: null,  unit: "lb"    }, // Lamb Leg Boneless — RD only
   "1810019":{ rd: "1 × 15 lb box",              sysco: null,                          rdTotal: 15,    syscoTotal: null,  unit: "lb"    }, // Goat Cubes — RD only
