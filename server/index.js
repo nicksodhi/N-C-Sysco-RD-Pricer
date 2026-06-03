@@ -1350,12 +1350,16 @@ async function scrapeSysco() {
 
     let nickClicked = null;
 
-    // Strategy 1: Check if Nick List content is already displayed (product rows visible)
+    // Strategy 1: Check if Nick List content is already displayed
+    // Use content-based detection (UPC + "CS" price) — immune to Sysco CSS class changes
     const alreadyLoaded = await page.evaluate(() => {
-      const rows = document.querySelectorAll("[class*='product-item-row'], [class*='list-row'], [class*='item-row']").length;
-      const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,[class*='list-name'],[class*='list-title']"));
-      const nickHeading = headings.find(el => el.textContent.toLowerCase().includes("nick"));
-      return rows > 0 || !!nickHeading;
+      const priceRows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
+        const t = el.innerText || "";
+        return /\$[\d]+\.[\d]{2}\s*CS/.test(t) && t.length < 600 && t.length > 10;
+      });
+      const nickHeading = Array.from(document.querySelectorAll("*")).find(el =>
+        el.children.length < 3 && el.textContent.trim().toLowerCase() === "nick list");
+      return priceRows.length > 0 || !!nickHeading;
     });
     if (alreadyLoaded) {
       log("Sysco: Nick List already displayed on page");
@@ -1423,15 +1427,26 @@ async function scrapeSysco() {
     }
     await new Promise(r => setTimeout(r, 4000));
     let rows = 0;
+    // Wait for Nick List content rows — use content-based detection (price format)
+    // The virtualized list shows items as you scroll; initially only 5-6 rows render
     for (let w = 0; w < 15; w++) {
-      rows = await page.evaluate(() => document.querySelectorAll("[class*='product-item-row']").length);
-      if (rows > 0) { log("Sysco: Nick List loaded, " + rows + " rows visible"); break; }
+      const rowCount = await page.evaluate(() => {
+        const byClass = document.querySelectorAll("[class*='product-item-row'],[class*='list-row'],[class*='item-row']").length;
+        if (byClass > 0) return byClass;
+        return Array.from(document.querySelectorAll("tr,li,div")).filter(el => {
+          const t = el.innerText || ""; return /\$[\d]+\.[\d]{2}\s*CS/.test(t) && t.length < 600;
+        }).length;
+      });
+      if (rowCount > 0) { log("Sysco: Nick List loaded, " + rowCount + " rows visible"); break; }
       await new Promise(r => setTimeout(r, 1000));
     }
-    const searchInput = await page.$('input[placeholder*="Search List"], input[placeholder*="search list"], [data-id="myProductSearch"], input[aria-label*="Search List"]');
+
+    // Find Search List input — inside Nick List, NOT the catalog search at top
+    // data-id="myProductSearch" and placeholder="Search List" are both on the correct element
+    const searchInput = await page.$('input[placeholder*="Search List"], input[placeholder*="search list"], input[data-id="myProductSearch"], input[aria-label*="Search List"]');
     if (!searchInput) {
       const inputs = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name }))
+        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name, dataId: i.getAttribute("data-id") }))
       );
       log("Sysco: inputs on page: " + JSON.stringify(inputs));
       throw new Error("Search List input not found");
@@ -1439,23 +1454,45 @@ async function scrapeSysco() {
     log("Sysco: Search List input found");
     await searchInput.click({ clickCount: 3 });
     await page.keyboard.press("Backspace");
-    await new Promise(r => setTimeout(r, 2000));
-    await page.evaluate(async () => {
-      const container = document.querySelector("[class*='product-list']") || document.querySelector("[class*='list-items']") || document.querySelector("[class*='products-list']") || document.querySelector("[class*='order-guide']") || document.querySelector("main") || document.body;
-      for (let s = 0; s < 40; s++) {
-        container.scrollTop = s * 400;
-        window.scrollBy(0, 400);
-        await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 1500));
+
+    // Scroll the virtualized-list container to trigger virtual rendering of all rows
+    // DevTools confirmed: div.virtualized-list { overflow: auto; height: 355px }
+    // Only 6 rows are visible until this container is scrolled through
+    const scrollResult = await page.evaluate(async () => {
+      const vList = document.querySelector(".virtualized-list")
+        || document.querySelector("[class*='virtualized']")
+        || document.querySelector(".data-grid-body")
+        || document.querySelector("[class*='data-grid']")
+        || document.querySelector("[class*='lists-product-grid']")
+        || document.querySelector("main");
+      if (!vList) return "no container found";
+      const totalH = vList.scrollHeight || 5000;
+      // Slow scroll: 60 steps with 200ms pause to allow virtual rendering
+      for (let s = 0; s <= 60; s++) {
+        vList.scrollTop = Math.round((s / 60) * totalH);
+        await new Promise(r => setTimeout(r, 200));
       }
-      container.scrollTop = 0;
-      window.scrollTo(0, 0);
+      vList.scrollTop = 0;
+      await new Promise(r => setTimeout(r, 500));
+      return vList.className + " scrollHeight=" + totalH;
     });
+    log("Sysco: scroll complete — " + scrollResult);
     await new Promise(r => setTimeout(r, 2000));
 
     const allDiscovered = await page.evaluate((eaIds) => {
-      const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
+      // Content-based row detection: find elements containing a 7-digit UPC + CS price
+      // This is immune to Sysco CSS class renames which break selector-based approaches
+      const CLASS_SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
       let rows = [];
-      for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
+      for (const sel of CLASS_SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
+      // Fallback: content-based — look for tr/li/div containing a UPC + CS price
+      if (rows.length === 0) {
+        rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
+          const t = el.innerText || "";
+          return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 20;
+        });
+      }
       const found = [];
       rows.forEach(row => {
         const text = row.innerText || "";
@@ -1497,12 +1534,26 @@ async function scrapeSysco() {
         const keyword = SEARCH_OVERRIDES[item.id] || item.name.split(" ").slice(0, 2).join(" ");
         await searchInput.click({ clickCount: 3 });
         await page.keyboard.type(keyword, { delay: 50 });
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise(r => setTimeout(r, 1500));
+        // After typing, scroll .virtualized-list so filtered result renders
+        await page.evaluate(async () => {
+          const vList = document.querySelector(".virtualized-list")
+            || document.querySelector("[class*='virtualized']")
+            || document.querySelector(".data-grid-body");
+          if (vList) { vList.scrollTop = 0; await new Promise(r => setTimeout(r, 300)); }
+        }).catch(() => {});
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
         const results = await page.evaluate((upc, isEa) => {
           const SELECTORS = ["[class*='product-item-row']","[class*='list-row']","[class*='product-row']","[class*='search-result']","[class*='item-row']","li[class*='product']","[data-testid*='product']"];
           let rows = [];
           for (const sel of SELECTORS) { const found = document.querySelectorAll(sel); if (found.length > 0) { rows = Array.from(found); break; } }
+          // Fallback: content-based — find elements with CS price (immune to CSS class renames)
+          if (rows.length === 0) {
+            rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
+              const t = el.innerText || "";
+              return /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 800 && t.length > 10;
+            });
+          }
           const results = [];
           rows.forEach(row => {
             const text = row.innerText || "";
