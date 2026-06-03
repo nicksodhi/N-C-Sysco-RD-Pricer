@@ -1516,161 +1516,27 @@ async function scrapeSysco() {
     // Scroll the virtualized-list container to trigger virtual rendering of all rows
     // DevTools confirmed: div.virtualized-list { overflow: auto; height: 355px }
     // Only 6 rows are visible until this container is scrolled through
-    // Scroll virtual list while accumulating discovered items at each scroll position
-    // Virtual lists only render visible rows — must read during scroll, not after returning to top
-    const allDiscovered = await page.evaluate(async (eaIds) => {
-      const vList = document.querySelector(".virtualized-list")
-        || document.querySelector("[class*='virtualized']")
-        || document.querySelector(".data-grid-body")
-        || document.querySelector("[class*='data-grid']")
-        || document.querySelector("[class*='lists-product-grid']");
-      const totalH = vList ? (vList.scrollHeight || 0) : 0;
-      const accumulated = new Map();
-      const readVisible = () => {
-        const CLASS_SEL = ["[class*='product-item-row']","[class*='list-row']","[class*='item-row']"];
-        let rows = [];
-        for (const sel of CLASS_SEL) { const f = document.querySelectorAll(sel); if (f.length > 0) { rows = Array.from(f); break; } }
-        if (rows.length === 0) {
-          rows = Array.from(document.querySelectorAll("tr, li, div")).filter(el => {
-            const t = el.innerText || ""; return /\b\d{7}\b/.test(t) && /\$[\d,]+\.[\d]{2}\s*CS/.test(t) && t.length < 2000 && t.length > 20;
-          });
-        }
-        rows.forEach(row => {
-          const text = row.innerText || "";
-          const upcM = text.match(/\b(\d{7})\b/);
-          if (!upcM || accumulated.has(upcM[1])) return;
-          const isEa = eaIds.includes(upcM[1]);
-          const eaM = text.match(/\$([\d,]+\.[\d]{2})\s*(?:EA|EACH|MKT|MARKET)/i);
-          const csM = text.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
-          const anyM = text.match(/\$([\d,]+\.[\d]{2})/);
-          const m = isEa ? (eaM || anyM) : (csM || anyM);
-          if (!m) return;
-          const nameEl = row.querySelector("[class*='item-details'], [class*='product-name'], [class*='item-name']");
-          const name = (nameEl ? nameEl.innerText : text).trim().split("\n")[0].trim();
-          accumulated.set(upcM[1], { upc: upcM[1], name, price: parseFloat(m[1].replace(",","")), raw: m[0], isEa: !!isEa });
-        });
-      };
-      readVisible();
-      if (vList && totalH > 200) {
-        const rect = vList.getBoundingClientRect();
-        const containerTop = rect.top + window.scrollY;
-        const steps = 80; // more steps = better coverage
-        for (let s = 1; s <= steps; s++) {
-          const pos = Math.round((s / steps) * totalH);
-          vList.scrollTop = pos;
-          // Also scroll window to keep container visible — virtual list may use window.scrollY
-          window.scrollTo(0, containerTop + pos * 0.5);
-          await new Promise(r => setTimeout(r, 350));
-          readVisible();
-          // Extra pause at the bottom third to catch items 38-51
-          if (s === Math.floor(steps * 0.65) || s === Math.floor(steps * 0.80) || s === steps - 2) {
-            await new Promise(r => setTimeout(r, 800));
-            readVisible();
-          }
-        }
-      }
-      return { items: [...accumulated.values()], scrollH: totalH, container: vList ? vList.className : "none" };
-    }, [...SYSCO_EA_ITEMS]);
-    log("Sysco: scroll complete — " + allDiscovered.container + " scrollH=" + allDiscovered.scrollH + " found=" + allDiscovered.items.length);
-    const _allDiscItems = allDiscovered.items; // real items from scroll
-
-    const knownIds = new Set(SYSCO_ITEMS.map(i => i.id));
-    let newItemsFound = 0;
-    _allDiscItems.forEach(disc => {
-      if (!knownIds.has(disc.upc)) {
-        SYSCO_ITEMS.push({ id: disc.upc, name: disc.name, pack: "" });
-        knownIds.add(disc.upc);
-        newItemsFound++;
-        log("Sysco: 🆕 New SKU discovered: " + disc.upc + " " + disc.name);
-      }
-    });
-    if (newItemsFound > 0) log("Sysco: " + newItemsFound + " new SKUs added to list");
-
+    // ── PRODUCT PAGE SCRAPING — primary method for all 51 Sysco items ────────
+    // Navigates to each item's product page directly. Reliable, immune to CSS
+    // changes and virtual scroll issues. ~4s per item = ~3.5 min total.
+    // URL: shop.sysco.com/app/product-details/opco/017/product/{supc}?seller_id=USBL
     const allItems = new Map();
-    _allDiscItems.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
-        // ── PARSE CAPTURED FETCH/XHR DATA ───────────────────────────────────────
-    const captured = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
-    log("Sysco: 🌐 Raw captures: " + captured.length + " responses from browser");
+    log("Sysco: 🔍 Scraping " + SYSCO_ITEMS.length + " product pages...");
 
-    // Log all unique base URLs captured (for debugging)
-    const capturedUrls = [...new Set(captured.map(c => c.url.split("?")[0].slice(0, 80)))];
-    if (capturedUrls.length) log("Sysco: 🌐 URLs: " + capturedUrls.slice(0, 8).join(" | "));
-
-    const SYSCO_IDS = new Set(SYSCO_ITEMS.map(i => i.id));
-    const netPrices = new Map();
-
-    function extractPrices(obj, depth) {
-      if (!obj || typeof obj !== "object" || depth > 15) return;
-      if (Array.isArray(obj)) { obj.forEach(x => extractPrices(x, depth + 1)); return; }
-      const UPC_FIELDS   = ["supc","syscoCode","materialNumber","productCode","itemCode","sku","upc","code","productId","id"];
-      const PRICE_FIELDS = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue",
-                             "unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue",
-                             "net","list","cs","case","customer","contract"];
-      let upc = null;
-      for (const f of UPC_FIELDS) {
-        const v = String(obj[f] || "").trim();
-        if (/^\d{6,8}$/.test(v)) { upc = v.length === 7 ? v : null; break; }
-      }
-      if (upc && SYSCO_IDS.has(upc)) {
-        // Collect all numeric values from this object and nested price objects
-        const prices = [];
-        const gatherNums = (o, d) => {
-          if (!o || typeof o !== "object" || d > 4) return;
-          if (Array.isArray(o)) { o.forEach(x => gatherNums(x, d+1)); return; }
-          Object.entries(o).forEach(([k, v]) => {
-            if (typeof v === "number" && v > 0.5 && v < 9999) prices.push({ key: k, val: v });
-            else if (v && typeof v === "object") gatherNums(v, d+1);
-          });
-        };
-        gatherNums(obj, 0);
-        // Prefer price fields that match known names
-        const best = prices.find(p => PRICE_FIELDS.includes(p.key)) || prices[0];
-        if (best && !netPrices.has(upc)) netPrices.set(upc, best.val);
-      }
-      Object.values(obj).forEach(v => { if (v && typeof v === "object") extractPrices(v, depth + 1); });
-    }
-
-    let netCount = 0;
-    for (const c of captured) {
-      try {
-        const data = JSON.parse(c.text);
-        extractPrices(data, 0);
-      } catch {}
-    }
-    for (const [upc, price] of netPrices.entries()) {
-      const min = SYSCO_PRICE_MIN[upc];
-      if (min && price < min) { log("Sysco: ⚠️ API price $" + price + " for " + upc + " below min — skipped"); continue; }
-      if (!allItems.has(upc)) {
-        const item = SYSCO_ITEMS.find(i => i.id === upc);
-        allItems.set(upc, { name: item ? item.name : upc, price, upc, raw: "$" + price + " CS" });
-        netCount++;
-      }
-    }
-    log("Sysco: 🌐 API parse: " + netPrices.size + " Nick List prices found, " + netCount + " new");
-    log("Sysco: bulk discovery got " + allItems.size + " items (DOM=" + _allDiscItems.length + " + API=" + netCount + ")");
-
-    // ── PRODUCT PAGE FALLBACK for missing items ─────────────────────────────
-    // Navigate to each missing item's product page — reliable, no virtual scroll.
-    // Product pages at /app/product/{supc} always show Nick List prices when logged in.
-    if (searchInput) { await searchInput.click({ clickCount: 3 }); await page.keyboard.press("Backspace"); } // clear any search
-    const missingItems = SYSCO_ITEMS.filter(i => !allItems.has(i.id));
-    log("Sysco: 🔍 Product page fallback for " + missingItems.length + " missing items");
-    for (const item of missingItems) {
+    for (const item of SYSCO_ITEMS) {
       try {
         const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
         await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 4000)); // extra wait for React price hydration
+        await new Promise(r => setTimeout(r, 3500));
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
-        // First check network captures from this product page (evaluateOnNewDocument resets per page)
+        // Check network captures from this product page
         const pageCap = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
         for (const c of pageCap) { try { extractPrices(JSON.parse(c.text), 0); } catch {} }
-        let priceResult = netPrices.has(item.id) ? { price: netPrices.get(item.id), method: "product-api" } : null;
-        // DOM extraction
+        let priceResult = netPrices.has(item.id) ? { price: netPrices.get(item.id), method: "api" } : null;
         if (!priceResult) {
           priceResult = await page.evaluate((supc, isEa) => {
             const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
             const body = document.body.innerText || "";
-            const diag = body.slice(0, 300).replace(/\n/g, " ");
             if (body.includes(supc)) {
               const idx = body.indexOf(supc);
               const nearby = body.slice(Math.max(0, idx - 200), idx + 500);
@@ -1678,35 +1544,33 @@ async function scrapeSysco() {
               const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?(?:EA|EACH|MKT)/i);
               const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
               const m = isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
-              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc", diag }; }
+              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc" }; }
             }
-            const priceEls = Array.from(document.querySelectorAll(
-              "[class*='price'], [class*='Price'], [data-testid*='price'], [class*='your-price'], [class*='list-price'], [class*='contract-price']"
-            ));
+            const priceEls = Array.from(document.querySelectorAll("[class*='price'],[class*='Price'],[data-testid*='price'],[class*='your-price'],[class*='list-price'],[class*='contract-price']"));
             for (const el of priceEls) {
-              const m = (el.innerText || "").match(/\$([\d,]+\.[\d]{2})/);
-              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "price-element", diag }; }
+              const m = (el.innerText||"").match(/\$([\d,]+\.[\d]{2})/);
+              if (m) { const p=parseFloat(m[1].replace(",","")); if(p>1&&!UI_JUNK.has(p)) return {price:p,method:"price-el"}; }
             }
-            const allP = [...body.matchAll(/\$([\d,]+\.[\d]{2})/g)]
-              .map(x => parseFloat(x[1].replace(",",""))).filter(p => p > 1 && p < 9999 && !UI_JUNK.has(p));
-            if (allP.length > 0) return { price: allP[0], method: "page-scan", diag };
-            return { price: null, diag };
+            const allP=[...body.matchAll(/\$([\d,]+\.[\d]{2})/g)].map(x=>parseFloat(x[1].replace(",",""))).filter(p=>p>1&&p<9999&&!UI_JUNK.has(p));
+            if(allP.length>0) return {price:allP[0],method:"scan"};
+            return null;
           }, item.id, isEaItem);
         }
         if (priceResult && priceResult.price) {
-          const minPrice = SYSCO_PRICE_MIN[item.id];
-          if (minPrice && priceResult.price < minPrice) {
-            log("Sysco: ⚠️ Product page $" + priceResult.price + " for " + item.name + " below min $" + minPrice);
+          const min = SYSCO_PRICE_MIN[item.id];
+          if (min && priceResult.price < min) {
+            log("Sysco: ⚠️ " + item.name + " $" + priceResult.price + " below min $" + min + " — skipped");
           } else {
             log("Sysco: " + item.name + " → $" + priceResult.price + " (" + priceResult.method + ")");
             allItems.set(item.id, { name: item.name, price: priceResult.price, upc: item.id, raw: "$" + priceResult.price });
           }
         } else {
-          const diag = (priceResult && priceResult.diag) ? priceResult.diag.slice(0,200) : "no-diag";
-          log("Sysco: " + item.name + " — no price. Page body: " + diag);
+          log("Sysco: " + item.name + " — no price on product page");
         }
       } catch(e) { log("Sysco: error on " + item.name + ": " + e.message); }
     }
+    log("Sysco: product pages complete — " + allItems.size + "/" + SYSCO_ITEMS.length + " prices");
+
     const items = Array.from(allItems.values());
     log("Sysco: " + items.length + " items total");
     return { success: true, items };
