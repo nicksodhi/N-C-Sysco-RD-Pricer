@@ -1658,47 +1658,52 @@ async function scrapeSysco() {
     for (const item of missingItems) {
       try {
         const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
-        await page.goto(productUrl, { waitUntil: "domcontentloaded", timeout: 20000 }).catch(() => {});
-        await new Promise(r => setTimeout(r, 2500));
+        await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
+        await new Promise(r => setTimeout(r, 4000)); // extra wait for React price hydration
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
-        const priceResult = await page.evaluate((supc, isEa) => {
-          const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
-          // Strategy 1: price near the SUPC in page text
-          const body = document.body.innerText || "";
-          if (body.includes(supc)) {
-            const idx = body.indexOf(supc);
-            const nearby = body.slice(Math.max(0, idx - 200), idx + 500);
-            const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?CS/i);
-            const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?(?:EA|EACH|MKT)/i);
-            const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
-            const m = isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
-            if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc" }; }
-          }
-          // Strategy 2: price elements on product detail page
-          const priceEls = Array.from(document.querySelectorAll(
-            "[class*='price'], [class*='Price'], [data-testid*='price'], [class*='your-price'], [class*='list-price'], [class*='contract-price'], [class*='nick']"
-          ));
-          for (const el of priceEls) {
-            const m = (el.innerText || "").match(/\$([\d,]+\.[\d]{2})/);
-            if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "price-element" }; }
-          }
-          // Strategy 3: all $ amounts on page, exclude junk
-          const allP = [...body.matchAll(/\$([\d,]+\.[\d]{2})/g)]
-            .map(x => parseFloat(x[1].replace(",","")))
-            .filter(p => p > 1 && p < 9999 && !UI_JUNK.has(p));
-          if (allP.length > 0) return { price: allP[0], method: "page-scan" };
-          return null;
-        }, item.id, isEaItem);
+        // First check network captures from this product page (evaluateOnNewDocument resets per page)
+        const pageCap = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
+        for (const c of pageCap) { try { extractPrices(JSON.parse(c.text), 0); } catch {} }
+        let priceResult = netPrices.has(item.id) ? { price: netPrices.get(item.id), method: "product-api" } : null;
+        // DOM extraction
+        if (!priceResult) {
+          priceResult = await page.evaluate((supc, isEa) => {
+            const UI_JUNK = new Set([15.49, 14.99, 12.95, 12.37, 9.99, 0.00, 39.05]);
+            const body = document.body.innerText || "";
+            const diag = body.slice(0, 300).replace(/\n/g, " ");
+            if (body.includes(supc)) {
+              const idx = body.indexOf(supc);
+              const nearby = body.slice(Math.max(0, idx - 200), idx + 500);
+              const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?CS/i);
+              const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?(?:EA|EACH|MKT)/i);
+              const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
+              const m = isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
+              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc", diag }; }
+            }
+            const priceEls = Array.from(document.querySelectorAll(
+              "[class*='price'], [class*='Price'], [data-testid*='price'], [class*='your-price'], [class*='list-price'], [class*='contract-price']"
+            ));
+            for (const el of priceEls) {
+              const m = (el.innerText || "").match(/\$([\d,]+\.[\d]{2})/);
+              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "price-element", diag }; }
+            }
+            const allP = [...body.matchAll(/\$([\d,]+\.[\d]{2})/g)]
+              .map(x => parseFloat(x[1].replace(",",""))).filter(p => p > 1 && p < 9999 && !UI_JUNK.has(p));
+            if (allP.length > 0) return { price: allP[0], method: "page-scan", diag };
+            return { price: null, diag };
+          }, item.id, isEaItem);
+        }
         if (priceResult && priceResult.price) {
           const minPrice = SYSCO_PRICE_MIN[item.id];
           if (minPrice && priceResult.price < minPrice) {
-            log("Sysco: ⚠️ Product page price $" + priceResult.price + " for " + item.name + " below min $" + minPrice + " — skipped");
+            log("Sysco: ⚠️ Product page $" + priceResult.price + " for " + item.name + " below min $" + minPrice);
           } else {
             log("Sysco: " + item.name + " → $" + priceResult.price + " (" + priceResult.method + ")");
             allItems.set(item.id, { name: item.name, price: priceResult.price, upc: item.id, raw: "$" + priceResult.price });
           }
         } else {
-          log("Sysco: " + item.name + " — no price found at " + productUrl);
+          const diag = (priceResult && priceResult.diag) ? priceResult.diag.slice(0,200) : "no-diag";
+          log("Sysco: " + item.name + " — no price. Page body: " + diag);
         }
       } catch(e) { log("Sysco: error on " + item.name + ": " + e.message); }
     }
