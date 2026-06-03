@@ -1320,6 +1320,41 @@ async function scrapeSysco() {
     const page = await browser.newPage();
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     page.setDefaultTimeout(30000);
+
+    // ── FETCH/XHR INTERCEPTION via evaluateOnNewDocument ────────────────────
+    // Must run BEFORE any navigation — intercepts fetch/XHR from inside the browser.
+    // Captures ALL API responses including prices, even if Puppeteer can't read bodies.
+    await page.evaluateOnNewDocument(() => {
+      window.__syscoCapture = [];
+      const _fetch = window.fetch;
+      window.fetch = function(resource, init) {
+        const url = resource && (typeof resource === "string" ? resource : resource.url) || "";
+        return _fetch.call(this, resource, init).then(res => {
+          try {
+            res.clone().text().then(text => {
+              if (text && text.length > 50 && text.length < 2000000)
+                window.__syscoCapture.push({ url: url.slice(0, 300), text: text.slice(0, 50000) });
+            }).catch(() => {});
+          } catch {}
+          return res;
+        });
+      };
+      const _open = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url) {
+        this._url = url; return _open.apply(this, arguments);
+      };
+      const _send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.send = function() {
+        this.addEventListener("load", function() {
+          try {
+            if (this.responseText && this.responseText.length > 50)
+              window.__syscoCapture.push({ url: (this._url || "xhr").slice(0, 300), text: this.responseText.slice(0, 50000) });
+          } catch {}
+        });
+        return _send.apply(this, arguments);
+      };
+    });
+
     await page.goto("https://shop.sysco.com/auth/login", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 3000));
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
@@ -1344,56 +1379,6 @@ async function scrapeSysco() {
     await new Promise(r => setTimeout(r, 4000));
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
-
-    // ── NETWORK INTERCEPTION ─────────────────────────────────────────────────
-    // Sysco's React app fetches all Nick List prices from their API as JSON.
-    // We intercept those responses directly — no DOM scraping, no virtual scroll.
-    // This is immune to CSS changes, virtual list bugs, and layout redesigns.
-    const netPrices = new Map(); // UPC string -> { price, unit, source }
-    const seenUrls  = new Set();
-
-    function extractFromJson(obj, depth) {
-      if (!obj || typeof obj !== "object" || depth > 12) return;
-      if (Array.isArray(obj)) { obj.forEach(x => extractFromJson(x, depth + 1)); return; }
-      // Look for a Sysco UPC (7-digit number) and a price in the same object
-      const upcFields   = ["supc","syscoCode","materialNumber","productCode","itemCode","id","sku","upc","code"];
-      const priceFields = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue","unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue"];
-      const unitFields  = ["priceUnit","unit","uom","pricingUOM","orderUnit"];
-      let upc = null, price = null, unit = "";
-      for (const f of upcFields) {
-        const v = obj[f];
-        if (v && /^\d{7}$/.test(String(v).trim())) { upc = String(v).trim(); break; }
-      }
-      for (const f of priceFields) {
-        const v = obj[f];
-        if (v == null) continue;
-        const p = typeof v === "number" ? v : parseFloat(String(v).replace(/[^\d.]/g,""));
-        if (!isNaN(p) && p > 0.5 && p < 9999) { price = p; break; }
-      }
-      for (const f of unitFields) { if (obj[f]) { unit = String(obj[f]).toUpperCase(); break; } }
-      if (upc && price && !netPrices.has(upc)) {
-        netPrices.set(upc, { price, unit: unit || "CS", source: "api" });
-      }
-      Object.values(obj).forEach(v => { if (v && typeof v === "object") extractFromJson(v, depth + 1); });
-    }
-
-    const responseHandler = async (response) => {
-      try {
-        const url = response.url();
-        if (!url.includes("sysco.com")) return;
-        if (response.status() < 200 || response.status() >= 300) return;
-        const ct = response.headers()["content-type"] || "";
-        if (!ct.includes("json")) return;
-        if (seenUrls.has(url)) return;
-        seenUrls.add(url);
-        const text = await response.text().catch(() => "");
-        if (!text || text.length < 30) return;
-        // Quick filter: must mention price-like keys before parsing
-        if (!/price|Price|supc|SUPC|syscoCode/i.test(text)) return;
-        try { extractFromJson(JSON.parse(text), 0); } catch {}
-      } catch {}
-    };
-    page.on("response", responseHandler);
 
     // Navigate to the lists page — Nick List is already shown here per screenshot
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
@@ -1603,22 +1588,65 @@ async function scrapeSysco() {
 
     const allItems = new Map();
     _allDiscItems.forEach(disc => { allItems.set(disc.upc, { name: disc.name, price: disc.price, upc: disc.upc, raw: disc.raw }); });
-        // ── MERGE NETWORK-INTERCEPTED PRICES ────────────────────────────────────
-    // API prices captured during page load — highest confidence, covers all items
+        // ── PARSE CAPTURED FETCH/XHR DATA ───────────────────────────────────────
+    const captured = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
+    log("Sysco: 🌐 Raw captures: " + captured.length + " responses from browser");
+
+    // Log all unique base URLs captured (for debugging)
+    const capturedUrls = [...new Set(captured.map(c => c.url.split("?")[0].slice(0, 80)))];
+    if (capturedUrls.length) log("Sysco: 🌐 URLs: " + capturedUrls.slice(0, 8).join(" | "));
+
     const SYSCO_IDS = new Set(SYSCO_ITEMS.map(i => i.id));
+    const netPrices = new Map();
+
+    function extractPrices(obj, depth) {
+      if (!obj || typeof obj !== "object" || depth > 15) return;
+      if (Array.isArray(obj)) { obj.forEach(x => extractPrices(x, depth + 1)); return; }
+      const UPC_FIELDS   = ["supc","syscoCode","materialNumber","productCode","itemCode","sku","upc","code","productId","id"];
+      const PRICE_FIELDS = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue",
+                             "unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue",
+                             "net","list","cs","case","customer","contract"];
+      let upc = null;
+      for (const f of UPC_FIELDS) {
+        const v = String(obj[f] || "").trim();
+        if (/^\d{6,8}$/.test(v)) { upc = v.length === 7 ? v : null; break; }
+      }
+      if (upc && SYSCO_IDS.has(upc)) {
+        // Collect all numeric values from this object and nested price objects
+        const prices = [];
+        const gatherNums = (o, d) => {
+          if (!o || typeof o !== "object" || d > 4) return;
+          if (Array.isArray(o)) { o.forEach(x => gatherNums(x, d+1)); return; }
+          Object.entries(o).forEach(([k, v]) => {
+            if (typeof v === "number" && v > 0.5 && v < 9999) prices.push({ key: k, val: v });
+            else if (v && typeof v === "object") gatherNums(v, d+1);
+          });
+        };
+        gatherNums(obj, 0);
+        // Prefer price fields that match known names
+        const best = prices.find(p => PRICE_FIELDS.includes(p.key)) || prices[0];
+        if (best && !netPrices.has(upc)) netPrices.set(upc, best.val);
+      }
+      Object.values(obj).forEach(v => { if (v && typeof v === "object") extractPrices(v, depth + 1); });
+    }
+
     let netCount = 0;
-    for (const [upc, data] of netPrices.entries()) {
-      if (!SYSCO_IDS.has(upc)) continue; // ignore items not on our list
+    for (const c of captured) {
+      try {
+        const data = JSON.parse(c.text);
+        extractPrices(data, 0);
+      } catch {}
+    }
+    for (const [upc, price] of netPrices.entries()) {
       const min = SYSCO_PRICE_MIN[upc];
-      if (min && data.price < min) { log("Sysco: ⚠️ API price $" + data.price + " for " + upc + " below min $" + min + " — skipped"); continue; }
-      if (!allItems.has(upc)) { // API wins over DOM scroll when both present
+      if (min && price < min) { log("Sysco: ⚠️ API price $" + price + " for " + upc + " below min — skipped"); continue; }
+      if (!allItems.has(upc)) {
         const item = SYSCO_ITEMS.find(i => i.id === upc);
-        allItems.set(upc, { name: item ? item.name : upc, price: data.price, upc, raw: "$" + data.price + " " + data.unit });
+        allItems.set(upc, { name: item ? item.name : upc, price, upc, raw: "$" + price + " CS" });
         netCount++;
       }
     }
-    log("Sysco: 🌐 API interception: " + netPrices.size + " total captured, " + netCount + " new Nick List prices added");
-    page.off("response", responseHandler);
+    log("Sysco: 🌐 API parse: " + netPrices.size + " Nick List prices found, " + netCount + " new");
     log("Sysco: bulk discovery got " + allItems.size + " items (DOM=" + _allDiscItems.length + " + API=" + netCount + ")");
 
     // Search each item by its Sysco UPC directly — one UPC = one result = exact price
