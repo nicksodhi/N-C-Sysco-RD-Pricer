@@ -1321,23 +1321,83 @@ async function scrapeSysco() {
     log("Sysco: logged in=" + page.url());
     if (!page.url().includes("shop.sysco.com")) throw new Error("Login failed: " + page.url());
 
+    // Navigate to the lists page — Nick List is already shown here per screenshot
     await page.goto("https://shop.sysco.com/app/lists", { waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 4000));
+
     let nickClicked = null;
-    for (let attempt = 0; attempt < 15; attempt++) {
+
+    // Strategy 1: Check if Nick List content is already displayed (product rows visible)
+    const alreadyLoaded = await page.evaluate(() => {
+      const rows = document.querySelectorAll("[class*='product-item-row'], [class*='list-row'], [class*='item-row']").length;
+      const headings = Array.from(document.querySelectorAll("h1,h2,h3,h4,[class*='list-name'],[class*='list-title']"));
+      const nickHeading = headings.find(el => el.textContent.toLowerCase().includes("nick"));
+      return rows > 0 || !!nickHeading;
+    });
+    if (alreadyLoaded) {
+      log("Sysco: Nick List already displayed on page");
+      nickClicked = "LI: Nick List (already loaded)";
+    }
+
+    // Strategy 2: Use data-dd-action-name attribute (visible in DevTools screenshot)
+    // Sysco nav dropdown uses data-dd-action-name="List 'Nick List'"
+    if (!nickClicked) {
       nickClicked = await page.evaluate(() => {
-        const all = Array.from(document.querySelectorAll("li, a, button, div, span"));
-        for (const el of all) {
-          if (el.children.length > 5) continue;
-          const t = el.textContent.trim();
-          if (t.toLowerCase().includes("nick list") && t.length < 30) { el.click(); return el.tagName + ": " + t; }
+        const el = document.querySelector('[data-dd-action-name*="Nick List"], [data-dd-action-name*="Nick Lis"]');
+        if (el) {
+          const a = el.querySelector("a") || el;
+          a.click();
+          return "data-attr: " + (el.getAttribute("data-dd-action-name") || el.textContent.trim());
         }
         return null;
       });
-      if (nickClicked) { log("Sysco: Nick List=" + nickClicked); break; }
-      await new Promise(r => setTimeout(r, 1000));
+      if (nickClicked) {
+        log("Sysco: Nick List=" + nickClicked);
+        await new Promise(r => setTimeout(r, 3000));
+      }
     }
-    if (!nickClicked) throw new Error("Nick List not found");
+
+    // Strategy 3: Text search without children filter (original approach, fixed)
+    if (!nickClicked) {
+      for (let attempt = 0; attempt < 20; attempt++) {
+        nickClicked = await page.evaluate(() => {
+          const all = Array.from(document.querySelectorAll("li, a, button, div, span, h1, h2, h3"));
+          for (const el of all) {
+            const t = el.textContent.trim();
+            if (t.toLowerCase().includes("nick list") && t.length < 80) {
+              el.click(); return el.tagName + ": " + t.slice(0, 50);
+            }
+          }
+          // Fallback: just "nick" (in case name changed slightly)
+          for (const el of all) {
+            const t = el.textContent.trim();
+            if (/\bnick\b/i.test(t) && t.length < 60 && !t.toLowerCase().includes("nicholas")) {
+              el.click(); return el.tagName + " (nick): " + t.slice(0, 50);
+            }
+          }
+          return null;
+        });
+        if (nickClicked) { log("Sysco: Nick List=" + nickClicked); break; }
+        if (attempt % 5 === 4) {
+          const diag = await page.evaluate(() => ({
+            url: window.location.href,
+            body: (document.body.innerText || "").slice(0, 200).replace(/\n/g," "),
+            ddItems: Array.from(document.querySelectorAll('[data-dd-action-name]')).map(e => e.getAttribute("data-dd-action-name")).slice(0,10),
+          }));
+          log("Sysco: Nick List not found yet — url=" + diag.url + " dd=" + JSON.stringify(diag.ddItems) + " body=" + diag.body.slice(0,100));
+        }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+
+    if (!nickClicked) {
+      const dump = await page.evaluate(() => ({
+        ddItems: Array.from(document.querySelectorAll('[data-dd-action-name]')).map(e => e.getAttribute("data-dd-action-name")),
+        listLinks: Array.from(document.querySelectorAll("a[class*=list], [class*=lists-menu]")).map(e => e.textContent.trim().slice(0,40)),
+      }));
+      log("Sysco: Nick List not found. data-dd items: " + JSON.stringify(dump.ddItems) + " list links: " + JSON.stringify(dump.listLinks));
+      throw new Error("Nick List not found");
+    }
     await new Promise(r => setTimeout(r, 4000));
     let rows = 0;
     for (let w = 0; w < 15; w++) {
