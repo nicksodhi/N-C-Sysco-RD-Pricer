@@ -19,6 +19,72 @@ const DIFFERENT_CASE_SIZES = new Set([
   // "3960200" was wrong key (Sysco UPC) — correct RD ID is 86527 above ✓
 ]);
 
+// Per-unit totals mirrored from server PACK_SIZES — used for weight-cheaper indicator
+// Keys = RD Item ID. rdTotal/syscoTotal = total units in one case. unit = what they're in.
+const PACK_SIZES_FE = {
+  "42545":  { rdTotal:50,   syscoTotal:50,   unit:"lb"  },
+  "42658":  { rdTotal:25,   syscoTotal:25,   unit:"lb"  },
+  "42725":  { rdTotal:50,   syscoTotal:50,   unit:"lb"  },
+  "44146":  { rdTotal:30,   syscoTotal:20,   unit:"lb"  },
+  "42513":  { rdTotal:30,   syscoTotal:30,   unit:"lb"  },
+  "42606":  { rdTotal:12,   syscoTotal:12,   unit:"hd"  },
+  "42570":  { rdTotal:115,  syscoTotal:115,  unit:"ea"  },
+  "79152":  { rdTotal:10,   syscoTotal:10,   unit:"lb"  },
+  "44137":  { rdTotal:40,   syscoTotal:40,   unit:"lb"  },
+  "40138":  { rdTotal:4,    syscoTotal:2,    unit:"lb"  },
+  "42706":  { rdTotal:5,    syscoTotal:23.5, unit:"lb"  },
+  "44211":  { rdTotal:10,   syscoTotal:10,   unit:"lb"  },
+  "42647":  { rdTotal:1,    syscoTotal:1,    unit:"lb"  },
+  "42504":  { rdTotal:6,    syscoTotal:8,    unit:"ea"  },
+  "1530438":{ rdTotal:384,  syscoTotal:384,  unit:"oz"  },
+  "370496": { rdTotal:512,  syscoTotal:512,  unit:"oz"  },
+  "1440203":{ rdTotal:20,   syscoTotal:20,   unit:"lb"  },
+  "1440528":{ rdTotal:20,   syscoTotal:10,   unit:"lb"  },
+  "77232":  { rdTotal:40,   syscoTotal:40,   unit:"lb"  },
+  "77670":  { rdTotal:40,   syscoTotal:40,   unit:"lb"  },
+  "77658":  { rdTotal:40,   syscoTotal:40,   unit:"lb"  },
+  "77200":  { rdTotal:40,   syscoTotal:40,   unit:"lb"  },
+  "40212":  { rdTotal:10,   syscoTotal:10,   unit:"lb"  },
+  "51457":  { rdTotal:10,   syscoTotal:10,   unit:"lb"  },
+  "86525":  { rdTotal:30,   syscoTotal:30,   unit:"lb"  },
+  "64120":  { rdTotal:24,   syscoTotal:24,   unit:"lb"  },
+  "64046":  { rdTotal:36,   syscoTotal:36,   unit:"lb"  },
+  "86527":  { rdTotal:30,   syscoTotal:30,   unit:"lb"  },
+  "1020075":{ rdTotal:35,   syscoTotal:35,   unit:"lb"  },
+  "1020077":{ rdTotal:35,   syscoTotal:35,   unit:"lb"  },
+  "1020152":{ rdTotal:384,  syscoTotal:384,  unit:"oz"  },
+  "12728":  { rdTotal:102,  syscoTotal:84,   unit:"oz"  },
+  "55523":  { rdTotal:512,  syscoTotal:384,  unit:"oz"  },
+  "13417":  { rdTotal:408,  syscoTotal:408,  unit:"oz"  },
+  "45900":  { rdTotal:512,  syscoTotal:512,  unit:"oz"  },
+  "860043": { rdTotal:6,    syscoTotal:6,    unit:"can" },
+  "860044": { rdTotal:6,    syscoTotal:6,    unit:"can" },
+  "860135": { rdTotal:6,    syscoTotal:6,    unit:"can" },
+  "2010066":{ rdTotal:684,  syscoTotal:684,  unit:"oz"  },
+  "2061212":{ rdTotal:25,   syscoTotal:25,   unit:"lb"  },
+  "53556":  { rdTotal:40,   syscoTotal:50,   unit:"lb"  },
+  "21051":  { rdTotal:25,   syscoTotal:25,   unit:"lb"  },
+  "1070496":{ rdTotal:50,   syscoTotal:50,   unit:"lb"  },
+  "29268":  { rdTotal:30,   syscoTotal:30,   unit:"lb"  },
+  "2910159":{ rdTotal:3,    syscoTotal:24,   unit:"lb"  },
+  "16200":  { rdTotal:54,   syscoTotal:54,   unit:"lb"  },
+  "69810":  { rdTotal:60,   syscoTotal:60,   unit:"lb"  },
+  "21039":  { rdTotal:12000,syscoTotal:12000,unit:"ml"  },
+  "2620442":{ rdTotal:24,   syscoTotal:24,   unit:"can" },
+};
+
+// Returns which vendor is cheaper per unit, or null if same/can't compute
+// Returns: { vendor: "rd"|"sysco"|"same", rdPer: number, scPer: number, unit: string }
+function getWeightCheaper(itemId, rdPrice, scPrice) {
+  const ps = PACK_SIZES_FE[itemId];
+  if (!ps || !ps.rdTotal || !ps.syscoTotal || !rdPrice || !scPrice) return null;
+  const rdPer = rdPrice / ps.rdTotal;
+  const scPer = scPrice / ps.syscoTotal;
+  const diff = Math.abs(rdPer - scPer);
+  if (diff < 0.001) return { vendor: "same", rdPer, scPer, unit: ps.unit };
+  return { vendor: rdPer < scPer ? "rd" : "sysco", rdPer, scPer, unit: ps.unit };
+}
+
 const ITEMS = [
   // ── Produce ──────────────────────────────────────────────────────────────────
   { id:"42545",   name:"Yellow Onions",       cat:"Produce"  },
@@ -483,6 +549,9 @@ ${rows.map(r => `<tr>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>COMPARING BOTH VENDORS</div>
                 {both.map((item, i) => {
                   const r = rd[item.id].price, s = sc[item.id].price, rdBest = r <= s;
+                  const wc = getWeightCheaper(item.id, r, s);
+                  // Show weight indicator only when per-unit winner differs from case-price winner
+                  const showWeightTag = wc && wc.vendor !== "same" && ((wc.vendor === "rd") !== rdBest);
                   return (
                     <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
@@ -492,6 +561,11 @@ ${rows.map(r => `<tr>
                           {(rdOosIds.has(item.id) || scOosIds.has(item.id)) && (
                             <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: "#FEF2F2", color: "#DC2626", verticalAlign: "middle" }}>
                               {rdOosIds.has(item.id) && scOosIds.has(item.id) ? "BOTH OOS" : rdOosIds.has(item.id) ? "RD OOS" : "SYSCO OOS"}
+                            </span>
+                          )}
+                          {showWeightTag && (
+                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 99, background: wc.vendor === "rd" ? "#F0FDF4" : "#EFF6FF", color: wc.vendor === "rd" ? "#16A34A" : "#2563EB", border: "1px solid " + (wc.vendor === "rd" ? "#BBF7D0" : "#BFDBFE"), verticalAlign: "middle", letterSpacing: .2 }}>
+                              {wc.vendor === "rd" ? "RD" : "Sysco"} cheaper/{wc.unit}
                             </span>
                           )}
                         </div>
