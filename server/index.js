@@ -40,7 +40,7 @@ const RD_PRICE_MAX = {
 const RD_PRICE_MIN = {
   "77658":  25,  // Chicken Leg Meat 40lb — per-lb would be ~$3-5, case must be $25+
   "77670":  25,  // Chicken Leg Quarters 40lb
-  "77232":  67,  // Chicken Breast 40lb — $1.69/lb×40lb=$67.60; rejects $1.64/lb cross-attribution
+  "77232":  45,  // Chicken Breast 40lb — min $45 (~$1.13/lb×40lb)
   "77682":  30,  // Chicken Thighs 40lb
   "77200":  30,  // Chicken Wings 40lb
   "79042":  50,  // Lamb Leg 40lb
@@ -1884,7 +1884,7 @@ async function runScrape(source = "all") {
 
   if (source === "sysco" || source === "all") {
     try {
-      const result = await withTimeout(scrapeSysco(), 300000, "Sysco");
+      const result = await withTimeout(scrapeSysco(), 360000, "Sysco");
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
         const scHealth = await checkScraperHealth("sysco", result.items.length, matched.length);
