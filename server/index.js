@@ -79,7 +79,7 @@ const SYSCO_PRICE_SEED = {
 // Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
 const SYSCO_PRICE_MIN = {
   // Chicken items — 40lb cases, minimum floor prevents per-10lb-pack price storage
-  "4418117": 20,  // Chicken Leg Quarters Jumbo 1/40LB — $29.59 confirmed
+  "1803287": 35,  // Chicken Leg Quarter Small Halal 4/10LB — $39.68 confirmed; rejects per-10lb-pack fallback
   "77670":   20,  // same item stored under RD ID
   "0868459": 20,  // Chicken Leg Meat 4×10lb = 40lb case
   "77658":   20,  // same item stored under RD ID
@@ -442,8 +442,8 @@ const CACHE_SEED = {
   },
   sysco: {
     "Chicken Cvp Leg Quarter Small Halal": "1803287",
-    "Chicken Legs Quarters Jumbo Controlled Vacuum": "4418117",
-    "Chicken Leg Quarter Jumbo": "4418117",
+    "Chicken Legs Quarters Jumbo Controlled Vacuum": "1803287",
+    "Chicken Leg Quarter Jumbo": "1803287",
     "Chicken Cvp Leg Meat Boneless Skinless": "0868459",
     "Flour All Purpose Hotel Restaurant Bleached": "8379251",
     "Tomato Puree 1.06 Fancy California": "4002325",
@@ -684,7 +684,7 @@ const RD_ITEMS = [
 // ── Sysco Nick List ────────────────────────────────────────────────────────────
 const SYSCO_ITEMS = [
   { id: "1094721", name: "Onion Yellow Jumbo Bag",                           pack: "1/50 LB"   },
-  { id: "4418117", name: "Chicken Legs Quarters Jumbo Controlled Vacuum",    pack: "1/40 LB"   },
+  { id: "1803287", name: "Chicken Cvp Leg Quarter Small Halal",              pack: "4 x 10 LB" },
   { id: "0868459", name: "Chicken Cvp Leg Meat Boneless Skinless",           pack: "4 x 10 LB" },
   { id: "8379251", name: "Flour All Purpose Hotel Restaurant Bleached",      pack: "1/25LB"    },
   { id: "4002325", name: "Tomato Puree 1.06 Fancy California",               pack: "6/#10"     },
@@ -738,7 +738,7 @@ const SYSCO_ITEMS = [
 
 // ── Cross-vendor map ───────────────────────────────────────────────────────────
 const SYSCO_TO_RD_SEED = {
-  "4418117": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarters Jumbo 1/40LB
+  "1803287": { rdId: "77670",   rdMult: 1 }, // Chicken Leg Quarter Small Halal 4/10LB = 40lb ↔ RD 77670 40lb
   "0868459": { rdId: "77658",   rdMult: 1 }, // Chicken Leg Meat
   "5231238": { rdId: "77232",   rdMult: 1 }, // Chicken Breast
   "6344790": { rdId: "77200",   rdMult: 1 }, // Chicken Wings
@@ -2178,7 +2178,7 @@ const PACK_SIZES = {
   "14785":  { rd: "1 × 32 lb container",        sysco: null,                          rdTotal: 32,    syscoTotal: null,  unit: "lb"    }, // Plain Yogurt — RD only
   // ── CHICKEN ───────────────────────────────────────────────────────────────────
   "77232":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Breast (5231238)
-  "77670":  { rd: "1 × 40 lb case",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Quarters (4418117 1/40LB) ✓
+  "77670":  { rd: "1 × 40 lb case",             sysco: "1 × 40 lb case",             rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Quarters (Sysco 1803287 4/10LB ↔ RD 77670 1/40LB) ✓
   "77658":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Leg Meat (0868459)
   "77200":  { rd: "1 × 40 lb case",             sysco: "4 × 10 lb bags (40 lb)",     rdTotal: 40,    syscoTotal: 40,    unit: "lb"    }, // Chicken Wings (6344790)
   // ── SEAFOOD / MEAT ────────────────────────────────────────────────────────────
