@@ -18,7 +18,7 @@ catch(e) { console.log("⚠️  /data mkdir:", e.message); }
 const PRICES_FILE = "/data/nc_prices.json";
 
 // Max reasonable price per RD item — if scraper returns higher, it grabbed wrong item
-const RD_SINGLE_UNIT = new Set(["42647","55519","42504"]); // sold per-unit not per-case (Mint, Flowers, Cucumbers)
+const RD_SINGLE_UNIT = new Set(["42647","55519","42504","40138"]); // sold per-unit not per-case (Mint, Flowers, Cucumbers, Green Onions)
 const RD_PRICE_MAX = {
   "42647":  15,   // Mint 1 lb (~$5-8)
   "55519":  25,   // Orchid Flowers (~$5-15)
@@ -1216,7 +1216,18 @@ async function scrapeRD() {
         const tentativeId = Object.entries(matchCache.rd || {}).find(([k]) => k === bestName)?.[1];
         const priceMax = tentativeId ? RD_PRICE_MAX[tentativeId] : null;
         if (priceMax && pl.price > priceMax) {
-          log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item)");
+          // For single-unit items the range high end is bulk pricing; the unit price (range low /
+          // "Current price") is what we pay. Keep the item with its unit price instead of rejecting,
+          // so the storage layer stores the correct single-unit price. Non-single-unit items: reject
+          // (a high price over the ceiling means the wrong product/case was grabbed).
+          if (tentativeId && RD_SINGLE_UNIT.has(tentativeId) && pl.unitPrice > 0 && pl.unitPrice <= priceMax) {
+            log("RD: single-unit '" + bestName + "' range high $" + pl.price + " > max $" + priceMax +
+                " — keeping unit price $" + pl.unitPrice);
+            items.push({ name: bestName, price: pl.unitPrice, unitPrice: pl.unitPrice, raw: pl.raw + " [unit price]" });
+            seen.add(bestName);
+          } else {
+            log("RD: ⚠️ Rejecting name '" + bestName + "' for $" + pl.price + " (max $" + priceMax + " for this item)");
+          }
         } else {
           items.push({ name: bestName, price: pl.price, unitPrice: pl.unitPrice, raw: pl.raw });
           seen.add(bestName);
@@ -1831,11 +1842,18 @@ async function runScrape(source = "all") {
         matched.forEach(({ id, price: rawPrice, unitPrice }) => {
           if (!id || rawPrice <= 0) return;
           let price = rawPrice;
-          if (RD_SINGLE_UNIT.has(id) && !RD_PRICE_MAX[id] && rawPrice > 25) {
-            if (unitPrice && unitPrice > 0 && unitPrice <= 25) {
-              price = unitPrice;
-              log("RD: Single-unit " + id + ": using unit price $" + unitPrice + " (case price $" + rawPrice + " skipped)");
-            } else { log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + rawPrice); return; }
+          if (RD_SINGLE_UNIT.has(id)) {
+            const ceiling = RD_PRICE_MAX[id];
+            // Single-unit items: RD shows a range [unit – bulk]. rawPrice is the range high end (bulk),
+            // but we pay the single-unit price (the low end / "Current price"). If the high end is
+            // implausible for a single unit (no ceiling, or above its ceiling), fall back to unitPrice.
+            const highImplausible = (!ceiling && rawPrice > 25) || (ceiling && rawPrice > ceiling);
+            if (highImplausible) {
+              if (unitPrice && unitPrice > 0 && (!ceiling || unitPrice <= ceiling)) {
+                price = unitPrice;
+                log("RD: Single-unit " + id + ": using unit price $" + unitPrice + " (range high $" + rawPrice + " skipped)");
+              } else { log("RD: ⚠️ Skipping suspicious single-unit price for " + id + ": $" + rawPrice + " (unit $" + unitPrice + ")"); return; }
+            }
           }
           const maxPrice = RD_PRICE_MAX[id];
           if (maxPrice && price > maxPrice) { log("RD: ⚠️ Skipping bad price for " + id + ": $" + price + " (max $" + maxPrice + ")"); return; }
