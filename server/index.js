@@ -78,6 +78,8 @@ const SYSCO_PRICE_SEED = {
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
 // Keyed by Sysco UPC AND by RD ID (both forms get checked since prices stored under both)
 const SYSCO_PRICE_MIN = {
+  // Paneer — min is PER-LB (checked before the ×10lb case conversion); rejects junk sub-$2.50/lb grabs
+  "7102961": 2.5,
   // Chicken items — 40lb cases, minimum floor prevents per-10lb-pack price storage
   "1803287": 35,  // Chicken Leg Quarter Small Halal 4/10LB — $39.68 confirmed; rejects per-10lb-pack fallback
   "77670":   20,  // same item stored under RD ID
@@ -803,6 +805,10 @@ const SYSCO_TO_RD_LOCK = {
 // EA/MKT price suffix, NOT the CS case price, or it grabs the wrong number.
 const SYSCO_EA_ITEMS = new Set([
   "7350788", // Green Onions Iceless — buy single 2lb EA; Nick List shows $X.XX MKT/EA not CS
+]);
+
+const SYSCO_PER_LB_ITEMS = new Set([
+  "7102961", // Paneer — product page prices in $/LB (3 decimals, e.g. $4.901 LB); case = ×10lb downstream
 ]);
 
 const CROSS_VENDOR_FILE = "/data/nc_cross_vendor.json";
@@ -1569,12 +1575,13 @@ async function scrapeSysco() {
         await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
         await new Promise(r => setTimeout(r, 3500)); // 3.5s: some pages need extra render time
         const isEaItem = SYSCO_EA_ITEMS.has(item.id);
+        const isPerLbItem = SYSCO_PER_LB_ITEMS.has(item.id);
         // Check network captures from this product page
         const pageCap = await page.evaluate(() => window.__syscoCapture || []).catch(() => []);
         for (const c of pageCap) { try { extractPrices(JSON.parse(c.text), 0); } catch {} }
         let priceResult = netPrices.has(item.id) ? { price: netPrices.get(item.id), method: "api" } : null;
         if (!priceResult) {
-          priceResult = await page.evaluate((supc, isEa) => {
+          priceResult = await page.evaluate((supc, isEa, isPerLb) => {
             const UI_JUNK = new Set([0.00]); // Only filter $0 — product pages show real prices
             const body = document.body.innerText || "";
             if (body.includes(supc)) {
@@ -1582,9 +1589,18 @@ async function scrapeSysco() {
               const nearby = body.slice(Math.max(0, idx - 200), idx + 500);
               const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?CS/i);
               const eaM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*(?:\/\s*)?(?:EA|EACH|MKT)/i);
+              // Per-LB items (Paneer): page shows strikethrough list "$5.159 LB" BEFORE current "$4.901 LB".
+              // Take the LAST LB match (current price renders after the crossed-out one). Capture 2-3
+              // decimals — per-lb prices use 3, and a 2-decimal capture truncated $5.159 to $5.15.
+              let lbM = null;
+              if (isPerLb) {
+                const lbAll = [...nearby.matchAll(/\$([\d,]+\.[\d]{2,3})\s*(?:\/\s*)?LB\b/gi)]
+                  .map(x => parseFloat(x[1].replace(",", ""))).filter(p => p > 0.5 && p < 9999);
+                if (lbAll.length) lbM = ["", String(lbAll[lbAll.length - 1])];
+              }
               const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
-              const m = isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
-              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: "near-supc" }; }
+              const m = isPerLb ? (lbM || csM || eaM || anyM) : isEa ? (eaM || csM || anyM) : (csM || eaM || anyM);
+              if (m) { const p = parseFloat(m[1].replace(",","")); if (p > 1 && !UI_JUNK.has(p)) return { price: p, method: (lbM && m === lbM) ? "near-supc-lb" : "near-supc" }; }
             }
             const priceEls = Array.from(document.querySelectorAll("[class*='price'],[class*='Price'],[data-testid*='price'],[class*='your-price'],[class*='list-price'],[class*='contract-price']"));
             for (const el of priceEls) {
@@ -1594,7 +1610,7 @@ async function scrapeSysco() {
             const allP=[...body.matchAll(/\$([\d,]+\.[\d]{2})/g)].map(x=>parseFloat(x[1].replace(",",""))).filter(p=>p>1&&p<9999&&!UI_JUNK.has(p));
             if(allP.length>0) return {price:allP[0],method:"scan"};
             return null;
-          }, item.id, isEaItem);
+          }, item.id, isEaItem, isPerLbItem);
         }
         if (priceResult && priceResult.price) {
           const min = SYSCO_PRICE_MIN[item.id];
@@ -1607,12 +1623,18 @@ async function scrapeSysco() {
         } else {
           // Retry: wait 3 more seconds and scan again — some pages need extra render time
           await new Promise(r => setTimeout(r, 3000));
-          const retryResult = await page.evaluate((supc) => {
+          const retryResult = await page.evaluate((supc, isPerLb) => {
             const body = document.body.innerText || "";
             // Try near-supc first
             if (body.includes(supc)) {
               const idx = body.indexOf(supc);
               const nearby = body.slice(Math.max(0, idx - 300), idx + 600);
+              if (isPerLb) {
+                // Per-LB items: last LB price = current (strikethrough list renders first); 2-3 decimals
+                const lbAll = [...nearby.matchAll(/\$([\d,]+\.[\d]{2,3})\s*(?:\/\s*)?LB\b/gi)]
+                  .map(x => parseFloat(x[1].replace(",", ""))).filter(p => p > 0.5 && p < 9999);
+                if (lbAll.length) return { price: lbAll[lbAll.length - 1], method: "retry-near-supc-lb" };
+              }
               const csM  = nearby.match(/\$([\d,]+\.[\d]{2})\s*CS/i);
               const anyM = nearby.match(/\$([\d,]+\.[\d]{2})/);
               const m = csM || anyM;
@@ -1623,7 +1645,7 @@ async function scrapeSysco() {
               .map(x => parseFloat(x[1].replace(",",""))).filter(p => p > 1 && p < 9999);
             if (allP.length > 0) return { price: allP[0], method: "retry-scan" };
             return null;
-          }, item.id);
+          }, item.id, isPerLbItem);
           if (retryResult && retryResult.price) {
             const min = SYSCO_PRICE_MIN[item.id];
             if (!min || retryResult.price >= min) {
