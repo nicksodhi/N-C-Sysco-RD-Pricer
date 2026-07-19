@@ -63,18 +63,20 @@ const PACK_SIZES_FE = {
   "2620442":{ rdTotal:24,   syscoTotal:24,   unit:"can" },
 };
 
-// Buy-badge verdict — MUST mirror the server's breakdown catalog verdict exactly so the
-// list, the PDF export, and the Breakdown tab never disagree:
+// Buy-badge verdict — PURE PRICE TRUTH for the Prices list and the PDF export.
+// Per Nick's rule (2026-07-18): the $2 Sysco consolidation preference applies ONLY to
+// the Breakdown feature — it lives server-side in the /api/grocery catalog verdict and
+// is deliberately ABSENT here. List/PDF answer one question: who is actually cheaper.
 //   1. One vendor OOS → the other wins
-//   2. Same case sizes + diff < $2 → Sysco (consolidation preference)
-//   3. Same case sizes → cheaper case price
-//   4. Different case sizes → cheaper PER-UNIT price (case stickers are meaningless there)
+//   2. Same case sizes → cheaper case price
+//   3. Different case sizes → cheaper PER-UNIT price (case stickers are meaningless there)
+// Known, intentional divergence: a same-size near-tie can badge "Buy at RD" here while
+// the Breakdown routes it [SYSCO] — the "≈ same price" info chip bridges the two.
 function getBuyVerdict(id, r, s, rdOos, scOos) {
   if (rdOos && !scOos) return { vendor: "sysco", reason: "RD OOS" };
   if (scOos && !rdOos) return { vendor: "rd", reason: "Sysco OOS" };
   const ps = PACK_SIZES_FE[id];
   const diffSizes = !!(ps && ps.rdTotal && ps.syscoTotal && ps.rdTotal !== ps.syscoTotal);
-  if (!diffSizes && Math.abs(r - s) < 2) return { vendor: "sysco", reason: "≈same → Sysco" };
   if (!diffSizes) return { vendor: r <= s ? "rd" : "sysco", reason: "case price" };
   const rdPu = r / ps.rdTotal, scPu = s / ps.syscoTotal;
   return { vendor: rdPu <= scPu ? "rd" : "sysco", reason: "per-" + ps.unit };
@@ -563,15 +565,15 @@ ${rows.map(r => `<tr>
                   const bv = getBuyVerdict(item.id, r, s, isRdOos, isScOos);
                   const rdBest = bv.vendor === "rd";
                   const wc = getWeightCheaper(item.id, r, s);
-                  // Explanation tag — appears ONLY when the badge contradicts the naive
-                  // "lower number wins" reading of the two case prices, and says WHY:
-                  //   diff-size items → "X cheaper/lb"  (per-unit decided; case sticker misleads)
-                  //   near-ties       → "≈ same price"  ($2 Sysco consolidation rule)
-                  // No tag when badge and prices agree, or when an OOS chip already explains it.
+                  // "X cheaper/lb" appears only when the badge contradicts the naive
+                  // "lower number wins" reading (diff-size items — per-unit decided).
+                  // "≈ same price" is INFORMATIONAL on same-size near-ties: badge shows the
+                  // true cheaper vendor, but the Breakdown will route these to Sysco (the
+                  // $2 rule applies ONLY there). Delete the showSameTag line to drop the chip.
                   const naiveRd = r <= s;
                   const contradicts = rdBest !== naiveRd && !isRdOos && !isScOos;
                   const showPerUnitTag = contradicts && bv.reason.indexOf("per-") === 0 && wc && wc.vendor !== "same";
-                  const showSameTag    = contradicts && bv.reason.indexOf("≈") === 0;
+                  const showSameTag    = !isRdOos && !isScOos && !hasDiffSizes(item.id) && Math.abs(r - s) < 2;
                   return (
                     <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
