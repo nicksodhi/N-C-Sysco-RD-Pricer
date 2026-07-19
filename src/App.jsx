@@ -1,23 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 
-// Items where case VOLUMES genuinely differ between vendors — per-unit math required
-// Confirmed against RD order guide PDF (2026-06-01) + Sysco Nick List
-const DIFFERENT_CASE_SIZES = new Set([
-  "55523",   // Lemon Juice: RD 4×1gal (512oz) vs Sysco 6×0.5gal (384oz)
-  "12728",   // Pan Spray: RD 6×17oz (102oz) vs Sysco 6×14oz (84oz)
-  "44146",   // Peeled Garlic: RD 6×5lb (30lb) vs Sysco 4×5lb (20lb)
-  "1440528", // Paneer: RD 4×5lb (20lb) vs Sysco 2×5lb (10lb)
-  "2910159", // Cornstarch: RD 1×3lb vs Sysco 24×1lb (24lb)
-  "44211",   // Fresh Spinach: RD 4×2.5lb (10lb) vs Sysco 1×4lb
-  "40138",   // Green Onions: RD 1×4lb bunch vs Sysco 1×2lb EA
-  "42706",   // Green Bell Pepper: RD 1×5lb bag vs Sysco 1×22-25lb case
-  "53556",   // Roti Atta: RD 2×20lb (40lb) vs Sysco 1×50lb
-  // REMOVED — now confirmed same total size on both vendors:
-  // "86525" Peas: both 12×2.5lb=30lb ✓  "64120" Broccoli: both 12×2lb=24lb ✓
-  // "64046" Spinach: both 12×3lb=36lb ✓  "86527" 4-Way Mix: both 30lb ✓
-  // "2620442" Coconut Milk: both 24×13.5oz cans ✓
-  // "3960200" was wrong key (Sysco UPC) — correct RD ID is 86527 above ✓
-]);
+// Different-case-size detection is DERIVED from PACK_SIZES_FE (rdTotal !== syscoTotal),
+// never hand-maintained. The old hand list had drifted: 44211 Fresh Spinach was listed
+// as different but both vendors are 4×2.5lb=10lb, and 42504 Cucumbers (6ct vs ~8ct)
+// was missing. Deriving from the pack table makes drift impossible.
+function hasDiffSizes(id) {
+  const ps = PACK_SIZES_FE[id];
+  return !!(ps && ps.rdTotal && ps.syscoTotal && ps.rdTotal !== ps.syscoTotal);
+}
 
 // Per-unit totals mirrored from server PACK_SIZES — used for weight-cheaper indicator
 // Keys = RD Item ID. rdTotal/syscoTotal = total units in one case. unit = what they're in.
@@ -72,6 +62,23 @@ const PACK_SIZES_FE = {
   "21039":  { rdTotal:12000,syscoTotal:12000,unit:"ml"  },
   "2620442":{ rdTotal:24,   syscoTotal:24,   unit:"can" },
 };
+
+// Buy-badge verdict — MUST mirror the server's breakdown catalog verdict exactly so the
+// list, the PDF export, and the Breakdown tab never disagree:
+//   1. One vendor OOS → the other wins
+//   2. Same case sizes + diff < $2 → Sysco (consolidation preference)
+//   3. Same case sizes → cheaper case price
+//   4. Different case sizes → cheaper PER-UNIT price (case stickers are meaningless there)
+function getBuyVerdict(id, r, s, rdOos, scOos) {
+  if (rdOos && !scOos) return { vendor: "sysco", reason: "RD OOS" };
+  if (scOos && !rdOos) return { vendor: "rd", reason: "Sysco OOS" };
+  const ps = PACK_SIZES_FE[id];
+  const diffSizes = !!(ps && ps.rdTotal && ps.syscoTotal && ps.rdTotal !== ps.syscoTotal);
+  if (!diffSizes && Math.abs(r - s) < 2) return { vendor: "sysco", reason: "≈same → Sysco" };
+  if (!diffSizes) return { vendor: r <= s ? "rd" : "sysco", reason: "case price" };
+  const rdPu = r / ps.rdTotal, scPu = s / ps.syscoTotal;
+  return { vendor: rdPu <= scPu ? "rd" : "sysco", reason: "per-" + ps.unit };
+}
 
 // Returns which vendor is cheaper per unit, or null if same/can't compute
 // Returns: { vendor: "rd"|"sysco"|"same", rdPer: number, scPer: number, unit: string }
@@ -259,6 +266,7 @@ export default function App() {
 
   const both   = filtered.filter(i => rd[i.id] && sc[i.id]);
   const rdOnly = filtered.filter(i => rd[i.id] && !sc[i.id]);
+  const scOnly = filtered.filter(i => !rd[i.id] && sc[i.id]); // e.g. Green Bell Pepper — was invisible before this bucket existed
   const noPrice = filtered.filter(i => !rd[i.id] && !sc[i.id]);
 
   const confColor = c => c==="high"?"#16A34A":c==="medium"?"#CA8A04":"#DC2626";
@@ -282,7 +290,7 @@ export default function App() {
           {loading && (
             <div style={{textAlign:"center",padding:"32px 0",color:"#888"}}>
               <div style={{fontSize:24,marginBottom:8}}>⏳</div>
-              <div style={{fontSize:13}}>Claude is calculating...</div>
+              <div style={{fontSize:13}}>Calculating…</div>
             </div>
           )}
 
@@ -401,7 +409,7 @@ export default function App() {
           cat={cat} setCat={setCat} q={q} setQ={setQ}
           history={history} synced={synced}
           pricesView={pricesView} setPricesView={setPricesView}
-          both={both} rdOnly={rdOnly} noPrice={noPrice}
+          both={both} rdOnly={rdOnly} scOnly={scOnly} noPrice={noPrice}
           oos={oos} setAuditItem={setAuditItem} onUnitCompare={fetchUnitCompare}
         />
       )}
@@ -428,7 +436,7 @@ export default function App() {
 }
 
 // ── PricesView ────────────────────────────────────────────────────────────────
-function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, noPrice, oos, setAuditItem, onUnitCompare }) {
+function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pricesView, setPricesView, both, rdOnly, scOnly, noPrice, oos, setAuditItem, onUnitCompare }) {
   const [historySearch, setHistorySearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -439,7 +447,9 @@ function PricesView({ rd, sc, loading, cat, setCat, q, setQ, history, synced, pr
       const rdP = rd[item.id]?.price;
       const scP = sc[item.id]?.price;
       if (!rdP && !scP) return null;
-      const rdBest = rdP && scP ? rdP <= scP : !!rdP;
+      const rdBest = rdP && scP
+        ? getBuyVerdict(item.id, rdP, scP, rdOosIds.has(item.id), scOosIds.has(item.id)).vendor === "rd"
+        : !!rdP;
       return { name: item.name, rdP, scP, rdBest };
     }).filter(Boolean);
 
@@ -548,7 +558,8 @@ ${rows.map(r => `<tr>
               <>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>COMPARING BOTH VENDORS</div>
                 {both.map((item, i) => {
-                  const r = rd[item.id].price, s = sc[item.id].price, rdBest = r <= s;
+                  const r = rd[item.id].price, s = sc[item.id].price;
+                  const rdBest = getBuyVerdict(item.id, r, s, rdOosIds.has(item.id), scOosIds.has(item.id)).vendor === "rd";
                   const wc = getWeightCheaper(item.id, r, s);
                   // Show weight indicator only when per-unit winner differs from case-price winner
                   const showWeightTag = wc && wc.vendor !== "same" && ((wc.vendor === "rd") !== rdBest);
@@ -572,7 +583,7 @@ ${rows.map(r => `<tr>
                         <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
                           background: rdBest ? "#F0FDF4" : "#EFF6FF",
                           color: rdBest ? "#16A34A" : "#2563EB",
-                          border: DIFFERENT_CASE_SIZES.has(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
+                          border: hasDiffSizes(item.id) ? "1.5px dashed " + (rdBest ? "#16A34A" : "#2563EB") : "1.5px solid transparent",
                         }}>
                           {rdBest ? "Buy at RD" : "Buy at Sysco"}
                         </div>
@@ -614,6 +625,20 @@ ${rows.map(r => `<tr>
               </>
             )}
 
+            {!loading && scOnly.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, margin: "16px 0 8px", paddingLeft: 4 }}>SYSCO ONLY</div>
+                {scOnly.map((item, i) => (
+                  <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, border: "1px solid #EEEEE9", display: "flex", alignItems: "center", padding: "12px 14px", gap: 10, animationDelay: i * 10 + "ms", cursor:"pointer" }}>
+                    <span style={{ fontSize: 20 }}></span>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#111" }}>{item.name}</div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>{fmt(sc[item.id]?.price)}</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#2563EB", background: "#EFF6FF", borderRadius: 99, padding: "3px 10px" }}>Sysco</div>
+                  </div>
+                ))}
+              </>
+            )}
+
             {!loading && noPrice.length > 0 && (()=> {
               const rdOosSet = new Set(oos?.rd || []);
               const oosHere = noPrice.filter(i => rdOosSet.has(i.id));
@@ -649,7 +674,7 @@ ${rows.map(r => `<tr>
               </>);
             })()}
 
-            {!loading && both.length === 0 && rdOnly.length === 0 && noPrice.length === 0 && (
+            {!loading && both.length === 0 && rdOnly.length === 0 && scOnly.length === 0 && noPrice.length === 0 && (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: "#555" }}>Nothing found</div>
