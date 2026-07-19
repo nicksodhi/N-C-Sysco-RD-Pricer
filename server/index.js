@@ -2377,6 +2377,9 @@ Sysco $${scP} for ${scPack}${scTotal ? ` (${scTotal} ${unit})` : ""} = ${scPerUn
 ${cheaper === "rd" ? `RD is cheaper by ${savingsPct}% ($${savingsPerUnit}/${unit}).` : cheaper === "sysco" ? `Sysco is cheaper by ${savingsPct}% ($${savingsPerUnit}/${unit}).` : "Same price per unit."}
 Write ONE specific purchasing recommendation sentence. Return ONLY JSON: {"recommendation":"..."}`;
 
+  // The math above is authoritative and already computed — an Anthropic outage must not
+  // 500 the whole compare. Only the one-sentence recommendation is best-effort.
+  let recommendation = "";
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -2386,20 +2389,20 @@ Write ONE specific purchasing recommendation sentence. Return ONLY JSON: {"recom
     const data = await r.json();
     const txt = data.content?.find(b => b.type === "text")?.text || "{}";
     const m = txt.match(/\{[\s\S]*\}/);
-    const parsed = m ? JSON.parse(m[0]) : {};
-    res.json({
-      rdPerUnit:      rdPerUnit  ?? 0,
-      scPerUnit:      scPerUnit  ?? 0,
-      unit,
-      rdPack,
-      scPack,
-      cheaper,
-      savingsPct,
-      savingsPerUnit,
-      recommendation: parsed.recommendation || "",
-      dataSource:     packInfo ? "pack_sizes" : kb ? "knowledge_base" : "unknown",
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+    recommendation = (m ? JSON.parse(m[0]) : {}).recommendation || "";
+  } catch(e) { log("Unit-compare: AI sentence failed (math still returned): " + e.message); }
+  res.json({
+    rdPerUnit:      rdPerUnit  ?? 0,
+    scPerUnit:      scPerUnit  ?? 0,
+    unit,
+    rdPack,
+    scPack,
+    cheaper,
+    savingsPct,
+    savingsPerUnit,
+    recommendation,
+    dataSource:     packInfo ? "pack_sizes" : kb ? "knowledge_base" : "unknown",
+  });
 });
 
 app.get("/api/history", (req, res) => res.json({ data: priceHistory, lastRecorded: priceStore.lastUpdated || null }));
@@ -2552,6 +2555,7 @@ app.post("/api/grocery", async (req, res) => {
 
     // Build catalog — same logic as before
     const catalog = [];
+    const catalogFacts = {}; // rdId → { verdict, rdPrice, scPrice } — pass-2 authority
     RD_ITEMS.forEach(rdItem => {
       const rdE = priceStore.rd[rdItem.id];
       const isRdOos = rdOosSet.has(rdItem.id);
@@ -2598,6 +2602,8 @@ app.post("/api/grocery", async (req, res) => {
       if (rdBin && rdE?.price && !isRdOos) rdPart += `(${rdBin})`;
       let scPart = isScOos ? "Sysco:⛔OOS" : syscoE?.price ? `Sysco:$${syscoE.price}${perUnit(syscoE.price, rdItem.id, "sysco")}` : "Sysco:N/A";
 
+      // Server-side source of truth for pass 2 — vendor + price never come from Claude
+      catalogFacts[rdItem.id] = { verdict, rdPrice: rdE?.price ?? null, scPrice: syscoE?.price ?? null };
       // Include rdId in catalog line so Claude can pass it back in JSON
       catalog.push(`[${verdict}] ${shortName} [id:${rdItem.id}] | ${verdictTag} | ${rdPart} | ${scPart}`);
     });
@@ -2698,9 +2704,27 @@ Return ONLY this JSON — no markdown fences, no preamble, no explanation:
     for (const line of parsed.lines) {
       const name   = (line.name || line.chef_item || "Unknown").trim();
       const qty    = Math.max(1, Math.round(parseFloat(line.qty) || 1));
-      const price  = (typeof line.price === "number" && line.price > 0) ? line.price : null;
+      let price    = (typeof line.price === "number" && line.price > 0) ? line.price : null;
       const rdId   = line.rdId ? String(line.rdId).trim() : null;
       let vendor   = (line.vendor || "MANUAL").toUpperCase().trim();
+
+      // ── CATALOG AUTHORITY ────────────────────────────────────────────────────
+      // THE CATALOG VERDICT IS THE FINAL ANSWER. Claude's only job is matching chef
+      // text → rdId + qty. Vendor and price come from the server's own price store —
+      // never from Claude's transcription. Without this, a copied-digit error or a
+      // hallucinated rdId+price line would flow straight into the dollar totals.
+      const facts = rdId ? catalogFacts[rdId] : null;
+      if (rdId && !facts) {
+        if (vendor !== "MANUAL") log(`Grocery: unknown rdId ${rdId} from Claude ("${name}") → MANUAL`);
+        vendor = "MANUAL"; price = null;
+      } else if (facts) {
+        const catVendor = (facts.verdict === "RD" || facts.verdict === "SYSCO") ? facts.verdict : "MANUAL";
+        const catPrice  = catVendor === "RD" ? facts.rdPrice : catVendor === "SYSCO" ? facts.scPrice : null;
+        if (vendor !== catVendor || (catPrice != null && price !== catPrice)) {
+          log(`Grocery: catalog authority — "${name}": Claude said ${vendor} $${price}, catalog says ${catVendor} $${catPrice}`);
+        }
+        vendor = catVendor; price = catPrice;
+      }
 
       // Belt-and-suspenders OOS guard — server overrides Claude if needed
       if (vendor === "RD" && rdId && rdOosSet.has(rdId)) {
