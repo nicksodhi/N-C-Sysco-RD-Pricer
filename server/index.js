@@ -1818,11 +1818,20 @@ Return ONLY JSON array:
     if (!m) return;
     JSON.parse(m[0]).forEach(({ id, verdict, reason }) => {
       if (verdict === "error") {
-        const prev = suspicious.find(s => s.id === id)?.prev;
-        if (prev) {
-          if (vendor === "rd") priceStore.rd[id] = { ...priceStore.rd[id], price: prev, flagged: true };
-          else priceStore.sysco[id] = { ...priceStore.sysco[id], price: prev, flagged: true };
-          log("🤖 Price validation: REVERTED " + id + " → $" + prev + " (" + reason + ")");
+        // ── ANNOTATION ONLY — the AI may flag, it may NEVER overwrite a scraped price. ──
+        // 2026-07-18: the old revert path replaced FIVE verified prices (Mint $8.18→$6.65,
+        // Ginger $52.99→$43.29, Baking Powder $128.99→$87.99, Broccoli $51.79→$34.12,
+        // Wings $63.92→$48.12) with stale history values because day-over-day % jumps
+        // "looked implausible" — all five were confirmed by screenshots and three identical
+        // consecutive scrapes. The scraper is a measurement; a % heuristic is a guess.
+        // Measurements win. Deterministic guards (min/max, UI-artifact, single-unit) catch
+        // real scrape errors at the source. Flagged prices keep confidence:"low" for review.
+        const store = vendor === "rd" ? priceStore.rd : priceStore.sysco;
+        if (store[id]) {
+          store[id].confidence = "low";
+          store[id].flagged = true;
+          store[id].flagReason = reason;
+          log("⚠️ Price validation: FLAGGED " + id + " at $" + store[id].price + " (" + reason + ") — scraped value stands, review in audit trail");
         }
       } else {
         if (vendor === "rd" && priceStore.rd[id]) priceStore.rd[id].confidence = "high";
