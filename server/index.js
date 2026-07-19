@@ -62,17 +62,18 @@ const RD_FORCE_IN_STOCK = new Set([
 // These seed the store on startup if the item has no current live price.
 // Any live scrape result overwrites these immediately.
 const RD_PRICE_SEED = {
-  "1020075": { price: 39.34,  note: "Soybean Salad Oil 35lb - confirmed 2026-06-01, Bin 426" },
-  "77658":   { price: 67.60,  note: "Chicken Leg Meat 40lb - confirmed 2026-06-03, $1.69/lb est, Bin 6026" },
-  "40212":   { price: 62.31,  note: "SHRP P&D TF 16-20 Shrimp, Case of 5 × 2lb = 10lb, $62.31/case - confirmed 2026-06-03, UPC 64728331897" },
+  // EMPTY by design (locked rule: no seeded prices for live-scrapable items).
+  // Former entries (Soybean Oil, Leg Meat, Shrimp) now scrape reliably every day;
+  // their June-dated seeds risked serving 6-week-old prices as "high confidence"
+  // on an empty store. Only add entries here for items the scraper truly cannot get.
 };
 
 // Confirmed Sysco prices for items the Nick List scraper cannot reliably get
 // (virtual scroll bottom items 38-51 that rarely render, or items with non-CS price format)
 const SYSCO_PRICE_SEED = {
-  // Confirmed prices — live scraper cannot reliably get items 38-51 from virtual list
-  "5106388": { price: 62.65, note: "Shrimp White P&D TF 16/20 Count, 4/2.5LB = 10lb, $62.65 CS - confirmed 2026-06-03" },
-  // Add more as confirmed: "UPC": { price: X.XX, note: "..." }
+  // EMPTY by design — the "virtual list can't get items 38-51" rationale is obsolete:
+  // direct product-page scraping achieves 51/51 daily. Locked rule applies: no seeds
+  // for live-scrapable items. Only add entries for items the scraper truly cannot get.
 };
 
 // Minimum acceptable Sysco case price — rejects search fallback unit/per-pack prices
@@ -118,9 +119,17 @@ function loadPrices() {
   return { rd: {}, sysco: {}, lastUpdated: null, oos: { rd: [], sysco: [] } };
 }
 
+// Atomic write: write to temp file then rename — a crash mid-write can never leave
+// a truncated/corrupt JSON state file (rename is atomic on the same filesystem).
+function writeFileAtomic(file, data) {
+  const tmp = file + ".tmp";
+  fs.writeFileSync(tmp, data);
+  fs.renameSync(tmp, file);
+}
+
 function savePrices() {
   try {
-    fs.writeFileSync(PRICES_FILE, JSON.stringify({
+    writeFileAtomic(PRICES_FILE, JSON.stringify({
       rd: priceStore.rd,
       sysco: priceStore.sysco,
       lastUpdated: priceStore.lastUpdated,
@@ -203,8 +212,7 @@ async function restoreFromGitHub() {
     if (data.lastUpdated) { priceStore.lastUpdated = data.lastUpdated; }
     if (data.oos) {
       // Remove any force-in-stock items from restored OOS list
-      const RD_FORCE_IN_STOCK_GLOBAL = ["77658", "40212"];
-      data.oos.rd = (data.oos.rd || []).filter(id => !RD_FORCE_IN_STOCK_GLOBAL.includes(id));
+      data.oos.rd = (data.oos.rd || []).filter(id => !RD_FORCE_IN_STOCK.has(id));
       priceStore.oos = data.oos;
     }
     if (data.matchCache) {
@@ -327,6 +335,17 @@ function cleanBadPrices() {
       delete priceStore.rd[id]; cleaned++;
       console.log("🧹 Cleaned bad single-unit cached price: " + id + " was $" + entry.price);
     }
+  });
+  // Ghost GC: drop price-store entries keyed by ids no longer in any item list or
+  // cross-map (e.g. retired SUPC 4418117, unknown 8474538). Ghosts otherwise ride
+  // every GitHub backup/restore cycle forever and can resurface via stale aliases.
+  const knownRdIds = new Set(RD_ITEMS.map(i => i.id));
+  const knownSyscoKeys = new Set([...SYSCO_ITEMS.map(i => i.id), ...RD_ITEMS.map(i => i.id)]);
+  Object.keys(priceStore.rd).forEach(id => {
+    if (!knownRdIds.has(id)) { const was = priceStore.rd[id]?.price; delete priceStore.rd[id]; cleaned++; console.log("🧹 GC ghost RD[" + id + "] (was $" + was + ")"); }
+  });
+  Object.keys(priceStore.sysco).forEach(id => {
+    if (!knownSyscoKeys.has(id)) { const was = priceStore.sysco[id]?.price; delete priceStore.sysco[id]; cleaned++; console.log("🧹 GC ghost Sysco[" + id + "] (was $" + was + ")"); }
   });
   const CHICKEN_THIGHS_PRICE = 76.30;
   Object.entries(priceStore.sysco).forEach(([id, entry]) => {
@@ -461,7 +480,6 @@ const CACHE_SEED = {
     "Pan Spray All Purpose": "6914451",
     "Cheese Cheddar Jack Fancy Shredded": "2822379",
     "Salt Granulated Plain": "4564894",
-    "Cilantro Fresh": "7078475",
     "Chicken Wings 1st And 2nd Joints Jumbo": "6344790",
     "Onion Red Jumbo Bag": "1094663",
     "Garlic Peeled Fresh": "1821537",
@@ -469,14 +487,12 @@ const CACHE_SEED = {
     "Cauliflower Cello Wrapped Fresh": "1243724",
     "Tilapia Fillet Boneless Skinless Iqf": "0496671",
     "Pea Green Packaged": "1053826",
-    "Pea Green Petit Grade A Packaged": "6409940",
     "Milk Coconut Unsweetened": "1425982",
     "Paste Chili Ground Sambal Oelek": "2638660",
     "Vinegar White Distilled 50 Grain": "4113049",
     "Water Spring In Plastic Bottle": "2886075",
     "Shrimp White Peeled And Deveined 16/20": "5106388",
     "Coloring Food Egg Shade Yellow": "4112262",
-    "Oil Salad Canola Zero Trans Fat": "4119079",
     "Corn Starch Food Grade": "4073441",
     "Powder Baking Double Acting": "5517701",
     "Broccoli Floret Poly Packaging Grade A": "6988158",
@@ -505,7 +521,6 @@ const CACHE_SEED = {
     "Paneer": "7102961",
     "Cilantro Cleaned, Washed & Fresh Herb": "2219095",
     "Cilantro Washed Fresh Herb": "2219095",
-    "Cilantro Bunch Iceless": "7078475",
     "Sauce Tomato California": "4978884",
     "Tomato Sauce California": "4978884",
     "Pepper Green Bell Choice Fresh": "1910231",
@@ -516,7 +531,7 @@ const CACHE_SEED = {
 
 const scraperHealth = {
   rd:    { expectedItems: 63, minThreshold: 0.80, lastGoodCount: 0 },
-  sysco: { expectedItems: 51, minThreshold: 0.60, lastGoodCount: 0 }, // 0.60×51=30; bulk scroll reliably gets 38
+  sysco: { expectedItems: 51, minThreshold: 0.80, lastGoodCount: 0 }, // product pages get 51/51 daily; <41 items = degraded scrape, trigger AI review
 };
 
 async function checkScraperHealth(vendor, scrapedCount, matchedCount) {
@@ -599,7 +614,7 @@ function loadCache() {
 }
 
 function saveCache() {
-  try { fs.writeFileSync(CACHE_FILE, JSON.stringify(matchCache, null, 2)); }
+  try { writeFileAtomic(CACHE_FILE, JSON.stringify(matchCache, null, 2)); }
   catch(e) { console.log("Cache save error:", e.message); }
 }
 
@@ -825,7 +840,7 @@ function loadCrossVendor() {
 }
 
 function saveCrossVendor() {
-  try { fs.writeFileSync(CROSS_VENDOR_FILE, JSON.stringify(SYSCO_TO_RD, null, 2)); }
+  try { writeFileAtomic(CROSS_VENDOR_FILE, JSON.stringify(SYSCO_TO_RD, null, 2)); }
   catch(e) { console.log("Cross-vendor save error:", e.message); }
 }
 
@@ -850,7 +865,7 @@ function loadHistory() {
 function saveHistory() {
   try {
     const data = JSON.stringify(priceHistory);
-    fs.writeFileSync(HISTORY_FILE, data);
+    writeFileAtomic(HISTORY_FILE, data);
     try { fs.writeFileSync("/tmp/nc_history_backup.json", data); } catch {}
   } catch(e) { console.log("History save error:", e.message); }
 }
@@ -941,7 +956,7 @@ Return ONLY JSON array: [{"sysco_id":"SYSCO_UPC","rd_id":"RD_ITEM_ID","reason":"
     let newLinks = 0;
     links.forEach(({ sysco_id, rd_id, reason }) => {
       if (sysco_id && rd_id && !SYSCO_TO_RD[sysco_id]) {
-        SYSCO_TO_RD[sysco_id] = rd_id;
+        SYSCO_TO_RD[sysco_id] = { rdId: rd_id, rdMult: 1 };
         newLinks++;
         log("🔗 New cross-vendor link: Sysco " + sysco_id + " → RD " + rd_id + " (" + reason + ")");
       }
@@ -1181,6 +1196,7 @@ async function scrapeRD() {
     function isProductName(c) {
       if (!c || c.length < 8 || c.length > 130) return false;
       if (/^\$/.test(c)) return false;
+      if (/^\//.test(c)) return false; // "/pkg (est.)" — RD by-weight suffix, not a product
       if (/^[\d\s.\-/#x$]+$/.test(c)) return false;
       if (/^\d+\s*(oz|lb|gal|ct|#|z|lbs|fl)\s*$/i.test(c)) return false;
       if (/^(Current price|Buy \d|Pickup|Out of stock|Show similar|See eligible|Buy It Again|Add \d+|Edit items|Order approvals|Business|Log out|Delivery|About \d|Bin -|\d+\.\d+ mi)/.test(c)) return false;
@@ -1524,19 +1540,19 @@ async function scrapeSysco() {
 
     // Find Search List input — inside Nick List, NOT the catalog search at top
     // data-id="myProductSearch" and placeholder="Search List" are both on the correct element
+    // Search List input is VESTIGIAL for the product-page method (we navigate directly
+    // to product URLs). Missing input must never abort the scrape. NOTE: the old early
+    // return here referenced allItems before its declaration (TDZ) — it would have
+    // crashed the entire Sysco scrape the day Sysco renamed this input.
     const searchInput = await page.$('input[placeholder*="Search List"], input[placeholder*="search list"], input[data-id="myProductSearch"], input[aria-label*="Search List"]');
-    if (!searchInput) {
-      const inputs = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("input")).map(i => ({ type: i.type, placeholder: i.placeholder, ariaLabel: i.getAttribute("aria-label"), id: i.id, name: i.name, dataId: i.getAttribute("data-id") }))
-      );
-      log("Sysco: ⚠️ Search List input not found — saving " + allItems.size + " bulk items, skipping per-item search fallback");
-      log("Sysco: inputs on page: " + JSON.stringify(inputs.slice(0,5)));
-      return { success: true, items: [...allItems.values()].map(d => ({ id: d.upc, name: d.name, price: d.price, raw: d.raw, source: "bulk" })) };
+    if (searchInput) {
+      log("Sysco: Search List input found");
+      await searchInput.click({ clickCount: 3 });
+      await page.keyboard.press("Backspace");
+      await new Promise(r => setTimeout(r, 1500));
+    } else {
+      log("Sysco: Search List input not found (non-fatal) — proceeding to product pages");
     }
-    log("Sysco: Search List input found");
-    await searchInput.click({ clickCount: 3 });
-    await page.keyboard.press("Backspace");
-    await new Promise(r => setTimeout(r, 1500));
 
     // Scroll the virtualized-list container to trigger virtual rendering of all rows
     // DevTools confirmed: div.virtualized-list { overflow: auto; height: 355px }
@@ -1551,7 +1567,10 @@ async function scrapeSysco() {
       if (!obj || typeof obj !== "object" || depth > 15) return;
       if (Array.isArray(obj)) { obj.forEach(x => extractPrices(x, depth + 1)); return; }
       const UPC_FIELDS = ["supc","syscoCode","materialNumber","productCode","itemCode","sku","upc","code","productId","id"];
-      const PRICE_FIELDS = ["price","listPrice","csPrice","casePrice","netPrice","yourPrice","priceValue","unitPrice","contractPrice","customerPrice","suggestedPrice","casePriceValue","net","list","cs","case","customer","contract"];
+      // Priority-ORDERED: what-we-pay fields FIRST (net/customer/your/contract), list/suggested
+      // LAST. The old first-found selection could store the pre-discount listPrice when the
+      // API returned both (fresh timestamp, wrong price).
+      const PRICE_FIELDS = ["netPrice","customerPrice","yourPrice","contractPrice","casePrice","csPrice","price","priceValue","casePriceValue","unitPrice","net","customer","contract","cs","case","listPrice","suggestedPrice","list"];
       const SYSCO_IDS = new Set(SYSCO_ITEMS.map(i => i.id));
       let upc = null;
       for (const f of UPC_FIELDS) { const v = String(obj[f]||"").trim(); if (/^\d{6,8}$/.test(v) && SYSCO_IDS.has(v)) { upc = v; break; } }
@@ -1562,7 +1581,12 @@ async function scrapeSysco() {
           return Object.entries(o).flatMap(([k, v]) => typeof v === "number" && v > 0.5 && v < 9999 ? [{key:k,val:v}] : (v && typeof v === "object" ? gatherNums(v, d+1) : []));
         };
         const prices = gatherNums(obj, 0);
-        const best = prices.find(p => PRICE_FIELDS.includes(p.key)) || prices[0];
+        let best = null, bestRank = Infinity;
+        for (const p of prices) {
+          const rank = PRICE_FIELDS.indexOf(p.key);
+          if (rank !== -1 && rank < bestRank) { best = p; bestRank = rank; }
+        }
+        if (!best) best = prices[0];
         if (best && !netPrices.has(upc)) netPrices.set(upc, best.val);
       }
       Object.values(obj).forEach(v => { if (v && typeof v === "object") extractPrices(v, depth + 1); });
@@ -1845,9 +1869,14 @@ Return [] if nothing should be added.`;
 }
 
 async function runScrape(source = "all") {
+  // "forced" (from cron + startup safety net) means a full run — normalize to "all".
+  // CRITICAL: without this, the daily cron matched neither vendor branch and silently
+  // scraped NOTHING while still bumping lastUpdated (fresh timestamp, stale prices).
+  if (source === "forced") source = "all";
   // Concurrency guard — never run two scrapes at once (two Puppeteers = OOM crash)
   if (priceStore.scraping) { log("\u23ED\uFE0F  Scrape skipped \u2014 already running"); return; }
   priceStore.scraping = true;
+  let anySaved = false; // only advance lastUpdated when at least one vendor actually saved
   try {
   if (source === "rd" || source === "all") {
     try {
@@ -1857,10 +1886,11 @@ async function runScrape(source = "all") {
         autoDiscoverRDItems(result.items).catch(e => log("Auto-discover error: " + e.message));
         const rdHealth = await checkScraperHealth("rd", result.items.length, matched.length);
         if (!rdHealth.healthy && rdHealth.action === "keep_yesterday") {
+          // Keep yesterday's RD prices, mark stale — but do NOT return: Sysco must still run.
           log("🛡️ Health guard: keeping yesterday's RD prices (partial scrape)");
           Object.keys(priceStore.rd).forEach(id => { if (priceStore.rd[id]) { priceStore.rd[id].stale = true; priceStore.rd[id].staleReason = rdHealth.reason; } });
-          savePrices(); return;
-        }
+          savePrices();
+        } else {
         matched.forEach(({ id, price: rawPrice, unitPrice }) => {
           if (!id || rawPrice <= 0) return;
           let price = rawPrice;
@@ -1916,8 +1946,10 @@ async function runScrape(source = "all") {
         priceStore.oos.rd = oosIds;
         log("RD: ✅ out-of-stock IDs: " + (oosIds.length ? oosIds.join(", ") : "none"));
         log("✅ RD: " + matched.length + " prices saved (" + result.items.length + " raw)");
+        anySaved = true;
         savePrices();
         validatePricesWithAI("rd").catch(e => log("Price validation error: " + e.message));
+        }
       } else { log("❌ RD: " + (result.error || "no items")); }
     } catch(e) { log("❌ RD: " + e.message); }
   }
@@ -1945,13 +1977,20 @@ async function runScrape(source = "all") {
             }
           });
           const updatedIds = new Set(matched.map(m => m.id));
+          // Also include RD-id mirror keys just written above — without this, freshly
+          // updated mirror entries were immediately (and wrongly) marked stale.
+          matched.forEach(({ id }) => {
+            const mp = SYSCO_TO_RD[id]; const rid = mp && (mp.rdId || mp);
+            if (rid && typeof rid === "string") updatedIds.add(rid);
+          });
           Object.keys(priceStore.sysco).forEach(id => { if (!updatedIds.has(id) && priceStore.sysco[id]) { priceStore.sysco[id].stale = true; priceStore.sysco[id].staleReason = scHealth.reason; } });
+          if (matched.length > 0) anySaved = true;
           savePrices();
           log("🛡️ Health guard: applied " + matched.length + " confirmed prices, marked rest as stale");
-          return;
-        }
+        } else {
         // Sanity check: reject scrape if >40% of items share the exact same price
         // (indicates a UI artifact like a promo banner price being scraped instead of item price)
+        let artifactRejected = false;
         if (matched.length > 10) {
           const priceFreq = {};
           matched.forEach(m => { priceFreq[m.price] = (priceFreq[m.price] || 0) + 1; });
@@ -1960,10 +1999,11 @@ async function runScrape(source = "all") {
           if (maxFreq / matched.length > 0.4) {
             log("❌ Sysco: REJECTED entire scrape — " + maxFreq + "/" + matched.length + " items share price $" + dominantPrice + " (UI artifact detected)");
             log("❌ Sysco: keeping previous prices — check if Sysco site changed");
-            return; // Skip all price saves, keep old prices
+            artifactRejected = true; // skip Sysco saves, keep old prices — but let RD's run finish the tail
           }
         }
 
+        if (!artifactRejected) {
         let savedCount = 0;
         matched.forEach(({ id, price }) => {
           if (!id || price <= 0) return;
@@ -1980,7 +2020,7 @@ async function runScrape(source = "all") {
             if (!rdId || typeof rdId !== "string") return;
             const rdMult = mapping.rdMult || 1, nowSc = new Date().toISOString(), prevSc = priceStore.sysco[rdId];
             priceStore.sysco[rdId] = {
-              price: adjP, date: nowSc, syscoUpc: id, rdMult, confidence: "medium", source: "scraped_sysco", scrapedAt: nowSc,
+              price: adjP * rdMult, date: nowSc, syscoUpc: id, rdMult, confidence: "medium", source: "scraped_sysco", scrapedAt: nowSc,
               prevPrice: prevSc?.price || null, validatedBy: null,
               auditLog: [...(prevSc?.auditLog || []).slice(-9), { date: nowSc, price: adjP, source: "scraped_sysco", confidence: "medium" }],
             };
@@ -2002,15 +2042,22 @@ async function runScrape(source = "all") {
           }
         });
         log("✅ Sysco: " + savedCount + " prices saved (" + result.items.length + " raw)");
+        if (savedCount > 0) anySaved = true;
         savePrices();
         validatePricesWithAI("sysco").catch(e => log("Sysco price validation error: " + e.message));
+        }
+        }
       } else { log("❌ Sysco: " + (result.error || "no items")); }
     } catch(e) { log("❌ Sysco: " + e.message); }
   }
-  priceStore.lastUpdated = new Date().toISOString();
-  savePrices();
-  recordHistory();
-  if (source === "all") crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
+  if (anySaved) {
+    priceStore.lastUpdated = new Date().toISOString();
+    savePrices();
+    recordHistory();
+    if (source === "all") crossValidatePrices().catch(e => log("Cross-validation error: " + e.message));
+  } else {
+    log("⚠️ Scrape run completed with NO saved prices — lastUpdated NOT advanced (data honesty)");
+  }
   backupToGitHub().catch(e => log("Backup error: " + e.message));
   } finally { priceStore.scraping = false; }
 }
@@ -2030,7 +2077,7 @@ function loadItemKnowledge() {
 }
 
 function saveItemKnowledge() {
-  try { fs.writeFileSync(ITEM_KB_FILE, JSON.stringify(itemKnowledge, null, 2)); }
+  try { writeFileAtomic(ITEM_KB_FILE, JSON.stringify(itemKnowledge, null, 2)); }
   catch(e) { console.log("Item KB save error:", e.message); }
 }
 
@@ -2349,9 +2396,12 @@ app.get("/api/prices", (req, res) => res.json({ rd: priceStore.rd, sysco: priceS
 app.get("/api/status", (req, res) => res.json({ status: "running", lastUpdated: priceStore.lastUpdated, rdItems: Object.keys(priceStore.rd).length, syscoItems: Object.keys(priceStore.sysco).length, log: priceStore.log.slice(0, 200) }));
 app.get("/api/trigger", (req, res) => {
   const src = req.query.source || "all";
-  if (priceStore.scraping) {
-    return res.json({ message: "Scrape already in progress", skipped: true });
+  const force = req.query.force === "true";
+  // force=true ALWAYS bypasses the in-progress guard (locked rule: no cooldowns on manual scrapes)
+  if (priceStore.scraping && !force) {
+    return res.json({ message: "Scrape already in progress (use force=true to override)", skipped: true });
   }
+  if (priceStore.scraping && force) { log("⚡ Force trigger: overriding in-progress flag"); priceStore.scraping = false; }
   res.json({ message: "Scraping " + src });
   runScrape(src).catch(e => log("Trigger: " + e.message));
 });
@@ -2517,7 +2567,10 @@ app.post("/api/grocery", async (req, res) => {
         const scPu = ps?.syscoTotal ? syscoE.price / ps.syscoTotal : syscoE.price;
         const caseDiff = Math.abs(rdE.price - syscoE.price);
         const diffSizes = ps?.rdTotal && ps?.syscoTotal && ps.rdTotal !== ps.syscoTotal;
-        if (caseDiff < 2) { verdict = "SYSCO"; verdictTag = `same price ±$${caseDiff.toFixed(2)} → SYSCO preference`; }
+        // $2 Sysco-consolidation rule applies ONLY when case sizes match — comparing case
+        // prices across different quantities is meaningless (e.g. Pan Spray: $0.40 case diff
+        // sent it to Sysco while RD was 16% cheaper per oz). Diff sizes → per-unit decides.
+        if (!diffSizes && caseDiff < 2) { verdict = "SYSCO"; verdictTag = `same price ±$${caseDiff.toFixed(2)} → SYSCO preference`; }
         else if (!diffSizes && rdPu <= scPu) { verdict = "RD"; verdictTag = `RD cheaper $${caseDiff.toFixed(2)}`; }
         else if (!diffSizes) { verdict = "SYSCO"; verdictTag = `Sysco cheaper $${caseDiff.toFixed(2)}`; }
         else {
