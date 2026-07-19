@@ -1355,6 +1355,13 @@ async function scrapeRD() {
 // ── Sysco Scraper ─────────────────────────────────────────────────────────────
 async function scrapeSysco() {
   log("🔵 Sysco: starting Nick List search scrape...");
+  const scrapeStartedAt = Date.now();
+  // Soft deadline: stop scraping and RETURN PARTIAL RESULTS before the outer hard timeout
+  // can discard everything. 2026-07-18: pages ran ~7s each, the run needed ~6m22s against a
+  // 6m hard timeout — 49/51 captured prices were thrown away and a zombie browser kept
+  // scraping after the race was lost. Partial ≥80% (41 items) passes health and saves
+  // normally; below that the partial-merge guard handles it. Never all-or-nothing again.
+  const SYSCO_SOFT_DEADLINE_MS = 480000; // 8 min soft stop (hard backstop is 9 min)
   let browser;
   try {
     browser = await launchBrowser();
@@ -1594,6 +1601,10 @@ async function scrapeSysco() {
     log("Sysco: 🔍 Scraping " + SYSCO_ITEMS.length + " product pages...");
 
     for (const item of SYSCO_ITEMS) {
+      if (Date.now() - scrapeStartedAt > SYSCO_SOFT_DEADLINE_MS) {
+        log("Sysco: ⏱️ Soft deadline reached (" + Math.round((Date.now() - scrapeStartedAt) / 1000) + "s) — stopping with " + allItems.size + "/" + SYSCO_ITEMS.length + " prices (partial save beats zero)");
+        break;
+      }
       try {
         const productUrl = "https://shop.sysco.com/app/product-details/opco/017/product/" + item.id + "?seller_id=USBL";
         await page.goto(productUrl, { waitUntil: "networkidle2", timeout: 25000 }).catch(() => {});
@@ -1956,7 +1967,7 @@ async function runScrape(source = "all") {
 
   if (source === "sysco" || source === "all") {
     try {
-      const result = await withTimeout(scrapeSysco(), 360000, "Sysco");
+      const result = await withTimeout(scrapeSysco(), 540000, "Sysco"); // 9 min hard backstop — soft deadline inside scrapeSysco returns partials at 8 min
       if (result.success && result.items.length > 0) {
         const matched = await matchWithAI(result.items, SYSCO_ITEMS, "Sysco Nick List");
         const scHealth = await checkScraperHealth("sysco", result.items.length, matched.length);
