@@ -559,10 +559,19 @@ ${rows.map(r => `<tr>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#999", letterSpacing: .5, marginBottom: 8, paddingLeft: 4 }}>COMPARING BOTH VENDORS</div>
                 {both.map((item, i) => {
                   const r = rd[item.id].price, s = sc[item.id].price;
-                  const rdBest = getBuyVerdict(item.id, r, s, rdOosIds.has(item.id), scOosIds.has(item.id)).vendor === "rd";
+                  const isRdOos = rdOosIds.has(item.id), isScOos = scOosIds.has(item.id);
+                  const bv = getBuyVerdict(item.id, r, s, isRdOos, isScOos);
+                  const rdBest = bv.vendor === "rd";
                   const wc = getWeightCheaper(item.id, r, s);
-                  // Show weight indicator only when per-unit winner differs from case-price winner
-                  const showWeightTag = wc && wc.vendor !== "same" && ((wc.vendor === "rd") !== rdBest);
+                  // Explanation tag — appears ONLY when the badge contradicts the naive
+                  // "lower number wins" reading of the two case prices, and says WHY:
+                  //   diff-size items → "X cheaper/lb"  (per-unit decided; case sticker misleads)
+                  //   near-ties       → "≈ same price"  ($2 Sysco consolidation rule)
+                  // No tag when badge and prices agree, or when an OOS chip already explains it.
+                  const naiveRd = r <= s;
+                  const contradicts = rdBest !== naiveRd && !isRdOos && !isScOos;
+                  const showPerUnitTag = contradicts && bv.reason.indexOf("per-") === 0 && wc && wc.vendor !== "same";
+                  const showSameTag    = contradicts && bv.reason.indexOf("≈") === 0;
                   return (
                     <div key={item.id} className="fi" onClick={()=>setAuditItem&&setAuditItem(item)} style={{ background: "#fff", borderRadius: 12, marginBottom: 6, overflow: "hidden", border: "1px solid #EEEEE9", animationDelay: i * 15 + "ms", cursor:"pointer" }}>
                       <div style={{ padding: "12px 14px 10px", display: "flex", alignItems: "center", gap: 10 }}>
@@ -574,9 +583,14 @@ ${rows.map(r => `<tr>
                               {rdOosIds.has(item.id) && scOosIds.has(item.id) ? "BOTH OOS" : rdOosIds.has(item.id) ? "RD OOS" : "SYSCO OOS"}
                             </span>
                           )}
-                          {showWeightTag && (
-                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 99, background: wc.vendor === "rd" ? "#F0FDF4" : "#EFF6FF", color: wc.vendor === "rd" ? "#16A34A" : "#2563EB", border: "1px solid " + (wc.vendor === "rd" ? "#BBF7D0" : "#BFDBFE"), verticalAlign: "middle", letterSpacing: .2 }}>
-                              {wc.vendor === "rd" ? "RD" : "Sysco"} cheaper/{wc.unit}
+                          {showPerUnitTag && (
+                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 99, background: rdBest ? "#F0FDF4" : "#EFF6FF", color: rdBest ? "#16A34A" : "#2563EB", border: "1px solid " + (rdBest ? "#BBF7D0" : "#BFDBFE"), verticalAlign: "middle", letterSpacing: .2 }}>
+                              {rdBest ? "RD" : "Sysco"} cheaper/{wc.unit}
+                            </span>
+                          )}
+                          {showSameTag && (
+                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 99, background: "#F4F4F0", color: "#777", border: "1px solid #E3E3DD", verticalAlign: "middle", letterSpacing: .2 }}>
+                              ≈ same price
                             </span>
                           )}
                         </div>
