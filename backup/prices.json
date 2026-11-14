@@ -2,21 +2,15 @@
   "rd": {
     "12728": {
       "price": 4.2,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 4.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.2,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 4.2,
@@ -67,6 +61,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 4.2,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 4.2,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -75,21 +75,15 @@
     },
     "13417": {
       "price": 15.79,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 15.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 15.79,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 15.79,
@@ -143,26 +137,26 @@
           "price": 15.79,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 15.79,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "14785": {
       "price": 37.05,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 37.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 37.05,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 37.05,
@@ -216,26 +210,26 @@
           "price": 37.05,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 37.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "16200": {
       "price": 8.87,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 8.87,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 8.87,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 8.87,
@@ -286,6 +280,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 8.87,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 8.87,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -294,21 +294,15 @@
     },
     "21039": {
       "price": 18.24,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 18.24,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 18.24,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 18.24,
@@ -359,6 +353,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 18.24,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 18.24,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -367,21 +367,15 @@
     },
     "21051": {
       "price": 21,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 21,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 20.45,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 20.45,
@@ -432,6 +426,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 21,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 21,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -440,21 +440,15 @@
     },
     "25267": {
       "price": 11.2,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 11.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 11.2,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 11.2,
@@ -505,6 +499,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 11.2,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 11.2,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -513,21 +513,15 @@
     },
     "29268": {
       "price": 16.69,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 16.69,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 16.69,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 16.69,
@@ -581,26 +575,26 @@
           "price": 16.69,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 16.69,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "40138": {
       "price": 14.95,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 14.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 15.49,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 15.79,
@@ -651,6 +645,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 14.95,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 14.95,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -732,21 +732,15 @@
     },
     "42504": {
       "price": 3.2,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 3.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 3.6,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 3.65,
@@ -800,26 +794,26 @@
           "price": 3.2,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 3.2,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42513": {
       "price": 30.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
-      "prevPrice": 30.29,
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
+      "prevPrice": 30.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 30.85,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 30.85,
@@ -873,26 +867,26 @@
           "price": 30.09,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 30.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42545": {
       "price": 18.9,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 18.9,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 20.29,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 20.29,
@@ -946,26 +940,26 @@
           "price": 18.9,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 18.9,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42566": {
       "price": 4.29,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 4.29,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.59,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 4.3,
@@ -1019,26 +1013,26 @@
           "price": 4.29,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 4.29,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42570": {
       "price": 28.7,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 28.7,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 29.45,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 29.05,
@@ -1092,26 +1086,26 @@
           "price": 28.7,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 28.7,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42606": {
       "price": 4.55,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
-      "prevPrice": 4.35,
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
+      "prevPrice": 4.55,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 1.85,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 1.85,
@@ -1165,26 +1159,26 @@
           "price": 4.55,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 4.55,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "42647": {
       "price": 5.85,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.85,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 5.85,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.85,
@@ -1235,6 +1229,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 5.85,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 5.85,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1243,21 +1243,15 @@
     },
     "42658": {
       "price": 14.05,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 14.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 16.29,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 16.29,
@@ -1308,6 +1302,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 14.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 14.05,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1316,21 +1316,15 @@
     },
     "42725": {
       "price": 23.1,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 23.1,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 23.1,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 23.1,
@@ -1384,26 +1378,26 @@
           "price": 23.1,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 23.1,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "43431": {
       "price": 10.65,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 10.65,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 10.89,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 10.89,
@@ -1457,26 +1451,26 @@
           "price": 10.65,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 10.65,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44137": {
       "price": 39.35,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
-      "prevPrice": 38.85,
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
+      "prevPrice": 39.35,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 38.45,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 38.45,
@@ -1530,26 +1524,26 @@
           "price": 39.35,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 39.35,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44146": {
       "price": 16.6,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 16.6,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 14.5,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 14.5,
@@ -1603,26 +1597,26 @@
           "price": 16.6,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 16.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "44211": {
       "price": 4.39,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 4.39,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.39,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 4.39,
@@ -1673,6 +1667,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 4.39,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 4.39,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1681,21 +1681,15 @@
     },
     "45900": {
       "price": 5.3,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.3,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 5.3,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.3,
@@ -1746,6 +1740,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 5.3,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 5.3,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1827,21 +1827,15 @@
     },
     "51457": {
       "price": 28.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 28.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 28.49,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 28.39,
@@ -1892,6 +1886,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 28.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 28.09,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1900,21 +1900,15 @@
     },
     "53556": {
       "price": 20.05,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 20.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 20.05,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 20.05,
@@ -1965,6 +1959,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 20.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 20.05,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -1973,21 +1973,15 @@
     },
     "55519": {
       "price": 11.15,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "each",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 11.15,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 11.15,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 11.15,
@@ -2038,6 +2032,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 11.15,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 11.15,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2046,21 +2046,15 @@
     },
     "55523": {
       "price": 10.9,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 10.9,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 10.9,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 10.9,
@@ -2111,6 +2105,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 10.9,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 10.9,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2119,21 +2119,15 @@
     },
     "64046": {
       "price": 5.15,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.15,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.79,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.15,
@@ -2184,6 +2178,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 5.15,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 5.15,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2192,21 +2192,15 @@
     },
     "64120": {
       "price": 2.99,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 2.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 2.9,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 2.9,
@@ -2260,26 +2254,26 @@
           "price": 2.99,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 2.99,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "69778": {
       "price": 24.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 24.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 24.09,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 24.09,
@@ -2333,26 +2327,26 @@
           "price": 24.09,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 24.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "69810": {
       "price": 9.25,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 9.25,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 9.25,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 9.25,
@@ -2403,6 +2397,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 9.25,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 9.25,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2411,21 +2411,15 @@
     },
     "77200": {
       "price": 63.6,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 63.6,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 63.6,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 63.6,
@@ -2476,6 +2470,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 63.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 63.6,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2484,21 +2484,15 @@
     },
     "77232": {
       "price": 57.6,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 57.6,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-02T13:00:57.974Z",
-          "price": 56,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-03T13:00:57.181Z",
           "price": 56,
@@ -2552,26 +2546,26 @@
           "price": 57.6,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 57.6,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "77658": {
       "price": 63.2,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 63.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-03T13:00:57.181Z",
-          "price": 64,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 63.6,
@@ -2622,6 +2616,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 63.2,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 63.2,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2703,21 +2703,15 @@
     },
     "79042": {
       "price": 275.54,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 275.54,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 282.13,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 282.13,
@@ -2771,26 +2765,26 @@
           "price": 275.54,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 275.54,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "79152": {
       "price": 7.99,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 7.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 7.95,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 7.95,
@@ -2841,6 +2835,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 7.99,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 7.99,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2849,21 +2849,15 @@
     },
     "86525": {
       "price": 5.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 5.09,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.09,
@@ -2914,6 +2908,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 5.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 5.09,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2922,21 +2922,15 @@
     },
     "86527": {
       "price": 4.9,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 4.9,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.9,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 4.9,
@@ -2987,6 +2981,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 4.9,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 4.9,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -2995,21 +2995,15 @@
     },
     "370496": {
       "price": 4.29,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 4.29,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 4.19,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 4.19,
@@ -3063,26 +3057,26 @@
           "price": 4.29,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 4.29,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "440038": {
       "price": 17.94,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 17.94,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 18.75,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 18.75,
@@ -3136,26 +3130,26 @@
           "price": 17.94,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 17.94,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "440039": {
       "price": 17.94,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 17.94,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-01T13:00:57.772Z",
-          "price": 17.89,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-04T13:00:57.438Z",
           "price": 19.85,
@@ -3209,26 +3203,26 @@
           "price": 17.94,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 17.94,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "440040": {
       "price": 17.94,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 17.94,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 19.19,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 19.75,
@@ -3279,6 +3273,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 17.94,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 17.94,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -3287,21 +3287,15 @@
     },
     "490266": {
       "price": 44.45,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 44.45,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 44.45,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 44.45,
@@ -3355,26 +3349,26 @@
           "price": 44.45,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 44.45,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "860043": {
       "price": 6.89,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 6.89,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 6.89,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 6.89,
@@ -3428,26 +3422,26 @@
           "price": 6.89,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 6.89,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "860044": {
       "price": 5.75,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.75,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 5.75,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.75,
@@ -3498,6 +3492,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 5.75,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 5.75,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -3506,21 +3506,15 @@
     },
     "860135": {
       "price": 5.4,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 5.4,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 5.4,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 5.4,
@@ -3574,26 +3568,26 @@
           "price": 5.4,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 5.4,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1020075": {
       "price": 38.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
-      "prevPrice": 38.75,
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
+      "prevPrice": 38.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-03T13:00:57.181Z",
-          "price": 38.79,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-04T13:00:57.438Z",
           "price": 38.79,
@@ -3647,26 +3641,26 @@
           "price": 38.09,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 38.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1020077": {
       "price": 37.99,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 37.99,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 37.99,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 37.99,
@@ -3717,6 +3711,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 37.99,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 37.99,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -3725,21 +3725,15 @@
     },
     "1020152": {
       "price": 16.05,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 16.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 16.05,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 16.05,
@@ -3790,6 +3784,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 16.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 16.05,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -3798,21 +3798,15 @@
     },
     "1070496": {
       "price": 9.69,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 9.69,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 9.69,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 9.69,
@@ -3866,26 +3860,26 @@
           "price": 9.69,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 9.69,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1440203": {
       "price": 10.14,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 10.14,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 10.14,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 10.14,
@@ -3939,26 +3933,26 @@
           "price": 10.14,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 10.14,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1440528": {
       "price": 23.25,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 23.25,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 23.8,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 23.8,
@@ -4012,26 +4006,26 @@
           "price": 23.25,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 23.25,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1530438": {
       "price": 7.39,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 7.39,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 7.39,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 7.39,
@@ -4085,26 +4079,26 @@
           "price": 7.39,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 7.39,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "1810019": {
       "price": 96.5,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
-      "prevPrice": 97.45,
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
+      "prevPrice": 96.5,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 94.4,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 94.4,
@@ -4158,26 +4152,26 @@
           "price": 96.5,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 96.5,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2010066": {
       "price": 8.55,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 8.55,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 8.55,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 8.55,
@@ -4228,6 +4222,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 8.55,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 8.55,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -4236,21 +4236,15 @@
     },
     "2061212": {
       "price": 9.55,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 9.55,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 9.55,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 9.55,
@@ -4304,26 +4298,26 @@
           "price": 9.55,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 9.55,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2550012": {
       "price": 8.09,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 8.09,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 8.09,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 8.09,
@@ -4377,26 +4371,26 @@
           "price": 8.09,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 8.09,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     },
     "2550014": {
       "price": 10.05,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 10.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 10.05,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 10.05,
@@ -4447,6 +4441,12 @@
         },
         {
           "date": "2026-11-13T13:00:55.896Z",
+          "price": 10.05,
+          "source": "scraped_rd",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
           "price": 10.05,
           "source": "scraped_rd",
           "confidence": "medium"
@@ -4528,21 +4528,15 @@
     },
     "2910159": {
       "price": 7.65,
-      "date": "2026-11-13T13:00:55.896Z",
+      "date": "2026-11-14T13:00:56.150Z",
       "unit": "case",
       "confidence": "medium",
       "source": "scraped_rd",
       "rawScraped": null,
-      "scrapedAt": "2026-11-13T13:00:55.896Z",
+      "scrapedAt": "2026-11-14T13:00:56.150Z",
       "prevPrice": 7.65,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:00:57.438Z",
-          "price": 7.65,
-          "source": "scraped_rd",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:00:58.371Z",
           "price": 7.65,
@@ -4596,6 +4590,12 @@
           "price": 7.65,
           "source": "scraped_rd",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:00:56.150Z",
+          "price": 7.65,
+          "source": "scraped_rd",
+          "confidence": "medium"
         }
       ]
     }
@@ -4603,21 +4603,15 @@
   "sysco": {
     "12728": {
       "price": 38.2,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "6914451",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 38.2,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 38.2,
@@ -4671,26 +4665,26 @@
           "price": 38.2,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 38.2,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "13417": {
-      "price": 38.36,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 38.7,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2638660",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.36,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 38.36,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 38.36,
@@ -4742,6 +4736,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 38.36,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 38.7,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -4749,21 +4749,15 @@
     },
     "16200": {
       "price": 37.68,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4062337",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 37.68,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 37.68,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 37.68,
@@ -4814,6 +4808,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 37.68,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 37.68,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -4822,21 +4822,15 @@
     },
     "21039": {
       "price": 23.25,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2886075",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 23.25,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 23.25,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 23.25,
@@ -4890,26 +4884,26 @@
           "price": 23.25,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 23.25,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "21051": {
       "price": 22.12,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "5087572",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 22.12,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 22.12,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 22.12,
@@ -4963,26 +4957,26 @@
           "price": 22.12,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 22.12,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "29268": {
-      "price": 37.21,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 71.89,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "5517701",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
-      "prevPrice": 71.89,
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
+      "prevPrice": 37.21,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 71.89,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 71.89,
@@ -5036,26 +5030,26 @@
           "price": 37.21,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 71.89,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "40138": {
-      "price": 5.94,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 15,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "7350788",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 5.94,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 6.99,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 6.99,
@@ -5107,6 +5101,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 5.94,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 15,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -5114,21 +5114,15 @@
     },
     "40212": {
       "price": 62.2,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "5106388",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 62.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 62.19,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 62.19,
@@ -5179,6 +5173,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 62.2,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 62.2,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5186,22 +5186,16 @@
       ]
     },
     "42504": {
-      "price": 8.59,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 8.61,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "7410640",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 8.59,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 8.61,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 8.61,
@@ -5255,26 +5249,26 @@
           "price": 8.59,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 8.61,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "42513": {
-      "price": 49.18,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 49.21,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1184902",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 49.18,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 49.18,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 49.18,
@@ -5328,26 +5322,26 @@
           "price": 49.18,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 49.21,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "42545": {
-      "price": 16.31,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 15.09,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1094721",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 16.31,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 16.31,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 16.31,
@@ -5401,26 +5395,26 @@
           "price": 16.31,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 15.09,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "42566": {
-      "price": 14.21,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 14.23,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2219095",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 14.21,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 14.24,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 14.24,
@@ -5472,28 +5466,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 14.21,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 14.23,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "42570": {
-      "price": 30.95,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 30.99,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2252013",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 30.95,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 30.92,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 30.92,
@@ -5545,28 +5539,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 30.95,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 30.99,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "42606": {
-      "price": 38.75,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 47.77,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1243724",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.75,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 19.59,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 19.59,
@@ -5618,28 +5612,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 38.75,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 47.77,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "42647": {
-      "price": 6.56,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 6.97,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2037125",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 6.56,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 6.98,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 6.98,
@@ -5691,28 +5685,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 6.56,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 6.97,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "42658": {
-      "price": 11.11,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 10.64,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1094663",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 11.11,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 11.11,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 11.11,
@@ -5766,26 +5760,26 @@
           "price": 11.11,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 10.64,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "42706": {
-      "price": 34.47,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 24.02,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1910231",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 34.47,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 28.13,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 28.13,
@@ -5839,26 +5833,26 @@
           "price": 34.47,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 24.02,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "42725": {
-      "price": 30.76,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 32.11,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1543164",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 30.76,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 30.56,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 30.56,
@@ -5910,6 +5904,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 30.76,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 32.11,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -5917,21 +5917,15 @@
     },
     "44137": {
       "price": 45.79,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "7007376",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 45.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 45.79,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 45.79,
@@ -5982,6 +5976,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 45.79,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 45.79,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -5989,22 +5989,16 @@
       ]
     },
     "44146": {
-      "price": 103.68,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 103.7,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1821537",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 103.68,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 103.61,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 103.61,
@@ -6058,26 +6052,26 @@
           "price": 103.68,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 103.7,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "44211": {
-      "price": 21.55,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 21.59,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1675925",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 21.55,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 21.59,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 21.59,
@@ -6129,28 +6123,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 21.55,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 21.59,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "45900": {
-      "price": 16.43,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 16.41,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4113049",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 16.43,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 16.43,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 16.43,
@@ -6202,6 +6196,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 16.43,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 16.41,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -6209,21 +6209,15 @@
     },
     "51457": {
       "price": 27.57,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "0496671",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 27.57,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 27.56,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 27.56,
@@ -6277,26 +6271,26 @@
           "price": 27.57,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 27.57,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "53556": {
-      "price": 15.77,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 15.1,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4014684",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 15.77,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 15.77,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 15.77,
@@ -6350,26 +6344,26 @@
           "price": 15.77,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 15.1,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "55523": {
       "price": 38.05,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4063095",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 38.05,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 38.05,
@@ -6420,6 +6414,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 38.05,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 38.05,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6428,21 +6428,15 @@
     },
     "64046": {
       "price": 61.64,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2523833",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 61.64,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 61.56,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 61.56,
@@ -6493,6 +6487,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 61.64,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 61.64,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6501,21 +6501,15 @@
     },
     "64120": {
       "price": 49.77,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "6988158",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 49.77,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 49.77,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 49.77,
@@ -6566,6 +6560,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 49.77,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 49.77,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -6574,21 +6574,15 @@
     },
     "69810": {
       "price": 38.02,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4014973",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.02,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 38.02,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 38.02,
@@ -6642,26 +6636,26 @@
           "price": 38.02,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 38.02,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "77200": {
-      "price": 56.79,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 57.17,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "6344790",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 56.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 57.23,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 57.23,
@@ -6713,28 +6707,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 56.79,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 57.17,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "77232": {
-      "price": 48.89,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 49.76,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "5231238",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 48.89,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 49.76,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 49.76,
@@ -6788,26 +6782,26 @@
           "price": 48.89,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 49.76,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "77658": {
-      "price": 60.62,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 60.2,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "0868459",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 60.62,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 60.62,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 60.62,
@@ -6859,6 +6853,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 60.62,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 60.2,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -6938,22 +6938,16 @@
       ]
     },
     "79152": {
-      "price": 9.6,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 10.05,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "3879962",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 9.6,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 9.6,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 9.6,
@@ -7005,28 +6999,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 9.6,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 10.05,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "86525": {
-      "price": 48.88,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 48.84,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1053826",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 48.88,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 48.85,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 48.85,
@@ -7078,28 +7072,28 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 48.88,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 48.84,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "86527": {
-      "price": 31.1,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 31.06,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "3960200",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 31.1,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 31.06,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 31.06,
@@ -7151,6 +7145,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 31.1,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 31.06,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -7158,21 +7158,15 @@
     },
     "370496": {
       "price": 17.58,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4676306",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 17.58,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 16.89,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 16.89,
@@ -7226,26 +7220,26 @@
           "price": 17.58,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 17.58,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "860043": {
       "price": 40.04,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4002325",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 40.04,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 40.04,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 40.04,
@@ -7299,26 +7293,26 @@
           "price": 40.04,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 40.04,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "860044": {
       "price": 35.2,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4978884",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 35.2,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 35.14,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 35.14,
@@ -7369,6 +7363,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 35.2,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 35.2,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -7377,21 +7377,15 @@
     },
     "860135": {
       "price": 42.33,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4978856",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 42.33,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 42.29,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 42.29,
@@ -7445,26 +7439,26 @@
           "price": 42.33,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 42.33,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "1020075": {
-      "price": 44.4,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 43.78,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4119079",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 44.4,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 44.4,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 44.4,
@@ -7516,6 +7510,12 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 44.4,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 43.78,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
@@ -7523,21 +7523,15 @@
     },
     "1020077": {
       "price": 40.79,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4518403",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 40.79,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 41.98,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 41.98,
@@ -7588,6 +7582,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 40.79,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 40.79,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -7595,22 +7595,16 @@
       ]
     },
     "1020152": {
-      "price": 38.91,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 38.87,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "3355757",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 38.91,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 38.89,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 38.89,
@@ -7662,32 +7656,32 @@
         {
           "date": "2026-11-13T13:07:19.257Z",
           "price": 38.91,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 38.87,
           "source": "scraped_sysco",
           "confidence": "medium"
         }
       ]
     },
     "1053826": {
-      "price": 48.88,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 48.84,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1070496": {
       "price": 13.84,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4564894",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 13.84,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 13.84,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 13.84,
@@ -7738,6 +7732,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 13.84,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 13.84,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -7745,42 +7745,36 @@
       ]
     },
     "1094663": {
-      "price": 11.11,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 10.64,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1094721": {
-      "price": 16.31,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 15.09,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1184902": {
-      "price": 49.18,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 49.21,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1243724": {
-      "price": 38.75,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 47.77,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1425982": {
-      "price": 47.47,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 46.61,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1440203": {
-      "price": 44.72,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 41.99,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "2822379",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 44.72,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 45.29,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 45.29,
@@ -7834,26 +7828,26 @@
           "price": 44.72,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 41.99,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "1440528": {
-      "price": 57.05,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 45.8,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "7102961",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
-      "prevPrice": 45.8,
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
+      "prevPrice": 57.05,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 45.8,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 45.8,
@@ -7907,26 +7901,26 @@
           "price": 57.05,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 45.8,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "1530438": {
-      "price": 41.47,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 41.45,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "6935464",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 41.47,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 41.47,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 41.47,
@@ -7980,46 +7974,46 @@
           "price": 41.47,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 41.45,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "1543164": {
-      "price": 30.76,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 32.11,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1675925": {
-      "price": 21.55,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 21.59,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1803287": {
       "price": 36.36,
       "date": "2026-10-29T13:06:56.338Z"
     },
     "1821537": {
-      "price": 103.68,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 103.7,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "1910231": {
-      "price": 34.47,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 24.02,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2010066": {
       "price": 42.81,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "9903790",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 42.81,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 42.81,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 42.81,
@@ -8073,30 +8067,30 @@
           "price": 42.81,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 42.81,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "2037125": {
-      "price": 6.56,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 6.97,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2061212": {
-      "price": 9.8,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 9.45,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "8379251",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 9.8,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 9.8,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.469Z",
           "price": 9.8,
@@ -8150,38 +8144,38 @@
           "price": 9.8,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 9.45,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "2219095": {
-      "price": 14.21,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 14.23,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2252013": {
-      "price": 30.95,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 30.99,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2523833": {
       "price": 61.64,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2550012": {
       "price": 28.61,
-      "date": "2026-11-13T13:07:19.257Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4112262",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 28.61,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.319Z",
-          "price": 28.61,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 28.61,
@@ -8232,6 +8226,12 @@
         },
         {
           "date": "2026-11-13T13:07:19.257Z",
+          "price": 28.61,
+          "source": "scraped_sysco",
+          "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
           "price": 28.61,
           "source": "scraped_sysco",
           "confidence": "medium"
@@ -8239,22 +8239,16 @@
       ]
     },
     "2620442": {
-      "price": 47.47,
-      "date": "2026-11-13T13:07:19.257Z",
+      "price": 46.61,
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "1425982",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-13T13:07:19.257Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 47.47,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-04T13:07:22.318Z",
-          "price": 47.47,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-05T13:07:05.470Z",
           "price": 47.47,
@@ -8308,38 +8302,38 @@
           "price": 47.47,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 46.61,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "2638660": {
-      "price": 38.36,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 38.7,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2822379": {
-      "price": 44.72,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 41.99,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2886075": {
       "price": 23.25,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "2910159": {
       "price": 37.21,
-      "date": "2026-11-12T13:07:42.605Z",
+      "date": "2026-11-14T13:06:39.398Z",
       "syscoUpc": "4073441",
       "rdMult": 1,
       "confidence": "medium",
       "source": "scraped_sysco",
-      "scrapedAt": "2026-11-12T13:07:42.605Z",
+      "scrapedAt": "2026-11-14T13:06:39.398Z",
       "prevPrice": 37.21,
       "validatedBy": null,
       "auditLog": [
-        {
-          "date": "2026-11-03T13:07:11.832Z",
-          "price": 37.21,
-          "source": "scraped_sysco",
-          "confidence": "medium"
-        },
         {
           "date": "2026-11-04T13:07:22.319Z",
           "price": 37.21,
@@ -8393,143 +8387,149 @@
           "price": 37.21,
           "source": "scraped_sysco",
           "confidence": "medium"
+        },
+        {
+          "date": "2026-11-14T13:06:39.398Z",
+          "price": 37.21,
+          "source": "scraped_sysco",
+          "confidence": "medium"
         }
       ]
     },
     "3355757": {
-      "price": 38.91,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 38.87,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "3879962": {
-      "price": 9.6,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 10.05,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "3960200": {
-      "price": 31.1,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 31.06,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4002325": {
       "price": 40.04,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4014684": {
-      "price": 15.77,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 15.1,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4014973": {
       "price": 38.02,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4062337": {
       "price": 37.68,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4063095": {
       "price": 38.05,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4073441": {
       "price": 37.21,
-      "date": "2026-11-12T13:07:42.605Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4112262": {
       "price": 28.61,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4113049": {
-      "price": 16.43,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 16.41,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4119079": {
-      "price": 44.4,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 43.78,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4518403": {
       "price": 40.79,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4564894": {
       "price": 13.84,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4676306": {
       "price": 17.58,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4978856": {
       "price": 42.33,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "4978884": {
       "price": 35.2,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "5087572": {
       "price": 22.12,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "5106388": {
       "price": 62.2,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "5231238": {
-      "price": 48.89,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 49.76,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "5517701": {
-      "price": 37.21,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 71.89,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "6344790": {
-      "price": 56.79,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 57.17,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "6914451": {
       "price": 38.2,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "6935464": {
-      "price": 41.47,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 41.45,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "6988158": {
       "price": 49.77,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "7007376": {
       "price": 45.79,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "7102961": {
-      "price": 57.05,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 45.8,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "7350788": {
-      "price": 5.94,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 15,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "7410640": {
-      "price": 8.59,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 8.61,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "8379251": {
-      "price": 9.8,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 9.45,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "9903790": {
       "price": 42.81,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "0868459": {
-      "price": 60.62,
-      "date": "2026-11-13T13:07:19.257Z"
+      "price": 60.2,
+      "date": "2026-11-14T13:06:39.398Z"
     },
     "0496671": {
       "price": 27.57,
-      "date": "2026-11-13T13:07:19.257Z"
+      "date": "2026-11-14T13:06:39.398Z"
     }
   },
-  "lastUpdated": "2026-11-13T13:07:19.262Z",
+  "lastUpdated": "2026-11-14T13:06:39.401Z",
   "oos": {
     "rd": [
       "77670",
